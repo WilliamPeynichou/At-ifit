@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard';
 import StravaConnect from './pages/StravaConnect';
 import StravaStats from './pages/StravaStats';
 import KcalCalculator from './components/KcalCalculator';
+import Muscles from './pages/Muscles';
 
 function App() {
   return (
@@ -73,6 +74,16 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <KcalCalculator />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/muscles"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Muscles />
                     </Layout>
                   </ProtectedRoute>
                 }

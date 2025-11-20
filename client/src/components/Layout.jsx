@@ -32,6 +32,10 @@ const Layout = ({ children }) => {
               <Activity size={16} className="text-blue-400" />
               KCAL
             </Link>
+            <Link to="/muscles" className="text-sm font-bold text-slate-300 hover:text-red-500 transition-colors flex items-center gap-2">
+              <Activity size={16} className="text-red-500" />
+              MUSCLES
+            </Link>
             {user && (
               <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
                 <div className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse"></div>
