@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+:root {
+  --neon-cyan: #00f3ff;
+  --neon-purple: #d946ef;
+  --neon-lime: #ccff00;
+  --bg-deep: #000000;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+}
+
+@layer base {
+  body {
+    @apply bg-black text-slate-200 antialiased overflow-x-hidden;
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(188, 19, 254, 0.15), transparent 40%),
+      radial-gradient(circle at 0% 100%, rgba(0, 243, 255, 0.1), transparent 30%);
+    background-attachment: fixed;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  /* Glassmorphism */
+  .glass-panel {
+    @apply backdrop-blur-xl bg-white/5 border border-white/10 shadow-2xl;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .glass-card {
+    @apply backdrop-blur-md bg-white/5 border border-white/5 transition-all duration-500;
+  }
+
+  .glass-card:hover {
+    @apply bg-white/10 border-white/20 transform -translate-y-1;
+    box-shadow: 0 0 20px rgba(188, 19, 254, 0.2);
+  }
+
+  /* Neon Text */
+  .text-neon-cyan {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+  }
+
+  .text-neon-purple {
+    color: var(--neon-purple);
+    text-shadow: 0 0 10px rgba(188, 19, 254, 0.5);
+  }
+
+  /* Buttons */
+  .btn-cyber {
+    @apply relative px-6 py-3 font-bold text-white transition-all duration-300 overflow-hidden rounded-lg;
+    background: linear-gradient(45deg, transparent 5%, var(--neon-purple) 5%);
+    box-shadow: 6px 0px 0px #00f3ff;
+  }
+
+  .btn-cyber:hover {
+    box-shadow: 6px 0px 0px #ccff00;
+    text-shadow: 0 0 8px rgba(255,255,255,0.8);
+  }
+
+  .btn-cyber::after {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-full;
+    background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+    transform: skewX(-20deg) translateX(-150%);
+    transition: 0.5s;
+  }
+
+  .btn-cyber:hover::after {
+    transform: skewX(-20deg) translateX(150%);
+  }
+
+  /* Inputs */
+  .input-cyber {
+    @apply w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white outline-none transition-all duration-300;
+  }
+
+  .input-cyber:focus {
+    @apply border-transparent bg-white/10;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 0 1px var(--neon-cyan);
+  }
+
+  /* Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+  
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #050011; 
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #333; 
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-purple); 
+  }
+}
+
+/* Particle Background Utilities */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.3;
+  animation: float-particle 20s infinite linear;
+}
+
+@keyframes float-particle {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+}
