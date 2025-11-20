@@ -2,100 +2,108 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { validateRequest, validations } = require('../middleware/validation');
+const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHandler');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
+/**
+ * Generate JWT token for user
+ */
+const generateToken = (userId) => {
+  return jwt.sign(
+    { id: userId },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+  );
+};
+
+/**
+ * Format user response (exclude sensitive data)
+ */
+const formatUserResponse = (user) => ({
+  id: user.id,
+  email: user.email,
+  pseudo: user.pseudo,
+  height: user.height,
+  age: user.age,
+  gender: user.gender,
+  targetWeight: user.targetWeight,
+  consoKcal: user.consoKcal,
+  weeksToGoal: user.weeksToGoal
+});
+
 // Register
-router.post('/register', async (req, res) => {
-  try {
+router.post('/register', 
+  validateRequest(validations.register),
+  asyncHandler(async (req, res) => {
     const { email, password, pseudo } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return sendError(res, 'Email already registered', 400);
     }
 
     // Create user
     const user = await User.create({
       email,
       password,
-      pseudo: pseudo || email.split('@')[0], // Default pseudo to email username
+      pseudo: pseudo || email.split('@')[0],
     });
 
-    // Generate token
-    const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
-    );
+    const token = generateToken(user.id);
 
-    res.status(201).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        pseudo: user.pseudo,
-      },
-      token,
-    });
-  } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ error: 'Error creating user' });
-  }
-});
+    logger.info('New user registered', { userId: user.id, email: user.email });
+
+    sendSuccess(res, {
+      user: formatUserResponse(user),
+      token
+    }, 'Registration successful', 201);
+  })
+);
 
 // Login
-router.post('/login', async (req, res) => {
-  try {
+router.post('/login',
+  validateRequest(validations.login),
+  asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
     // Find user
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return sendError(res, 'Invalid credentials', 401);
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return sendError(res, 'Invalid credentials', 401);
     }
 
-    // Generate token
-    const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
-    );
+    const token = generateToken(user.id);
 
-    res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        pseudo: user.pseudo,
-        height: user.height,
-        age: user.age,
-        gender: user.gender,
-        targetWeight: user.targetWeight,
-      },
-      token,
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Error logging in' });
-  }
-});
+    logger.info('User logged in', { userId: user.id });
+
+    sendSuccess(res, {
+      user: formatUserResponse(user),
+      token
+    }, 'Login successful');
+  })
+);
 
 // Get current user
-router.get('/me', auth, async (req, res) => {
-  try {
-    const user = await User.findByPk(req.userId, {
-      attributes: { exclude: ['password'] }
-    });
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: 'Error fetching user' });
+router.get('/me', auth, asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.userId, {
+    attributes: { exclude: ['password'] }
+  });
+  
+  if (!user) {
+    return sendError(res, 'User not found', 404);
   }
-});
+  
+  sendSuccess(res, user);
+}));
 
 module.exports = router;
