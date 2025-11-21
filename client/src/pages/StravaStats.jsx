@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
-import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter } from 'lucide-react';
+import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut } from 'lucide-react';
 import api from '../api';
 
 const StravaStats = () => {
+  const { loadUser } = useAuth();
+  const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState([]);
   const [globalProgression, setGlobalProgression] = useState([]);
   const [sportProgression, setSportProgression] = useState({});
   const [selectedSport, setSelectedSport] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -20,15 +25,35 @@ const StravaStats = () => {
 
   const fetchActivities = async () => {
     try {
+      setLoading(true);
+      setError('');
       const response = await api.get('/strava/activities');
-      if (!Array.isArray(response.data)) throw new Error('Invalid data format');
+      
+      // Check if response.data is an array
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid data format');
+      }
       
       // Sort by date ascending for progression
-      const sortedData = response.data.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+      const sortedData = data.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
       setActivities(sortedData);
-      processStats(sortedData);
+      
+      if (sortedData.length === 0) {
+        setError('No activities found. Make sure you have activities in your Strava account.');
+      } else {
+        processStats(sortedData);
+      }
     } catch (err) {
-      setError('Failed to fetch Strava data. Make sure you are connected.');
+      console.error('Error fetching Strava activities:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch Strava data. Make sure you are connected.';
+      setError(errorMessage);
+      
+      // If user is not connected, redirect to connect page immediately
+      if (err.response?.status === 400 && errorMessage.includes('not connected')) {
+        navigate('/strava-connect');
+      }
     } finally {
       setLoading(false);
     }
@@ -144,6 +169,26 @@ const StravaStats = () => {
     });
   };
 
+  const handleDisconnect = async () => {
+    if (!window.confirm('Are you sure you want to disconnect your Strava account?')) {
+      return;
+    }
+
+    setDisconnecting(true);
+    setError('');
+    try {
+      await api.delete('/strava/disconnect');
+      if (loadUser) {
+        await loadUser();
+      }
+      navigate('/strava-connect');
+    } catch (err) {
+      setError('Failed to disconnect Strava account.');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   // Prepare data for Multi-Line Chart (Sport Progression)
   // We need a unified timeline. This is tricky if dates don't overlap.
   // Simplified approach: Use the global progression dates and map sport values to them?
@@ -179,27 +224,68 @@ const StravaStats = () => {
   const sportsList = Object.keys(sportProgression);
   const colors = ['#fc4c02', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-64">
-      <div className="w-12 h-12 border-4 border-[#fc4c02] border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#fc4c02] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading Strava data...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (error) return (
-    <div className="text-center p-8">
-      <p className="text-red-400 mb-4">{error}</p>
-      <a href="/strava-connect" className="text-[#fc4c02] hover:underline">Connect Strava Account</a>
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <div className="text-center p-8 max-w-md">
+          <p className="text-red-400 mb-4 text-lg">{error}</p>
+          <a 
+            href="/strava-connect" 
+            className="text-[#fc4c02] hover:underline font-bold"
+          >
+            Connect Strava Account
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (activities.length === 0) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <div className="text-center p-8 max-w-md">
+          <p className="text-slate-400 mb-4 text-lg">No activities found.</p>
+          <a 
+            href="/strava-connect" 
+            className="text-[#fc4c02] hover:underline font-bold"
+          >
+            Connect Strava Account
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <span className="text-[#fc4c02]">STRAVA</span> PROGRESSION
         </h1>
-        <div className="text-sm text-slate-400">
-          {activities.length} Activities Analyzed
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            {activities.length} Activities Analyzed
+          </div>
+          <button
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            <LogOut size={16} />
+            {disconnecting ? 'DISCONNECTING...' : 'DISCONNECT'}
+          </button>
         </div>
       </div>
 
@@ -352,6 +438,7 @@ const StravaStats = () => {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
   );

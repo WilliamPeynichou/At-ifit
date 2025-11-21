@@ -3,12 +3,15 @@ import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area 
 } from 'recharts';
 import api from '../api';
+import { useLanguage } from '../context/LanguageContext';
 import StatsCard from './StatsCard';
 import WeightForm from './WeightForm';
 import UserProfile from './UserProfile';
-import { Activity, Scale } from 'lucide-react';
+import { Activity, Scale, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
+  const { t } = useLanguage();
   const [weights, setWeights] = useState([]);
   const [stravaActivities, setStravaActivities] = useState([]);
   const [combinedData, setCombinedData] = useState([]);
@@ -185,8 +188,81 @@ const Dashboard = () => {
   if (loading) return <div className="flex items-center justify-center h-screen text-neon-cyan animate-pulse tracking-widest font-bold">INITIALIZING SYSTEM...</div>;
 
   return (
-    <div className="space-y-10 pb-12">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      {/* Help Link */}
+      <div className="mb-6 flex justify-end">
+        <Link
+          to="/stats-explanation"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/30 rounded-lg text-neon-cyan text-sm font-bold transition-all"
+        >
+          <Info className="w-4 h-4" />
+          {t('stats.pageTitle') || 'STATISTICS GUIDE'}
+        </Link>
+      </div>
+
+      {/* Profile Section - Full Width */}
+      <div className="mb-8">
+        <UserProfile onUpdate={fetchData} />
+      </div>
+
+      {/* BMI Status and Log Data - Side by Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* BMI Card */}
+        <div className="flex">
+          <div className="glass-panel rounded-2xl p-6 relative overflow-hidden border border-white/5 bg-black/40 w-full flex flex-col">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-neon-cyan/20 blur-3xl rounded-full"></div>
+            <div className="flex items-center gap-3 mb-6 relative z-10">
+              <div className="p-2 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
+                <Scale className="w-5 h-5 text-neon-cyan" />
+              </div>
+              <h2 className="text-lg font-bold text-white tracking-wider">{t('dashboard.bmiStatus')}</h2>
+            </div>
+            <div className="relative z-10">
+              {user && user.height && currentWeight > 0 ? (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="text-5xl font-black text-neon-cyan mb-2 drop-shadow-[0_0_10px_rgba(0,243,255,0.5)]">
+                      {bmi.value}
+                    </div>
+                    <div className={`text-sm font-bold uppercase tracking-widest ${
+                      bmi.category === 'Underweight' ? 'text-blue-400' :
+                      bmi.category === 'Normal' ? 'text-green-400' :
+                      bmi.category === 'Overweight' ? 'text-amber-400' :
+                      'text-rose-400'
+                    }`}>
+                      {bmi.category}
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-white/10">
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <div className="text-slate-400 mb-1">{t('dashboard.height')}</div>
+                        <div className="text-white font-mono">{user.height} cm</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-400 mb-1">{t('dashboard.weight')}</div>
+                        <div className="text-white font-mono">{currentWeight} kg</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-slate-500 text-sm mb-2">{t('dashboard.completeProfile')}</div>
+                  <div className="text-xs text-slate-600">{t('dashboard.heightWeightRequired')}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Weight Form */}
+        <div className="flex">
+          <WeightForm onUpdate={fetchData} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="lg:col-span-2 space-y-8">
           {/* Combined Chart Section */}
           <div className="glass-panel rounded-3xl p-8 relative overflow-hidden group border border-white/5 bg-black/40">
@@ -194,7 +270,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-xl font-bold text-white tracking-widest flex items-center gap-3">
                 <span className="w-2 h-2 bg-neon-cyan rounded-full animate-pulse shadow-[0_0_10px_#00f3ff]"></span>
-                CORRELATION: WEIGHT vs ACTIVITY
+                {t('dashboard.correlation')}
               </h2>
               
               {/* Metric Toggle */}
@@ -203,19 +279,19 @@ const Dashboard = () => {
                   onClick={() => setMetric('distance')}
                   className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'distance' ? 'bg-[#fc4c02] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                 >
-                  DISTANCE
+                  {t('dashboard.distance')}
                 </button>
                 <button 
                   onClick={() => setMetric('calories')}
                   className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'calories' ? 'bg-[#ef4444] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                 >
-                  CALORIES
+                  {t('dashboard.calories')}
                 </button>
                 <button 
                   onClick={() => setMetric('bpm')}
                   className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'bpm' ? 'bg-[#ec4899] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                 >
-                  BPM
+                  {t('dashboard.bpm')}
                 </button>
               </div>
             </div>
@@ -328,69 +404,58 @@ const Dashboard = () => {
           {/* Stats Grid - Green Priority */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
             <StatsCard 
-              title="START DATE" 
+              title={t('dashboard.startDate')} 
               value={weights.length > 0 ? new Date(weights[0].date).toLocaleDateString() : '-'} 
-              subtext="INITIATION"
+              subtext={t('dashboard.initiation')}
               color="green"
             />
             <StatsCard 
-              title="DAYS ACTIVE" 
+              title={t('dashboard.daysActive')} 
               value={daysPassed} 
-              subtext="DURATION"
+              subtext={t('dashboard.duration')}
               color="green"
             />
             <StatsCard 
-              title="PEAK WEIGHT" 
+              title={t('dashboard.peakWeight')} 
               value={`${highestWeight} kg`} 
               color="green"
             />
             <StatsCard 
-              title="LOWEST WEIGHT" 
+              title={t('dashboard.lowestWeight')} 
               value={`${lowestWeight} kg`} 
               color="green"
             />
           </div>
           
-           {/* BMI - Green Priority */}
-           <div className="grid grid-cols-1 gap-5">
-             <StatsCard 
-              title="BMI STATUS" 
-              value={bmi.value} 
-              subtext={bmi.category.toUpperCase()}
-              color="green"
-              className="border-emerald-500/20 bg-emerald-500/5"
-            />
-           </div>
-
            {/* Stats Grid - Orange Priority */}
            <div className="space-y-4">
              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
                <span className="w-8 h-[1px] bg-slate-800"></span>
-               PERFORMANCE METRICS
+               {t('dashboard.performanceMetrics')}
              </h3>
              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
               <StatsCard 
-                title="TOTAL LOGS" 
+                title={t('dashboard.totalLogs')} 
                 value={totalMeasurements} 
                 color="orange"
               />
               <StatsCard 
-                title="7 DAY DELTA" 
+                title={t('dashboard.dayDelta')} 
                 value={`${change7Days > 0 ? '+' : ''}${change7Days} kg`} 
                 color="orange"
               />
               <StatsCard 
-                title="30 DAY DELTA" 
+                title={t('dashboard.dayDelta30')} 
                 value={`${change30Days > 0 ? '+' : ''}${change30Days} kg`} 
                 color="orange"
               />
               <StatsCard 
-                title="WEEKLY AVG" 
+                title={t('dashboard.weeklyAvg')} 
                 value={`${avgWeeklyChange > 0 ? '+' : ''}${avgWeeklyChange} kg`} 
                 color="orange"
               />
               <StatsCard 
-                title="MONTHLY AVG" 
+                title={t('dashboard.monthlyAvg')} 
                 value={`${avgMonthlyChange > 0 ? '+' : ''}${avgMonthlyChange} kg`} 
                 color="orange"
               />
@@ -402,23 +467,18 @@ const Dashboard = () => {
              <div className="space-y-4">
                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
                  <span className="w-8 h-[1px] bg-slate-800"></span>
-                 MISSION OBJECTIVE
+                 {t('dashboard.missionObjective')}
                </h3>
                <div className="grid grid-cols-1 gap-5">
                  <StatsCard 
-                  title="EST. DAYS TO TARGET" 
+                  title={t('dashboard.estDaysToTarget')} 
                   value={daysToGoal} 
-                  subtext={weights.length < 3 ? "GATHERING DATA..." : "BASED ON CURRENT VELOCITY"}
+                  subtext={weights.length < 3 ? t('dashboard.gatheringData') : t('dashboard.basedOnVelocity')}
                   color="red"
                 />
                </div>
              </div>
            )}
-        </div>
-
-        <div className="space-y-8">
-          <WeightForm onUpdate={fetchData} />
-          <UserProfile onUpdate={fetchData} />
         </div>
       </div>
     </div>

@@ -55,7 +55,8 @@ const KcalCalculator = () => {
   if (loading) return <div className="p-8 text-center text-white">Loading...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-4xl mx-auto space-y-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-white flex items-center gap-3">
           <Calculator className="w-8 h-8 text-blue-500" />
@@ -211,6 +212,7 @@ const KcalCalculator = () => {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

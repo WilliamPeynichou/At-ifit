@@ -54,6 +54,11 @@ const User = sequelize.define('User', {
   weeksToGoal: {
     type: DataTypes.FLOAT,
     allowNull: true
+  },
+  country: {
+    type: DataTypes.STRING, // 'FR', 'US', 'GB', 'TR', 'IT'
+    allowNull: true,
+    defaultValue: 'FR'
   }
 }, {
   timestamps: true

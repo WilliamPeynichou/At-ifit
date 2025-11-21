@@ -31,14 +31,15 @@ const formatUserResponse = (user) => ({
   gender: user.gender,
   targetWeight: user.targetWeight,
   consoKcal: user.consoKcal,
-  weeksToGoal: user.weeksToGoal
+  weeksToGoal: user.weeksToGoal,
+  country: user.country
 });
 
 // Register
 router.post('/register', 
   validateRequest(validations.register),
   asyncHandler(async (req, res) => {
-    const { email, password, pseudo } = req.body;
+    const { email, password, pseudo, country } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -51,6 +52,7 @@ router.post('/register',
       email,
       password,
       pseudo: pseudo || email.split('@')[0],
+      country: country || 'FR',
     });
 
     const token = generateToken(user.id);

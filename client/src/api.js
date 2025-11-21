@@ -18,10 +18,16 @@ api.interceptors.request.use(
   }
 );
 
-// Handle 401 errors
+// Handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Network error (server not running or CORS issue)
+    if (!error.response) {
+      console.error('Network Error:', error.message);
+      console.error('Make sure the backend server is running on http://localhost:3001');
+    }
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';

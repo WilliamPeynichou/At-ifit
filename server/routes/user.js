@@ -88,14 +88,14 @@ router.post('/',
   auth,
   validateRequest(validations.updateProfile),
   asyncHandler(async (req, res) => {
-    const { height, age, pseudo, gender, targetWeight } = req.body;
+    const { height, age, pseudo, gender, targetWeight, country } = req.body;
     const user = await User.findByPk(req.userId);
     
     if (!user) {
       return sendError(res, 'User not found', 404);
     }
     
-    await user.update({ height, age, pseudo, gender, targetWeight });
+    await user.update({ height, age, pseudo, gender, targetWeight, country });
     
     sendSuccess(res, {
       id: user.id,
@@ -106,7 +106,8 @@ router.post('/',
       gender: user.gender,
       targetWeight: user.targetWeight,
       consoKcal: user.consoKcal,
-      weeksToGoal: user.weeksToGoal
+      weeksToGoal: user.weeksToGoal,
+      country: user.country
     }, 'Profile updated successfully');
   })
 );

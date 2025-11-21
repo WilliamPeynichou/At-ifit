@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -9,13 +10,19 @@ import Dashboard from './components/Dashboard';
 import StravaConnect from './pages/StravaConnect';
 import StravaStats from './pages/StravaStats';
 import KcalCalculator from './components/KcalCalculator';
-import Muscles from './pages/Muscles';
+import Onboarding from './components/Onboarding';
+import StatsExplanation from './pages/StatsExplanation';
+import NewUserProfile from './pages/NewUserProfile';
+import NewUserWeight from './pages/NewUserWeight';
+import NewUserStrava from './pages/NewUserStrava';
+
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen bg-black text-slate-200 antialiased overflow-x-hidden relative">
+        <LanguageProvider>
+          <div className="min-h-screen bg-black text-slate-200 antialiased overflow-x-hidden relative">
           {/* Global Particle Background */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
             {[...Array(20)].map((_, i) => (
@@ -79,18 +86,52 @@ function App() {
                 }
               />
               <Route
-                path="/muscles"
+                path="/onboarding"
+                element={
+                  <ProtectedRoute>
+                    <Onboarding />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/stats-explanation"
                 element={
                   <ProtectedRoute>
                     <Layout>
-                      <Muscles />
+                      <StatsExplanation />
                     </Layout>
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/new-user-profile"
+                element={
+                  <ProtectedRoute>
+                    <NewUserProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/new-user-weight"
+                element={
+                  <ProtectedRoute>
+                    <NewUserWeight />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/new-user-strava"
+                element={
+                  <ProtectedRoute>
+                    <NewUserStrava />
+                  </ProtectedRoute>
+                }
+              />
+
             </Routes>
           </div>
         </div>
+        </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
   );

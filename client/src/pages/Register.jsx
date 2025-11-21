@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Activity } from 'lucide-react';
+import { countryNames } from '../i18n/translations';
 
 const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pseudo, setPseudo] = useState('');
+  const [country, setCountry] = useState('FR');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -28,12 +30,42 @@ const Register = () => {
     }
 
     setLoading(true);
+    setError('');
 
     try {
-      await register(email, password, pseudo);
-      navigate('/');
+      console.log('Attempting registration with:', { email, pseudo, country });
+      const result = await register(email, password, pseudo, country);
+      console.log('Registration successful:', result);
+      
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        // Redirect to new user profile setup
+        navigate('/new-user-profile');
+      }, 100);
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      console.error('Registration error:', err);
+      console.error('Error response:', err.response);
+      
+      let errorMessage = '';
+      
+      // Network error - server not running
+      if (!err.response) {
+        errorMessage = 'Network Error: Cannot connect to the server. Please make sure the backend server is running on http://localhost:3001';
+      } 
+      // Validation errors
+      else if (err.response?.data?.details && Array.isArray(err.response.data.details)) {
+        errorMessage = err.response.data.details.join(', ');
+      }
+      // Other API errors
+      else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      }
+      // Default error
+      else {
+        errorMessage = err.message || 'Registration failed. Please try again.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -51,8 +83,8 @@ const Register = () => {
             </div>
           </div>
           <h1 className="text-4xl font-black tracking-widest">
-            <span className="text-white">ANTIGRAVITY</span>
-            <span className="text-neon-cyan">.FIT</span>
+            <span className="text-white">AT</span>
+            <span className="text-neon-cyan">.IFIT</span>
           </h1>
         </div>
 
@@ -66,14 +98,14 @@ const Register = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Email Coordinates</label>
+            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
               required
-              placeholder="PILOT@ANTIGRAVITY.IO"
+              placeholder="PILOT@ATIFIT.IO"
             />
           </div>
 
@@ -89,7 +121,23 @@ const Register = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Access Code</label>
+            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Country of Residence</label>
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
+              required
+            >
+              <option value="FR" className="bg-slate-900">{countryNames.FR.EN}</option>
+              <option value="US" className="bg-slate-900">{countryNames.US.EN}</option>
+              <option value="GB" className="bg-slate-900">{countryNames.GB.EN}</option>
+              <option value="TR" className="bg-slate-900">{countryNames.TR.EN}</option>
+              <option value="IT" className="bg-slate-900">{countryNames.IT.EN}</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Password</label>
             <input
               type="password"
               value={password}
@@ -102,7 +150,7 @@ const Register = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Confirm Code</label>
+            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Confirm Password</label>
             <input
               type="password"
               value={confirmPassword}
@@ -118,7 +166,7 @@ const Register = () => {
             disabled={loading}
             className="btn-cyber w-full mt-6 py-4 text-sm tracking-widest"
           >
-            {loading ? 'INITIALIZING...' : 'JOIN SQUADRON'}
+            {loading ? 'INITIALIZING...' : 'CREATE ACCOUNT'}
           </button>
         </form>
 

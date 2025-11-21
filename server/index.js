@@ -17,6 +17,16 @@ const requiredEnvVars = ['JWT_SECRET', 'STRAVA_CLIENT_ID', 'STRAVA_CLIENT_SECRET
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
+  console.error('❌ ERROR: Missing required environment variables:');
+  missingEnvVars.forEach(varName => {
+    console.error(`   - ${varName}`);
+  });
+  console.error('\n📝 Please create a .env file in the server directory with these variables.');
+  console.error('   Example:');
+  console.error('   JWT_SECRET=your-secret-key-here');
+  console.error('   STRAVA_CLIENT_ID=your-strava-client-id');
+  console.error('   STRAVA_CLIENT_SECRET=your-strava-client-secret');
+  console.error('   STRAVA_REDIRECT_URI=http://localhost:3001/api/strava/callback\n');
   logger.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
   process.exit(1);
 }

@@ -38,8 +38,8 @@ const Login = () => {
             </div>
           </div>
           <h1 className="text-4xl font-black tracking-widest">
-            <span className="text-white">ANTIGRAVITY</span>
-            <span className="text-neon-cyan">.FIT</span>
+            <span className="text-white">AT</span>
+            <span className="text-neon-cyan">.IFIT</span>
           </h1>
         </div>
 
@@ -53,19 +53,19 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Email Coordinates</label>
+            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
               required
-              placeholder="PILOT@ANTIGRAVITY.IO"
+              placeholder="PILOT@ATIFIT.IO"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Access Code</label>
+            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Password</label>
             <input
               type="password"
               value={password}
@@ -88,7 +88,7 @@ const Login = () => {
         <p className="mt-10 text-center text-xs text-slate-500 tracking-wide">
           NO ACCESS?{' '}
           <Link to="/register" className="text-neon-purple hover:text-white transition-colors font-bold tracking-widest ml-2">
-            REGISTER ID
+            CREATE ACCOUNT
           </Link>
         </p>
       </div>

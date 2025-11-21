@@ -18,11 +18,22 @@ export const AuthProvider = ({ children }) => {
 
   const loadUser = async () => {
     try {
+      const currentToken = localStorage.getItem('token');
+      if (!currentToken) {
+        setLoading(false);
+        return;
+      }
+      
       const res = await api.get('/auth/me');
-      setUser(res.data);
+      if (res.data) {
+        setUser(res.data);
+      }
     } catch (error) {
       console.error('Error loading user:', error);
-      logout();
+      // Only logout if it's an auth error, not a network error
+      if (error.response?.status === 401) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
@@ -33,15 +44,40 @@ export const AuthProvider = ({ children }) => {
     setToken(res.data.token);
     setUser(res.data.user);
     localStorage.setItem('token', res.data.token);
+    await loadUser(); // Reload full user data
     return res.data;
   };
 
-  const register = async (email, password, pseudo) => {
-    const res = await api.post('/auth/register', { email, password, pseudo });
-    setToken(res.data.token);
-    setUser(res.data.user);
-    localStorage.setItem('token', res.data.token);
-    return res.data;
+  const register = async (email, password, pseudo, country) => {
+    try {
+      const res = await api.post('/auth/register', { email, password, pseudo, country });
+      
+      // Check if response has the expected structure
+      if (!res.data || !res.data.token || !res.data.user) {
+        throw new Error('Invalid response format from server');
+      }
+      
+      const token = res.data.token;
+      const user = res.data.user;
+      
+      setToken(token);
+      setUser(user);
+      localStorage.setItem('token', token);
+      
+      // Reload full user data after setting token
+      try {
+        await loadUser();
+      } catch (loadError) {
+        console.warn('Could not reload user after registration, but registration succeeded', loadError);
+        // Don't fail registration if loadUser fails
+      }
+      
+      return res.data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      // Re-throw to let the component handle it
+      throw error;
+    }
   };
 
   const logout = () => {
@@ -51,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, loadUser }}>
       {children}
     </AuthContext.Provider>
   );
