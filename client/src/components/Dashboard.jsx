@@ -175,14 +175,37 @@ const Dashboard = () => {
   const avgWeeklyChange = (avgDailyChange * 7).toFixed(2);
   const avgMonthlyChange = (avgDailyChange * 30).toFixed(2);
 
-  // Goal Estimation
+  // Estimation du temps pour atteindre l'objectif
   const targetWeight = user?.targetWeight;
-  let daysToGoal = 'N/A';
-  if (targetWeight && weights.length >= 3 && avgDailyChange !== 0) {
-    const remainingWeight = currentWeight - targetWeight;
-    if ((remainingWeight > 0 && avgDailyChange < 0) || (remainingWeight < 0 && avgDailyChange > 0)) {
-      daysToGoal = Math.ceil(remainingWeight / avgDailyChange);
+  let daysToGoalDisplay = 'N/A';
+  let goalStatusText = '';
+  
+  if (targetWeight && weights.length >= 3) {
+    const weightDifference = currentWeight - targetWeight; // Différence avec l'objectif
+    const isGoalToLoseWeight = weightDifference > 0; // On veut perdre du poids
+    const isGoalToGainWeight = weightDifference < 0; // On veut prendre du poids
+    
+    // Vérifier si on progresse dans la bonne direction
+    const isProgressingCorrectly = 
+      (isGoalToLoseWeight && avgDailyChange < 0) || // On perd du poids et c'est l'objectif
+      (isGoalToGainWeight && avgDailyChange > 0);     // On prend du poids et c'est l'objectif
+    
+    if (isProgressingCorrectly && avgDailyChange !== 0) {
+      // Calcul simple : poids restant / vitesse quotidienne
+      const daysNeeded = Math.abs(weightDifference / avgDailyChange);
+      daysToGoalDisplay = Math.ceil(daysNeeded);
+      goalStatusText = t('dashboard.basedOnVelocity') || 'Basé sur la vitesse actuelle';
+    } else if (Math.abs(weightDifference) < 0.5) {
+      // Objectif presque atteint (moins de 0.5kg de différence)
+      daysToGoalDisplay = '✓';
+      goalStatusText = t('dashboard.goalReached') || 'Objectif atteint !';
+    } else {
+      // On ne progresse pas dans la bonne direction
+      daysToGoalDisplay = '—';
+      goalStatusText = t('dashboard.wrongDirection') || 'Ajustez votre progression';
     }
+  } else if (targetWeight && weights.length < 3) {
+    goalStatusText = t('dashboard.gatheringData') || 'Collecte de données...';
   }
 
   if (loading) return <div className="flex items-center justify-center h-screen text-neon-cyan animate-pulse tracking-widest font-bold">INITIALIZING SYSTEM...</div>;
@@ -472,8 +495,8 @@ const Dashboard = () => {
                <div className="grid grid-cols-1 gap-5">
                  <StatsCard 
                   title={t('dashboard.estDaysToTarget')} 
-                  value={daysToGoal} 
-                  subtext={weights.length < 3 ? t('dashboard.gatheringData') : t('dashboard.basedOnVelocity')}
+                  value={daysToGoalDisplay === 'N/A' ? 'N/A' : daysToGoalDisplay === '✓' ? '✓' : daysToGoalDisplay === '—' ? '—' : `${daysToGoalDisplay} jours`}
+                  subtext={goalStatusText}
                   color="red"
                 />
                </div>

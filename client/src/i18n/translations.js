@@ -49,9 +49,11 @@ export const translations = {
       weeklyAvg: "MOYENNE HEBDOMADAIRE",
       monthlyAvg: "MOYENNE MENSUELLE",
       missionObjective: "OBJECTIF DE MISSION",
-      estDaysToTarget: "JOURS EST. VERS CIBLE",
+      estDaysToTarget: "TEMPS POUR L'OBJECTIF",
       gatheringData: "COLLECTE DE DONNÉES...",
-      basedOnVelocity: "BASÉ SUR LA VITESSE ACTUELLE",
+      basedOnVelocity: "Basé sur votre progression actuelle",
+      goalReached: "Objectif atteint !",
+      wrongDirection: "Ajustez votre progression",
       weeks: "SEMAINES"
     },
     profile: {
@@ -77,7 +79,12 @@ export const translations = {
       logNewData: "ENREGISTRER NOUVELLES DONNÉES",
       date: "Date",
       weight: "Poids (kg)",
-      addEntry: "AJOUTER ENREGISTREMENT"
+      addEntry: "AJOUTER ENREGISTREMENT",
+      error: "Échec de l'ajout du poids",
+      validation: {
+        required: "Veuillez remplir tous les champs",
+        invalidWeight: "Le poids doit être un nombre valide supérieur à 0"
+      }
     },
     onboarding: {
       title: "INITIALISATION.SEQUENCE",
@@ -178,7 +185,7 @@ export const translations = {
         description: "La fréquence cardiaque moyenne lors de vos activités Strava pour chaque jour. Cette métrique n'est disponible que si vous utilisez un moniteur de fréquence cardiaque avec Strava."
       },
       dailyFuel: {
-        title: "Objectif de Carburant Quotidien",
+        title: "Objectif d'Apport Calorique Quotidien",
         description: "Le nombre de calories que vous devriez consommer chaque jour pour atteindre votre objectif de poids. Cette valeur est calculée en fonction de votre métabolisme de base, votre niveau d'activité et votre objectif."
       },
       timeToGoal: {
@@ -207,6 +214,32 @@ export const translations = {
         connected: "STRAVA CONNECTÉ",
         connectedDescription: "Votre compte Strava est connecté avec succès !"
       }
+    },
+    stravaStats: {
+      loading: "Chargement des données Strava...",
+      noActivities: "Aucune activité trouvée. Assurez-vous d'avoir des activités dans votre compte Strava.",
+      fetchError: "Échec du chargement des données Strava. Assurez-vous d'être connecté.",
+      connectAccount: "Connecter le compte Strava",
+      disconnectConfirm: "Êtes-vous sûr de vouloir déconnecter votre compte Strava ?",
+      disconnecting: "DÉCONNEXION...",
+      disconnect: "DÉCONNECTER",
+      title: "PROGRESSION",
+      activitiesAnalyzed: "Activités analysées",
+      all: "Tous",
+      unknown: "Inconnu",
+      globalProgression: "Progression globale (Distance cumulée)",
+      progressionBySport: "Progression par sport",
+      heartRateEvolution: "Évolution de la fréquence cardiaque (BPM)",
+      globalProgressionTable: "Tableau de progression globale",
+      sportProgressionTable: "Tableau de progression par sport",
+      date: "Date",
+      activity: "Activité",
+      type: "Type",
+      distance: "Dist (km)",
+      cumulative: "Cumulé (km)",
+      sportCumulative: "Cumulé sport (km)",
+      selectSport: "Sélectionner un sport",
+      disconnectError: "Échec de la déconnexion du compte Strava."
     }
   },
   EN: {
@@ -259,9 +292,11 @@ export const translations = {
       weeklyAvg: "WEEKLY AVG",
       monthlyAvg: "MONTHLY AVG",
       missionObjective: "MISSION OBJECTIVE",
-      estDaysToTarget: "EST. DAYS TO TARGET",
+      estDaysToTarget: "TIME TO GOAL",
       gatheringData: "GATHERING DATA...",
-      basedOnVelocity: "BASED ON CURRENT VELOCITY",
+      basedOnVelocity: "Based on your current progress",
+      goalReached: "Goal reached!",
+      wrongDirection: "Adjust your progress",
       weeks: "WEEKS"
     },
     profile: {
@@ -287,7 +322,12 @@ export const translations = {
       logNewData: "LOG NEW DATA",
       date: "Date",
       weight: "Weight (kg)",
-      addEntry: "ADD ENTRY"
+      addEntry: "ADD ENTRY",
+      error: "Failed to add weight",
+      validation: {
+        required: "Please fill all fields",
+        invalidWeight: "Weight must be a valid number greater than 0"
+      }
     },
     onboarding: {
       title: "INITIALIZATION.SEQUENCE",
@@ -417,6 +457,32 @@ export const translations = {
         connected: "STRAVA CONNECTED",
         connectedDescription: "Your Strava account is successfully connected!"
       }
+    },
+    stravaStats: {
+      loading: "Loading Strava data...",
+      noActivities: "No activities found. Make sure you have activities in your Strava account.",
+      fetchError: "Failed to fetch Strava data. Make sure you are connected.",
+      connectAccount: "Connect Strava Account",
+      disconnectConfirm: "Are you sure you want to disconnect your Strava account?",
+      disconnecting: "DISCONNECTING...",
+      disconnect: "DISCONNECT",
+      title: "PROGRESSION",
+      activitiesAnalyzed: "Activities Analyzed",
+      all: "All",
+      unknown: "Unknown",
+      globalProgression: "Global Progression (Cumulative Distance)",
+      progressionBySport: "Progression by Sport",
+      heartRateEvolution: "Heart Rate Evolution (BPM)",
+      globalProgressionTable: "Global Progression Table",
+      sportProgressionTable: "Sport Progression Table",
+      date: "Date",
+      activity: "Activity",
+      type: "Type",
+      distance: "Dist (km)",
+      cumulative: "Cumulative (km)",
+      sportCumulative: "Sport Cumulative (km)",
+      selectSport: "Select a sport",
+      disconnectError: "Failed to disconnect Strava account."
     }
   },
   IT: {
@@ -469,9 +535,11 @@ export const translations = {
       weeklyAvg: "MEDIA SETTIMANALE",
       monthlyAvg: "MEDIA MENSILE",
       missionObjective: "OBIETTIVO MISSIONE",
-      estDaysToTarget: "GIORNI STIM. ALL'OBIETTIVO",
+      estDaysToTarget: "TEMPO PER L'OBIETTIVO",
       gatheringData: "RACCOLTA DATI...",
-      basedOnVelocity: "BASATO SULLA VELOCITÀ ATTUALE",
+      basedOnVelocity: "Basato sui tuoi progressi attuali",
+      goalReached: "Obiettivo raggiunto!",
+      wrongDirection: "Regola i tuoi progressi",
       weeks: "SETTIMANE"
     },
     profile: {
@@ -497,7 +565,12 @@ export const translations = {
       logNewData: "REGISTRA NUOVI DATI",
       date: "Data",
       weight: "Peso (kg)",
-      addEntry: "AGGIUNGI REGISTRAZIONE"
+      addEntry: "AGGIUNGI REGISTRAZIONE",
+      error: "Impossibile aggiungere il peso",
+      validation: {
+        required: "Compila tutti i campi",
+        invalidWeight: "Il peso deve essere un numero valido maggiore di 0"
+      }
     },
     onboarding: {
       title: "INIZIALIZZAZIONE.SEQUENZA",
@@ -627,6 +700,32 @@ export const translations = {
         connected: "STRAVA COLLEGATO",
         connectedDescription: "Il tuo account Strava è collegato con successo!"
       }
+    },
+    stravaStats: {
+      loading: "Caricamento dati Strava...",
+      noActivities: "Nessuna attività trovata. Assicurati di avere attività nel tuo account Strava.",
+      fetchError: "Impossibile recuperare i dati Strava. Assicurati di essere connesso.",
+      connectAccount: "Collega account Strava",
+      disconnectConfirm: "Sei sicuro di voler disconnettere il tuo account Strava?",
+      disconnecting: "DISCONNESSIONE...",
+      disconnect: "DISCONNETTI",
+      title: "PROGRESSIONE",
+      activitiesAnalyzed: "Attività analizzate",
+      all: "Tutti",
+      unknown: "Sconosciuto",
+      globalProgression: "Progressione globale (Distanza cumulativa)",
+      progressionBySport: "Progressione per sport",
+      heartRateEvolution: "Evoluzione frequenza cardiaca (BPM)",
+      globalProgressionTable: "Tabella progressione globale",
+      sportProgressionTable: "Tabella progressione per sport",
+      date: "Data",
+      activity: "Attività",
+      type: "Tipo",
+      distance: "Dist (km)",
+      cumulative: "Cumulativo (km)",
+      sportCumulative: "Cumulativo sport (km)",
+      selectSport: "Seleziona uno sport",
+      disconnectError: "Impossibile disconnettere l'account Strava."
     }
   },
   TR: {
@@ -679,9 +778,11 @@ export const translations = {
       weeklyAvg: "HAFTALIK ORTALAMA",
       monthlyAvg: "AYLIK ORTALAMA",
       missionObjective: "GÖREV HEDEFİ",
-      estDaysToTarget: "HEDEFE TAHMİNİ GÜNLER",
+      estDaysToTarget: "HEDEFE SÜRE",
       gatheringData: "VERİ TOPLANIYOR...",
-      basedOnVelocity: "MEVCUT HIZA GÖRE",
+      basedOnVelocity: "Mevcut ilerlemenize göre",
+      goalReached: "Hedef ulaşıldı!",
+      wrongDirection: "İlerlemenizi ayarlayın",
       weeks: "HAFTA"
     },
     profile: {
@@ -707,7 +808,12 @@ export const translations = {
       logNewData: "YENİ VERİ KAYDET",
       date: "Tarih",
       weight: "Kilo (kg)",
-      addEntry: "KAYIT EKLE"
+      addEntry: "KAYIT EKLE",
+      error: "Kilo eklenemedi",
+      validation: {
+        required: "Lütfen tüm alanları doldurun",
+        invalidWeight: "Kilo 0'dan büyük geçerli bir sayı olmalıdır"
+      }
     },
     onboarding: {
       title: "BAŞLATMA.SIRASI",
@@ -837,6 +943,32 @@ export const translations = {
         connected: "STRAVA BAĞLANDI",
         connectedDescription: "Strava hesabınız başarıyla bağlandı!"
       }
+    },
+    stravaStats: {
+      loading: "Strava verileri yükleniyor...",
+      noActivities: "Aktivite bulunamadı. Strava hesabınızda aktiviteler olduğundan emin olun.",
+      fetchError: "Strava verileri alınamadı. Bağlı olduğunuzdan emin olun.",
+      connectAccount: "Strava hesabını bağla",
+      disconnectConfirm: "Strava hesabınızı bağlantısını kesmek istediğinizden emin misiniz?",
+      disconnecting: "BAĞLANTI KESİLİYOR...",
+      disconnect: "BAĞLANTIYI KES",
+      title: "İLERLEME",
+      activitiesAnalyzed: "Analiz edilen aktiviteler",
+      all: "Tümü",
+      unknown: "Bilinmeyen",
+      globalProgression: "Global ilerleme (Kümülatif mesafe)",
+      progressionBySport: "Spor bazında ilerleme",
+      heartRateEvolution: "Kalp atış hızı evrimi (BPM)",
+      globalProgressionTable: "Global ilerleme tablosu",
+      sportProgressionTable: "Spor ilerleme tablosu",
+      date: "Tarih",
+      activity: "Aktivite",
+      type: "Tür",
+      distance: "Mesafe (km)",
+      cumulative: "Kümülatif (km)",
+      sportCumulative: "Spor kümülatif (km)",
+      selectSport: "Bir spor seçin",
+      disconnectError: "Strava hesabının bağlantısı kesilemedi."
     }
   }
 };

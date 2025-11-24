@@ -21,7 +21,7 @@ const NewUserStrava = () => {
     const errorParam = urlParams.get('error');
     
     if (errorParam) {
-      setError(t('common.error') || 'Strava authentication failed. Please try again.');
+      setError(t('common.error') || 'L\'authentification Strava a échoué. Veuillez réessayer.');
     } else if (code) {
       handleStravaConnect(code);
     } else {
@@ -67,7 +67,7 @@ const NewUserStrava = () => {
       window.history.replaceState({}, document.title, '/new-user-strava');
     } catch (error) {
       console.error('Error connecting Strava:', error);
-      setError(t('common.error') || 'Failed to connect Strava');
+      setError(t('common.error') || 'Échec de la connexion à Strava');
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ const NewUserStrava = () => {
       window.location.href = 'https://www.strava.com/login';
     } catch (err) {
       console.error('Failed to initiate Strava auth:', err);
-      setError(t('common.error') || 'Failed to initiate Strava connection. Please try again.');
+      setError(t('common.error') || 'Échec de l\'initialisation de la connexion Strava. Veuillez réessayer.');
     }
   };
 
@@ -114,12 +114,12 @@ const NewUserStrava = () => {
               <Activity className="w-8 h-8 text-[#fc4c02]" />
             </div>
             <h1 className="text-3xl font-black tracking-widest">
-              <span className="text-white">STEP 3</span>
-              <span className="text-[#fc4c02]">: STRAVA</span>
+              <span className="text-white">ÉTAPE 3</span>
+              <span className="text-[#fc4c02]"> : STRAVA</span>
             </h1>
           </div>
           <p className="text-slate-400 text-sm">
-            {t('newUser.strava.subtitle') || 'Connect your Strava account to sync activities (optional)'}
+            {t('newUser.strava.subtitle') || 'Connectez votre compte Strava pour synchroniser vos activités (optionnel)'}
           </p>
         </div>
 
@@ -134,16 +134,16 @@ const NewUserStrava = () => {
             <div className="bg-green-500/10 border-2 border-green-500/50 rounded-xl p-8 text-center">
               <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-green-400 mb-2">
-                {t('newUser.strava.connected') || 'STRAVA CONNECTED'}
+                {t('newUser.strava.connected') || 'STRAVA CONNECTÉ'}
               </h3>
               <p className="text-slate-400 mb-6">
-                {t('newUser.strava.connectedDescription') || 'Your Strava account is successfully connected!'}
+                {t('newUser.strava.connectedDescription') || 'Votre compte Strava est connecté avec succès !'}
               </p>
               <button
                 onClick={handleComplete}
                 className="btn-cyber w-full flex items-center justify-center gap-2"
               >
-                {t('newUser.strava.finish') || 'FINISH SETUP'}
+                {t('newUser.strava.finish') || 'TERMINER LA CONFIGURATION'}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -151,33 +151,32 @@ const NewUserStrava = () => {
             <>
               <div className="bg-black/30 rounded-xl p-8 border border-white/5">
                 <p className="text-slate-300 text-center mb-6">
-                  {t('newUser.strava.description') || 'Connect your Strava account to automatically import your activities and enhance your tracking experience.'}
+                  {t('newUser.strava.description') || 'Connectez votre compte Strava pour importer automatiquement vos activités et améliorer votre expérience de suivi.'}
                 </p>
                 
-                {/* Instructions */}
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
                   <p className="text-blue-300 text-sm">
-                    <strong>How it works:</strong> When you click the button below:
+                    <strong>Comment ça fonctionne :</strong> Lorsque vous cliquez sur le bouton ci-dessous :
                     <ol className="list-decimal list-inside mt-2 space-y-1 ml-2">
-                      <li>You'll be redirected to <strong>Strava's login page</strong> (<a href="https://www.strava.com/login" target="_blank" rel="noopener noreferrer" className="underline">strava.com/login</a>)</li>
-                      <li>Log in with <strong>your own</strong> Strava account (email and password)</li>
-                      <li>After logging in, you'll be asked to <strong>authorize</strong> our application</li>
-                      <li>Once authorized, you'll be redirected back and <strong>your Strava data will be fetched automatically</strong></li>
+                      <li>Vous serez redirigé vers la <strong>page de connexion Strava</strong> (<a href="https://www.strava.com/login" target="_blank" rel="noopener noreferrer" className="underline">strava.com/login</a>)</li>
+                      <li>Connectez-vous avec <strong>votre propre</strong> compte Strava (email et mot de passe)</li>
+                      <li>Après la connexion, vous serez invité à <strong>autoriser</strong> notre application</li>
+                      <li>Une fois autorisé, vous serez redirigé et <strong>vos données Strava seront récupérées automatiquement</strong></li>
                     </ol>
                   </p>
                 </div>
                 
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
                   <p className="text-yellow-300 text-sm">
-                    <strong>⚠️ Important:</strong> Make sure you log in with <strong>your own</strong> Strava account. 
-                    Each user must connect their own Strava account to see their own data.
+                    <strong>⚠️ Important :</strong> Assurez-vous de vous connecter avec <strong>votre propre</strong> compte Strava. 
+                    Chaque utilisateur doit connecter son propre compte Strava pour voir ses propres données.
                   </p>
                 </div>
                 
                 {loading ? (
                   <div className="text-center py-8">
                     <div className="w-12 h-12 border-4 border-[#fc4c02] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-400">{t('common.loading') || 'Loading...'}</p>
+                    <p className="text-slate-400">{t('common.loading') || 'Chargement...'}</p>
                   </div>
                 ) : (
                   <button
@@ -185,7 +184,7 @@ const NewUserStrava = () => {
                     className="bg-[#fc4c02] hover:bg-[#e34402] text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-[#fc4c02]/20 flex items-center justify-center gap-3 w-full"
                   >
                     <Activity />
-                    {t('newUser.strava.connect') || 'CONNECT WITH STRAVA'}
+                    {t('newUser.strava.connect') || 'SE CONNECTER À STRAVA'}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 )}
@@ -197,13 +196,13 @@ const NewUserStrava = () => {
                   className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2"
                 >
                   <X className="w-4 h-4" />
-                  {t('newUser.strava.skip') || 'SKIP'}
+                  {t('newUser.strava.skip') || 'PASSER'}
                 </button>
                 <button
                   onClick={handleComplete}
                   className="flex-1 btn-cyber flex items-center justify-center gap-2"
                 >
-                  {t('newUser.strava.finish') || 'FINISH SETUP'}
+                  {t('newUser.strava.finish') || 'TERMINER LA CONFIGURATION'}
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

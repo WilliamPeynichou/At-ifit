@@ -21,24 +21,18 @@ const {
 } = require('../utils/stravaHelpers');
 const logger = require('../utils/logger');
 
-// 1. Redirect to Strava OAuth
 router.get('/auth', auth, asyncHandler(async (req, res) => {
   const { clientId, redirectUri } = getStravaCredentials(req.userId);
-  // Extended scopes: read all activities, profile, and stats
   const scope = 'read,activity:read_all,profile:read_all';
   
-  // Generate a unique state parameter to prevent CSRF and ensure fresh login
   const state = `${req.userId}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   
-  // approval_prompt=force forces user to manually log in and authorize, even if already authorized
-  // Note: Strava may still use cached session, so users should log out of Strava first
   const url = `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&approval_prompt=force&state=${state}`;
   
   logger.info('Generating Strava OAuth URL', { userId: req.userId, state });
   sendSuccess(res, { url, logoutUrl: 'https://www.strava.com/logout' });
 }));
 
-// 2. Callback from Strava OAuth
 router.get('/callback', (req, res) => {
   const { code, error, state } = req.query;
 
@@ -52,7 +46,6 @@ router.get('/callback', (req, res) => {
     return res.redirect('http://localhost:5173/strava-connect?error=no_code');
   }
 
-  // Redirect to frontend with the code and state
   const redirectUrl = state 
     ? `http://localhost:5173/strava-connect?code=${code}&state=${state}`
     : `http://localhost:5173/strava-connect?code=${code}`;
@@ -61,7 +54,6 @@ router.get('/callback', (req, res) => {
   res.redirect(redirectUrl);
 });
 
-// 3. Exchange Code (Called from Frontend with Auth)
 router.post('/connect', auth, asyncHandler(async (req, res) => {
   const { code } = req.body;
   
@@ -112,7 +104,6 @@ router.post('/connect', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 4. Get Activities
 router.get('/activities', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -139,7 +130,6 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 5. Disconnect Strava
 router.delete('/disconnect', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -151,7 +141,6 @@ router.delete('/disconnect', auth, asyncHandler(async (req, res) => {
     return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
   }
 
-  // Try to revoke the token via Strava API first
   try {
     await revokeStravaToken(user.stravaAccessToken);
     logger.info('Strava token revoked via API', { userId: req.userId });
@@ -159,7 +148,6 @@ router.delete('/disconnect', auth, asyncHandler(async (req, res) => {
     logger.warn('Failed to revoke token via API, clearing from DB anyway', { userId: req.userId, error: error.message });
   }
 
-  // Clear Strava tokens from database
   await user.update({
     stravaAccessToken: null,
     stravaRefreshToken: null,
@@ -170,7 +158,6 @@ router.delete('/disconnect', auth, asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Strava disconnected successfully');
 }));
 
-// 6. Get Authenticated Athlete Profile
 router.get('/athlete', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -197,7 +184,6 @@ router.get('/athlete', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 7. Get Athlete Stats
 router.get('/athlete/stats', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -216,7 +202,6 @@ router.get('/athlete/stats', auth, asyncHandler(async (req, res) => {
   }
 
   try {
-    // First get athlete to get ID
     const athlete = await getAthlete(accessToken);
     const stats = await getAthleteStats(accessToken, athlete.id);
     sendSuccess(res, stats);
@@ -226,7 +211,6 @@ router.get('/athlete/stats', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 8. Get Athlete Zones
 router.get('/athlete/zones', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -253,7 +237,6 @@ router.get('/athlete/zones', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 9. Get Athlete Clubs
 router.get('/athlete/clubs', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -280,7 +263,6 @@ router.get('/athlete/clubs', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 10. Get Specific Activity
 router.get('/activities/:id', auth, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const user = await User.findByPk(req.userId);
@@ -308,10 +290,9 @@ router.get('/activities/:id', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 11. Get Activity Streams
 router.get('/activities/:id/streams', auth, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { types } = req.query; // Comma-separated list: 'time,distance,latlng,altitude,heartrate,power'
+  const { types } = req.query;
   const user = await User.findByPk(req.userId);
   
   if (!user) {
@@ -338,7 +319,6 @@ router.get('/activities/:id/streams', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 12. Get Athlete Routes
 router.get('/routes', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -365,7 +345,6 @@ router.get('/routes', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 13. Get Athlete Gear (Bikes and Shoes)
 router.get('/gear', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -392,7 +371,6 @@ router.get('/gear', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 14. Get Starred Segments
 router.get('/segments/starred', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -419,7 +397,6 @@ router.get('/segments/starred', auth, asyncHandler(async (req, res) => {
   }
 }));
 
-// 15. Get All Strava Data (Summary endpoint)
 router.get('/all', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
   
@@ -438,7 +415,6 @@ router.get('/all', auth, asyncHandler(async (req, res) => {
   }
 
   try {
-    // Fetch all data in parallel
     const [athlete, activities, clubs, gear, routes, segments] = await Promise.allSettled([
       getAthlete(accessToken),
       fetchStravaActivities(accessToken, { per_page: 10 }),
@@ -448,7 +424,6 @@ router.get('/all', auth, asyncHandler(async (req, res) => {
       getStarredSegments(accessToken, { per_page: 10 })
     ]);
 
-    // Get stats if athlete is available
     let stats = null;
     if (athlete.status === 'fulfilled') {
       try {

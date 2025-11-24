@@ -1,277 +1,277 @@
-# 🏗️ Project Architecture Guide
+# 🏗️ Guide d'Architecture du Projet
 
-## Directory Structure
+## Structure des Répertoires
 
 ```
 server/
 ├── config/
-│   └── config.json           # Database configuration
+│   └── config.json           # Configuration de la base de données
 ├── middleware/
-│   ├── auth.js               # JWT authentication middleware
-│   ├── validation.js         # Input validation middleware ✨ NEW
-│   └── errorHandler.js       # Error handling & responses ✨ NEW
+│   ├── auth.js               # Middleware d'authentification JWT
+│   ├── validation.js         # Middleware de validation des entrées ✨ NOUVEAU
+│   └── errorHandler.js       # Gestion des erreurs et réponses ✨ NOUVEAU
 ├── models/
-│   ├── User.js               # User model with password hashing
-│   └── Weight.js             # Weight tracking model
+│   ├── User.js               # Modèle utilisateur avec hachage de mot de passe
+│   └── Weight.js             # Modèle de suivi du poids
 ├── routes/
-│   ├── auth.js               # Authentication routes (login, register)
-│   ├── user.js               # User profile & calorie calculation
-│   └── strava.js             # Strava OAuth & activities
+│   ├── auth.js               # Routes d'authentification (connexion, inscription)
+│   ├── user.js               # Profil utilisateur et calcul de calories
+│   └── strava.js             # OAuth Strava et activités
 ├── utils/
-│   ├── logger.js             # Centralized logging ✨ NEW
-│   └── stravaHelpers.js      # Shared Strava utilities ✨ NEW
+│   ├── logger.js             # Journalisation centralisée ✨ NOUVEAU
+│   └── stravaHelpers.js      # Utilitaires Strava partagés ✨ NOUVEAU
 ├── scripts/
-│   └── update_tokens.js      # Manual token update script
-├── .env                      # Environment variables
-├── database.js               # Sequelize configuration
-├── database.sqlite           # SQLite database file
-├── index.js                  # Main server file
+│   └── update_tokens.js      # Script de mise à jour manuelle des tokens
+├── .env                      # Variables d'environnement
+├── database.js               # Configuration Sequelize
+├── database.sqlite           # Fichier de base de données SQLite
+├── index.js                  # Fichier serveur principal
 └── package.json
 
 client/
 ├── src/
 │   ├── components/
-│   │   ├── Dashboard.jsx     # Main dashboard with charts
-│   │   ├── KcalCalculator.jsx # Calorie calculator
-│   │   ├── Layout.jsx        # App layout with header
-│   │   ├── ProtectedRoute.jsx # Route protection
-│   │   ├── StatsCard.jsx     # Reusable stats card
-│   │   ├── UserProfile.jsx   # User profile form
-│   │   └── WeightForm.jsx    # Weight logging form
+│   │   ├── Dashboard.jsx     # Tableau de bord principal avec graphiques
+│   │   ├── KcalCalculator.jsx # Calculateur de calories
+│   │   ├── Layout.jsx        # Mise en page de l'application avec en-tête
+│   │   ├── ProtectedRoute.jsx # Protection des routes
+│   │   ├── StatsCard.jsx     # Carte de statistiques réutilisable
+│   │   ├── UserProfile.jsx   # Formulaire de profil utilisateur
+│   │   └── WeightForm.jsx    # Formulaire de saisie du poids
 │   ├── context/
-│   │   └── AuthContext.jsx   # Authentication context
+│   │   └── AuthContext.jsx   # Contexte d'authentification
 │   ├── pages/
-│   │   ├── Login.jsx         # Login page
-│   │   ├── Register.jsx      # Registration page
-│   │   ├── StravaConnect.jsx # Strava connection page
-│   │   └── StravaStats.jsx   # Strava statistics page
+│   │   ├── Login.jsx         # Page de connexion
+│   │   ├── Register.jsx      # Page d'inscription
+│   │   ├── StravaConnect.jsx # Page de connexion Strava
+│   │   └── StravaStats.jsx   # Page de statistiques Strava
 │   ├── utils/
-│   │   └── toast.js          # Toast notifications ✨ NEW
-│   ├── api.js                # Axios instance with interceptors
-│   ├── App.jsx               # Main app component
-│   ├── index.css             # Global styles
-│   └── main.jsx              # React entry point
+│   │   └── toast.js          # Notifications toast ✨ NOUVEAU
+│   ├── api.js                # Instance Axios avec intercepteurs
+│   ├── App.jsx               # Composant principal de l'application
+│   ├── index.css             # Styles globaux
+│   └── main.jsx              # Point d'entrée React
 └── package.json
 ```
 
 ---
 
-## 🔄 Request Flow
+## 🔄 Flux des Requêtes
 
-### Authentication Flow
+### Flux d'Authentification
 ```
 Client → POST /api/auth/login
   ↓
-validation.js (validate email/password)
+validation.js (valider email/mot de passe)
   ↓
-auth.js route handler
+Gestionnaire de route auth.js
   ↓
 User.findOne() + comparePassword()
   ↓
-Generate JWT token
+Générer le token JWT
   ↓
 errorHandler.js (sendSuccess)
   ↓
-Client receives { success: true, data: { user, token } }
+Client reçoit { success: true, data: { user, token } }
 ```
 
-### Protected Route Flow
+### Flux de Route Protégée
 ```
-Client → GET /api/user (with Authorization header)
+Client → GET /api/user (avec en-tête Authorization)
   ↓
-auth.js middleware (verify JWT)
+Middleware auth.js (vérifier JWT)
   ↓
-req.userId set
+req.userId défini
   ↓
-user.js route handler
+Gestionnaire de route user.js
   ↓
 User.findByPk(req.userId)
   ↓
 errorHandler.js (sendSuccess)
   ↓
-Client receives user data
+Client reçoit les données utilisateur
 ```
 
-### Calorie Calculation Flow
+### Flux de Calcul des Calories
 ```
 Client → POST /api/user/calculate-calories
   ↓
-auth.js middleware
+Middleware auth.js
   ↓
-validation.js (validate gender, goal)
+validation.js (valider genre, objectif)
   ↓
-user.js route handler
+Gestionnaire de route user.js
   ↓
-Fetch latest weight from Weight table
+Récupérer le dernier poids de la table Weight
   ↓
-calculateBMR() → Calculate base metabolic rate
+calculateBMR() → Calculer le métabolisme de base
   ↓
-stravaHelpers.getValidStravaToken() → Get/refresh token
+stravaHelpers.getValidStravaToken() → Obtenir/rafraîchir le token
   ↓
-stravaHelpers.fetchStravaActivities() → Get activity history
+stravaHelpers.fetchStravaActivities() → Obtenir l'historique des activités
   ↓
-calculateActivityFactor() → Determine activity level
+calculateActivityFactor() → Déterminer le niveau d'activité
   ↓
-calculateCalorieAdjustment() → Apply goal-based adjustment
+calculateCalorieAdjustment() → Appliquer l'ajustement basé sur l'objectif
   ↓
-Save consoKcal & weeksToGoal to User
+Enregistrer consoKcal & weeksToGoal dans User
   ↓
 errorHandler.js (sendSuccess)
   ↓
-Client receives calculation results
+Client reçoit les résultats du calcul
 ```
 
 ---
 
-## 🔑 Key Components
+## 🔑 Composants Clés
 
-### Server
+### Serveur
 
-#### **Middleware Stack**
-1. `cors()` - Enable cross-origin requests
-2. `express.json()` - Parse JSON bodies
-3. `auth` - Verify JWT token (protected routes only)
-4. `validateRequest()` - Validate input data
-5. `asyncHandler()` - Catch async errors
-6. `errorHandler()` - Global error handler (last)
+#### **Pile de Middleware**
+1. `cors()` - Activer les requêtes cross-origin
+2. `express.json()` - Parser les corps JSON
+3. `auth` - Vérifier le token JWT (routes protégées uniquement)
+4. `validateRequest()` - Valider les données d'entrée
+5. `asyncHandler()` - Capturer les erreurs asynchrones
+6. `errorHandler()` - Gestionnaire d'erreurs global (dernier)
 
-#### **Utility Functions**
+#### **Fonctions Utilitaires**
 
 **logger.js**
-- `logger.info()` - Log info messages
-- `logger.error()` - Log errors
-- `logger.warn()` - Log warnings
-- `logger.debug()` - Log debug info (dev only)
+- `logger.info()` - Enregistrer les messages d'information
+- `logger.error()` - Enregistrer les erreurs
+- `logger.warn()` - Enregistrer les avertissements
+- `logger.debug()` - Enregistrer les informations de débogage (dev uniquement)
 
 **stravaHelpers.js**
-- `getStravaCredentials(userId)` - Get client ID/secret for user
-- `getValidStravaToken(user)` - Get valid token, refresh if needed
-- `fetchStravaActivities(token, params)` - Fetch activities from Strava
+- `getStravaCredentials(userId)` - Obtenir l'ID client/secret pour l'utilisateur
+- `getValidStravaToken(user)` - Obtenir un token valide, rafraîchir si nécessaire
+- `fetchStravaActivities(token, params)` - Récupérer les activités depuis Strava
 
 **errorHandler.js**
-- `asyncHandler(fn)` - Wrap async route handlers
-- `sendSuccess(res, data, message, statusCode)` - Send success response
-- `sendError(res, message, statusCode, details)` - Send error response
-- `errorHandler(err, req, res, next)` - Global error handler
-- `notFoundHandler(req, res)` - 404 handler
+- `asyncHandler(fn)` - Envelopper les gestionnaires de route asynchrones
+- `sendSuccess(res, data, message, statusCode)` - Envoyer une réponse de succès
+- `sendError(res, message, statusCode, details)` - Envoyer une réponse d'erreur
+- `errorHandler(err, req, res, next)` - Gestionnaire d'erreurs global
+- `notFoundHandler(req, res)` - Gestionnaire 404
 
-#### **Business Logic Functions**
+#### **Fonctions de Logique Métier**
 
 **user.js**
-- `calculateBMR(weight, height, age, gender)` - Mifflin-St Jeor equation
-- `calculateActivityFactor(avgHoursPerWeek)` - Activity level from hours
-- `calculateCalorieAdjustment(goal, delta)` - Calorie adjustment logic
+- `calculateBMR(weight, height, age, gender)` - Équation de Mifflin-St Jeor
+- `calculateActivityFactor(avgHoursPerWeek)` - Niveau d'activité à partir des heures
+- `calculateCalorieAdjustment(goal, delta)` - Logique d'ajustement des calories
 
 ---
 
-## 📡 API Endpoints
+## 📡 Points de Terminaison API
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user (protected)
+### Authentification
+- `POST /api/auth/register` - Inscrire un nouvel utilisateur
+- `POST /api/auth/login` - Connecter un utilisateur
+- `GET /api/auth/me` - Obtenir l'utilisateur actuel (protégé)
 
-### User Profile
-- `GET /api/user` - Get user profile (protected)
-- `POST /api/user` - Update user profile (protected)
-- `POST /api/user/calculate-calories` - Calculate daily calories (protected)
+### Profil Utilisateur
+- `GET /api/user` - Obtenir le profil utilisateur (protégé)
+- `POST /api/user` - Mettre à jour le profil utilisateur (protégé)
+- `POST /api/user/calculate-calories` - Calculer les calories quotidiennes (protégé)
 
-### Weight Tracking
-- `GET /api/weight` - Get all weight entries (protected)
-- `POST /api/weight` - Add weight entry (protected)
-- `DELETE /api/weight/:id` - Delete weight entry (protected)
+### Suivi du Poids
+- `GET /api/weight` - Obtenir toutes les entrées de poids (protégé)
+- `POST /api/weight` - Ajouter une entrée de poids (protégé)
+- `DELETE /api/weight/:id` - Supprimer une entrée de poids (protégé)
 
-### Strava Integration
-- `GET /api/strava/auth` - Get Strava OAuth URL (protected)
-- `GET /api/strava/callback` - OAuth callback (public)
-- `POST /api/strava/connect` - Exchange code for tokens (protected)
-- `GET /api/strava/activities` - Get Strava activities (protected)
+### Intégration Strava
+- `GET /api/strava/auth` - Obtenir l'URL OAuth Strava (protégé)
+- `GET /api/strava/callback` - Callback OAuth (public)
+- `POST /api/strava/connect` - Échanger le code contre des tokens (protégé)
+- `GET /api/strava/activities` - Obtenir les activités Strava (protégé)
 
 ---
 
-## 🔐 Environment Variables
+## 🔐 Variables d'Environnement
 
-### Required
+### Requises
 ```env
-# JWT Configuration
+# Configuration JWT
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRE=7d
 
-# Strava API (Default User)
+# API Strava (Utilisateur par défaut)
 STRAVA_CLIENT_ID=your-client-id
 STRAVA_CLIENT_SECRET=your-client-secret
 STRAVA_REDIRECT_URI=http://localhost:3001/api/strava/callback
 
-# Strava API (User ID 2 - Victor)
+# API Strava (Utilisateur ID 2 - Victor)
 VICTOR_STRAVA_CLIENT_ID=victor-client-id
 VICTOR_STRAVA_CLIENT_SECRET=victor-client-secret
 
-# Database (SQLite - auto-configured)
-# No additional config needed for SQLite
+# Base de données (SQLite - auto-configurée)
+# Aucune configuration supplémentaire nécessaire pour SQLite
 
-# Server
+# Serveur
 PORT=3001
 NODE_ENV=development
 ```
 
 ---
 
-## 🧪 Testing Guide
+## 🧪 Guide de Test
 
-### Manual Testing
+### Tests Manuels
 
-1. **Start Server**
+1. **Démarrer le Serveur**
    ```bash
    cd server
    npm start
    ```
 
-2. **Start Client**
+2. **Démarrer le Client**
    ```bash
    cd client
    npm run dev
    ```
 
-3. **Test Authentication**
-   - Register new user
-   - Login with credentials
-   - Verify token in localStorage
-   - Access protected routes
+3. **Tester l'Authentification**
+   - Inscrire un nouvel utilisateur
+   - Se connecter avec les identifiants
+   - Vérifier le token dans localStorage
+   - Accéder aux routes protégées
 
-4. **Test Weight Tracking**
-   - Add weight entry
-   - View weight chart
-   - Delete weight entry
+4. **Tester le Suivi du Poids**
+   - Ajouter une entrée de poids
+   - Voir le graphique de poids
+   - Supprimer une entrée de poids
 
-5. **Test Strava Integration**
-   - Connect Strava account
-   - View activities
-   - Verify token refresh
+5. **Tester l'Intégration Strava**
+   - Connecter le compte Strava
+   - Voir les activités
+   - Vérifier le rafraîchissement du token
 
-6. **Test Calorie Calculator**
-   - Set user profile (height, age, gender)
-   - Log weight data
-   - Calculate calories
-   - Verify results displayed
+6. **Tester le Calculateur de Calories**
+   - Définir le profil utilisateur (taille, âge, genre)
+   - Enregistrer les données de poids
+   - Calculer les calories
+   - Vérifier les résultats affichés
 
-### API Testing with cURL
+### Tests API avec cURL
 
 ```bash
-# Register
+# Inscription
 curl -X POST http://localhost:3001/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123","pseudo":"TestUser"}'
 
-# Login
+# Connexion
 curl -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123"}'
 
-# Get User (replace TOKEN)
+# Obtenir l'utilisateur (remplacer TOKEN)
 curl http://localhost:3001/api/user \
   -H "Authorization: Bearer TOKEN"
 
-# Add Weight
+# Ajouter un poids
 curl -X POST http://localhost:3001/api/weight \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
@@ -280,71 +280,71 @@ curl -X POST http://localhost:3001/api/weight \
 
 ---
 
-## 🐛 Debugging
+## 🐛 Débogage
 
-### Server Logs
-All logs now use the logger utility:
+### Journaux du Serveur
+Tous les journaux utilisent maintenant l'utilitaire logger :
 ```javascript
 logger.info('Message', { metadata });
-logger.error('Error message', error);
-logger.warn('Warning', { data });
-logger.debug('Debug info', { details });
+logger.error('Message d\'erreur', error);
+logger.warn('Avertissement', { data });
+logger.debug('Informations de débogage', { details });
 ```
 
-### Common Issues
+### Problèmes Courants
 
-**"Missing required environment variables"**
-- Check `.env` file exists in `/server`
-- Verify all required variables are set
-- Restart server after changing `.env`
+**"Variables d'environnement requises manquantes"**
+- Vérifier que le fichier `.env` existe dans `/server`
+- Vérifier que toutes les variables requises sont définies
+- Redémarrer le serveur après avoir modifié `.env`
 
-**"Database synced failed"**
-- Check database file permissions
-- Delete `database.sqlite` and restart (will recreate)
-- Check Sequelize configuration in `config/config.json`
+**"Échec de la synchronisation de la base de données"**
+- Vérifier les permissions du fichier de base de données
+- Supprimer `database.sqlite` et redémarrer (sera recréé)
+- Vérifier la configuration Sequelize dans `config/config.json`
 
-**"Failed to refresh Strava token"**
-- Check Strava credentials in `.env`
-- Verify refresh token is valid
-- Reconnect Strava account from UI
+**"Échec du rafraîchissement du token Strava"**
+- Vérifier les identifiants Strava dans `.env`
+- Vérifier que le refresh token est valide
+- Reconnecter le compte Strava depuis l'interface utilisateur
 
-**"Validation failed"**
-- Check request body matches validation rules
-- See `middleware/validation.js` for rules
-- Ensure all required fields are provided
-
----
-
-## 🚀 Deployment
-
-### Production Checklist
-1. Set `NODE_ENV=production`
-2. Use strong `JWT_SECRET` (32+ characters)
-3. Configure production database (PostgreSQL/MySQL)
-4. Set up SSL/TLS certificates
-5. Configure CORS for production domain
-6. Enable rate limiting
-7. Set up error tracking (Sentry)
-8. Configure logging to file/service
-9. Set up database backups
-10. Add health check endpoint
-
-### Recommended Hosting
-- **Server**: Heroku, Railway, Render, DigitalOcean
-- **Client**: Vercel, Netlify, Cloudflare Pages
-- **Database**: Heroku Postgres, PlanetScale, Supabase
+**"Échec de la validation"**
+- Vérifier que le corps de la requête correspond aux règles de validation
+- Voir `middleware/validation.js` pour les règles
+- S'assurer que tous les champs requis sont fournis
 
 ---
 
-## 📚 Additional Resources
+## 🚀 Déploiement
 
-- [Express.js Documentation](https://expressjs.com/)
-- [Sequelize Documentation](https://sequelize.org/)
-- [React Documentation](https://react.dev/)
-- [Strava API Documentation](https://developers.strava.com/)
-- [JWT Best Practices](https://tools.ietf.org/html/rfc8725)
+### Checklist de Production
+1. Définir `NODE_ENV=production`
+2. Utiliser un `JWT_SECRET` fort (32+ caractères)
+3. Configurer la base de données de production (PostgreSQL/MySQL)
+4. Configurer les certificats SSL/TLS
+5. Configurer CORS pour le domaine de production
+6. Activer la limitation de débit
+7. Configurer le suivi des erreurs (Sentry)
+8. Configurer la journalisation vers fichier/service
+9. Configurer les sauvegardes de base de données
+10. Ajouter un point de terminaison de vérification de santé
+
+### Hébergement Recommandé
+- **Serveur** : Heroku, Railway, Render, DigitalOcean
+- **Client** : Vercel, Netlify, Cloudflare Pages
+- **Base de données** : Heroku Postgres, PlanetScale, Supabase
 
 ---
 
-**Last Updated**: 2025-11-20
-**Maintained By**: Development Team
+## 📚 Ressources Supplémentaires
+
+- [Documentation Express.js](https://expressjs.com/)
+- [Documentation Sequelize](https://sequelize.org/)
+- [Documentation React](https://react.dev/)
+- [Documentation API Strava](https://developers.strava.com/)
+- [Meilleures Pratiques JWT](https://tools.ietf.org/html/rfc8725)
+
+---
+
+**Dernière Mise à Jour** : 2025-11-20
+**Maintenu Par** : Équipe de Développement

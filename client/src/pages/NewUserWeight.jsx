@@ -17,13 +17,34 @@ const NewUserWeight = () => {
     setError('');
     setLoading(true);
 
+    // Convertir le poids en nombre
+    const weightValue = parseFloat(weight);
+    
+    // Validation côté client
+    if (isNaN(weightValue) || weightValue <= 0) {
+      setError(t('weightForm.validation.invalidWeight') || 'Le poids doit être un nombre valide supérieur à 0');
+      setLoading(false);
+      return;
+    }
+    
+    if (!date) {
+      setError(t('weightForm.validation.required') || 'Veuillez remplir tous les champs');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await api.post('/weight', { weight, date });
+      // Envoyer le poids comme nombre et la date
+      await api.post('/weight', { 
+        weight: weightValue, 
+        date: date 
+      });
       // Navigate to next step
       navigate('/new-user-strava');
     } catch (error) {
       console.error('Error adding weight:', error);
-      setError(t('common.error') || 'Failed to add weight');
+      const errorMessage = error.response?.data?.error || error.message || t('weightForm.error') || 'Échec de l\'ajout du poids';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

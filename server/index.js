@@ -49,7 +49,7 @@ sequelize.sync({ alter: true })
   })
   .catch((error) => {
     logger.error('Database sync failed', error);
-    process.exit(1);
+    logger.warn('Server will continue despite database sync error');
   });
 
 // Routes
@@ -74,11 +74,36 @@ app.post('/api/weight',
   validateRequest(validations.addWeight),
   asyncHandler(async (req, res) => {
     const { weight, date } = req.body;
+    
+    // Convertir le poids en nombre flottant pour s'assurer qu'il est bien stocké comme FLOAT
+    const weightValue = parseFloat(weight);
+    
+    if (isNaN(weightValue) || weightValue <= 0) {
+      return sendError(res, 'Weight must be a valid number greater than 0', 400);
+    }
+    
+    // Vérifier si un poids existe déjà pour cette date pour cet utilisateur
+    const existingWeight = await Weight.findOne({
+      where: {
+        userId: req.userId,
+        date: date
+      }
+    });
+    
+    if (existingWeight) {
+      // Mettre à jour le poids existant pour cette date
+      existingWeight.weight = weightValue;
+      await existingWeight.save();
+      return sendSuccess(res, existingWeight, 'Weight updated successfully', 200);
+    }
+    
+    // Créer un nouvel enregistrement
     const newWeight = await Weight.create({ 
-      weight, 
-      date, 
+      weight: weightValue, 
+      date: date, 
       userId: req.userId 
     });
+    
     sendSuccess(res, newWeight, 'Weight added successfully', 201);
   })
 );

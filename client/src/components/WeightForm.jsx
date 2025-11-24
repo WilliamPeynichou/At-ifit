@@ -10,13 +10,40 @@ const WeightForm = ({ onUpdate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Convertir le poids en nombre
+    const weightValue = parseFloat(weight);
+    
+    // Validation côté client
+    if (isNaN(weightValue) || weightValue <= 0) {
+      alert(t('weightForm.validation.invalidWeight') || 'Le poids doit être un nombre valide supérieur à 0');
+      return;
+    }
+    
+    if (!date) {
+      alert(t('weightForm.validation.required') || 'Veuillez remplir tous les champs');
+      return;
+    }
+    
     try {
-      await api.post('/weight', { weight, date });
+      // Envoyer le poids comme nombre et la date
+      await api.post('/weight', { 
+        weight: weightValue, 
+        date: date 
+      });
+      
+      // Réinitialiser le formulaire
       setWeight('');
-      if (onUpdate) onUpdate();
+      setDate(new Date().toISOString().split('T')[0]);
+      
+      // Rafraîchir les données si callback fourni
+      if (onUpdate) {
+        onUpdate();
+      }
     } catch (error) {
       console.error('Error adding weight:', error);
-      alert('Failed to add weight. Make sure profile is created first.');
+      const errorMessage = error.response?.data?.error || error.message || t('weightForm.error') || 'Échec de l\'ajout du poids';
+      alert(errorMessage);
     }
   };
 

@@ -1,15 +1,6 @@
-/**
- * Shared Strava utilities to avoid code duplication
- */
-
 const axios = require('axios');
 const logger = require('./logger');
 
-/**
- * Get Strava credentials for OAuth
- * Uses a single Strava application for all users
- * Each user authorizes this application with their own Strava account
- */
 const getStravaCredentials = (userId) => {
   return {
     clientId: process.env.STRAVA_CLIENT_ID,
@@ -18,20 +9,13 @@ const getStravaCredentials = (userId) => {
   };
 };
 
-/**
- * Get valid Strava access token, refreshing if necessary
- * @param {Object} user - Sequelize User model instance
- * @returns {Promise<string|null>} Access token or null if refresh fails
- */
 const getValidStravaToken = async (user) => {
   const now = Math.floor(Date.now() / 1000);
   
-  // Return existing token if still valid
   if (user.stravaExpiresAt && user.stravaExpiresAt > now) {
     return user.stravaAccessToken;
   }
   
-  // Token expired or missing, attempt refresh
   if (!user.stravaRefreshToken) {
     logger.warn('No refresh token available for user', { userId: user.id });
     return null;
@@ -49,7 +33,6 @@ const getValidStravaToken = async (user) => {
     
     const { access_token, refresh_token, expires_at } = response.data;
     
-    // Update user with new tokens
     await user.update({
       stravaAccessToken: access_token,
       stravaRefreshToken: refresh_token,
@@ -65,12 +48,6 @@ const getValidStravaToken = async (user) => {
   }
 };
 
-/**
- * Fetch Strava activities for a user
- * @param {string} accessToken - Valid Strava access token
- * @param {Object} params - Query parameters (before, after, per_page)
- * @returns {Promise<Array>} Array of activities
- */
 const fetchStravaActivities = async (accessToken, params = {}) => {
   try {
     const response = await axios.get('https://www.strava.com/api/v3/athlete/activities', {
@@ -85,11 +62,6 @@ const fetchStravaActivities = async (accessToken, params = {}) => {
   }
 };
 
-/**
- * Get authenticated athlete profile
- * @param {string} accessToken - Valid Strava access token
- * @returns {Promise<Object>} Athlete profile
- */
 const getAthlete = async (accessToken) => {
   try {
     const response = await axios.get('https://www.strava.com/api/v3/athlete', {
@@ -102,12 +74,6 @@ const getAthlete = async (accessToken) => {
   }
 };
 
-/**
- * Get athlete stats
- * @param {string} accessToken - Valid Strava access token
- * @param {number} athleteId - Athlete ID
- * @returns {Promise<Object>} Athlete stats
- */
 const getAthleteStats = async (accessToken, athleteId) => {
   try {
     const response = await axios.get(`https://www.strava.com/api/v3/athletes/${athleteId}/stats`, {
@@ -120,11 +86,6 @@ const getAthleteStats = async (accessToken, athleteId) => {
   }
 };
 
-/**
- * Get athlete zones
- * @param {string} accessToken - Valid Strava access token
- * @returns {Promise<Object>} Athlete zones
- */
 const getAthleteZones = async (accessToken) => {
   try {
     const response = await axios.get('https://www.strava.com/api/v3/athlete/zones', {
@@ -137,11 +98,6 @@ const getAthleteZones = async (accessToken) => {
   }
 };
 
-/**
- * Get athlete clubs
- * @param {string} accessToken - Valid Strava access token
- * @returns {Promise<Array>} Array of clubs
- */
 const getAthleteClubs = async (accessToken) => {
   try {
     const response = await axios.get('https://www.strava.com/api/v3/athlete/clubs', {
@@ -154,12 +110,6 @@ const getAthleteClubs = async (accessToken) => {
   }
 };
 
-/**
- * Get a specific activity
- * @param {string} accessToken - Valid Strava access token
- * @param {number} activityId - Activity ID
- * @returns {Promise<Object>} Activity details
- */
 const getActivity = async (accessToken, activityId) => {
   try {
     const response = await axios.get(`https://www.strava.com/api/v3/activities/${activityId}`, {
@@ -172,13 +122,6 @@ const getActivity = async (accessToken, activityId) => {
   }
 };
 
-/**
- * Get activity streams (GPS, heart rate, power, etc.)
- * @param {string} accessToken - Valid Strava access token
- * @param {number} activityId - Activity ID
- * @param {Array} types - Stream types (e.g., ['time', 'distance', 'latlng', 'altitude', 'heartrate', 'power'])
- * @returns {Promise<Array>} Array of stream data
- */
 const getActivityStreams = async (accessToken, activityId, types = ['time', 'distance', 'latlng', 'altitude']) => {
   try {
     const response = await axios.get(`https://www.strava.com/api/v3/activities/${activityId}/streams`, {
@@ -192,12 +135,6 @@ const getActivityStreams = async (accessToken, activityId, types = ['time', 'dis
   }
 };
 
-/**
- * Get athlete routes
- * @param {string} accessToken - Valid Strava access token
- * @param {Object} params - Query parameters (page, per_page)
- * @returns {Promise<Array>} Array of routes
- */
 const getAthleteRoutes = async (accessToken, params = {}) => {
   try {
     const response = await axios.get('https://www.strava.com/api/v3/athletes/self/routes', {
@@ -211,11 +148,6 @@ const getAthleteRoutes = async (accessToken, params = {}) => {
   }
 };
 
-/**
- * Get athlete gear (bikes and shoes)
- * @param {string} accessToken - Valid Strava access token
- * @returns {Promise<Object>} Object with bikes and shoes arrays
- */
 const getAthleteGear = async (accessToken) => {
   try {
     const athlete = await getAthlete(accessToken);
@@ -228,12 +160,6 @@ const getAthleteGear = async (accessToken) => {
   }
 };
 
-/**
- * Get starred segments
- * @param {string} accessToken - Valid Strava access token
- * @param {Object} params - Query parameters (page, per_page)
- * @returns {Promise<Array>} Array of segments
- */
 const getStarredSegments = async (accessToken, params = {}) => {
   try {
     const response = await axios.get('https://www.strava.com/api/v3/segments/starred', {
@@ -247,11 +173,6 @@ const getStarredSegments = async (accessToken, params = {}) => {
   }
 };
 
-/**
- * Revoke/deauthorize a Strava access token
- * @param {string} accessToken - Strava access token to revoke
- * @returns {Promise<boolean>} True if revoked successfully
- */
 const revokeStravaToken = async (accessToken) => {
   try {
     await axios.post('https://www.strava.com/oauth/deauthorize', {
@@ -260,7 +181,6 @@ const revokeStravaToken = async (accessToken) => {
     logger.info('Strava token revoked successfully');
     return true;
   } catch (error) {
-    // If token is already invalid/revoked, that's okay
     if (error.response?.status === 401 || error.response?.status === 404) {
       logger.info('Strava token already invalid/revoked');
       return true;

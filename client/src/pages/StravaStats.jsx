@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
@@ -9,6 +10,7 @@ import api from '../api';
 
 const StravaStats = () => {
   const { loadUser } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState([]);
@@ -29,28 +31,25 @@ const StravaStats = () => {
       setError('');
       const response = await api.get('/strava/activities');
       
-      // Check if response.data is an array
       const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       
       if (!Array.isArray(data)) {
         throw new Error('Invalid data format');
       }
       
-      // Sort by date ascending for progression
       const sortedData = data.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
       setActivities(sortedData);
       
       if (sortedData.length === 0) {
-        setError('No activities found. Make sure you have activities in your Strava account.');
+        setError(t('stravaStats.noActivities'));
       } else {
         processStats(sortedData);
       }
     } catch (err) {
       console.error('Error fetching Strava activities:', err);
-      const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch Strava data. Make sure you are connected.';
+      const errorMessage = err.response?.data?.error || err.message || t('stravaStats.fetchError');
       setError(errorMessage);
       
-      // If user is not connected, redirect to connect page immediately
       if (err.response?.status === 400 && errorMessage.includes('not connected')) {
         navigate('/strava-connect');
       }
@@ -68,13 +67,12 @@ const StravaStats = () => {
     data.forEach(activity => {
       if (!activity.start_date) return;
       
-      const type = activity.type || 'Unknown';
+      const type = activity.type || t('stravaStats.unknown');
       const dateObj = new Date(activity.start_date);
       if (isNaN(dateObj.getTime())) return; // Skip invalid dates
       
       const date = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
       
-      // --- Global Stats & Progression ---
       totalDistance += (activity.distance || 0);
       globalProg.push({
         date: date,
@@ -86,7 +84,6 @@ const StravaStats = () => {
         bpm: activity.average_heartrate || 0
       });
 
-      // --- Sport Stats & Progression ---
       if (!sportStats[type]) {
         sportStats[type] = {
           name: type,
@@ -125,7 +122,6 @@ const StravaStats = () => {
         s.wattsCount += 1;
       }
 
-      // Add to sport progression
       sportProg[type].push({
         date: date,
         fullDate: activity.start_date,
@@ -135,7 +131,6 @@ const StravaStats = () => {
       });
     });
 
-    // Format Summary Stats
     const formattedStats = Object.values(sportStats).map(stat => ({
       ...stat,
       distanceDisplay: (stat.distance / 1000).toFixed(1),
@@ -170,7 +165,7 @@ const StravaStats = () => {
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm('Are you sure you want to disconnect your Strava account?')) {
+    if (!window.confirm(t('stravaStats.disconnectConfirm'))) {
       return;
     }
 
@@ -183,36 +178,28 @@ const StravaStats = () => {
       }
       navigate('/strava-connect');
     } catch (err) {
-      setError('Failed to disconnect Strava account.');
+      setError(t('stravaStats.disconnectError'));
     } finally {
       setDisconnecting(false);
     }
   };
 
-  // Prepare data for Multi-Line Chart (Sport Progression)
-  // We need a unified timeline. This is tricky if dates don't overlap.
-  // Simplified approach: Use the global progression dates and map sport values to them?
-  // Or just plot them on the same XAxis if we pass all data points.
-  // Recharts handles this if we format data correctly: [{date: '...', Run: 10, Ride: 20}, ...]
   const getSportChartData = () => {
     const chartData = [];
     const sportCurrentDist = {};
     
-    // Initialize current distance for all sports
     Object.keys(sportProgression).forEach(sport => sportCurrentDist[sport] = 0);
 
     globalProgression.forEach(entry => {
       const point = { date: entry.date, fullDate: entry.fullDate };
       
       const sport = entry.type;
-      // Safety check: ensure sport exists in our tracking object
       if (sportCurrentDist.hasOwnProperty(sport)) {
         sportCurrentDist[sport] = parseFloat(sportCurrentDist[sport]) + parseFloat(entry.distance);
       }
       
-      // Add all current distances to the point
       Object.keys(sportCurrentDist).forEach(s => {
-        point[s] = sportCurrentDist[s]; // This might be a string or number, let's keep it simple
+        point[s] = sportCurrentDist[s];
       });
       
       chartData.push(point);
@@ -223,13 +210,20 @@ const StravaStats = () => {
   const sportChartData = getSportChartData();
   const sportsList = Object.keys(sportProgression);
   const colors = ['#fc4c02', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
+  
+  // Set default selected sport if not set or if current selection doesn't exist
+  useEffect(() => {
+    if (sportsList.length > 0 && (!selectedSport || !sportProgression[selectedSport])) {
+      setSelectedSport(sportsList[0]);
+    }
+  }, [sportsList, sportProgression]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#fc4c02] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading Strava data...</p>
+          <p className="text-slate-400">{t('stravaStats.loading')}</p>
         </div>
       </div>
     );
@@ -244,7 +238,7 @@ const StravaStats = () => {
             href="/strava-connect" 
             className="text-[#fc4c02] hover:underline font-bold"
           >
-            Connect Strava Account
+            {t('stravaStats.connectAccount')}
           </a>
         </div>
       </div>
@@ -255,12 +249,12 @@ const StravaStats = () => {
     return (
       <div className="min-h-screen flex justify-center items-center">
         <div className="text-center p-8 max-w-md">
-          <p className="text-slate-400 mb-4 text-lg">No activities found.</p>
+          <p className="text-slate-400 mb-4 text-lg">{t('stravaStats.noActivities')}</p>
           <a 
             href="/strava-connect" 
             className="text-[#fc4c02] hover:underline font-bold"
           >
-            Connect Strava Account
+            {t('stravaStats.connectAccount')}
           </a>
         </div>
       </div>
@@ -272,11 +266,11 @@ const StravaStats = () => {
       <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold flex items-center gap-3">
-          <span className="text-[#fc4c02]">STRAVA</span> PROGRESSION
+          <span className="text-[#fc4c02]">STRAVA</span> {t('stravaStats.title')}
         </h1>
         <div className="flex items-center gap-4">
           <div className="text-sm text-slate-400">
-            {activities.length} Activities Analyzed
+            {activities.length} {t('stravaStats.activitiesAnalyzed')}
           </div>
           <button
             onClick={handleDisconnect}
@@ -284,15 +278,14 @@ const StravaStats = () => {
             className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
           >
             <LogOut size={16} />
-            {disconnecting ? 'DISCONNECTING...' : 'DISCONNECT'}
+            {disconnecting ? t('stravaStats.disconnecting') : t('stravaStats.disconnect')}
           </button>
         </div>
       </div>
 
-      {/* 1. Global Progression Chart */}
       <div className="glass-panel p-6 rounded-xl border border-white/10">
         <h3 className="text-lg font-bold mb-6 text-slate-300 flex items-center gap-2">
-          <TrendingUp size={20} className="text-[#fc4c02]" /> Global Progression (Cumulative Distance)
+          <TrendingUp size={20} className="text-[#fc4c02]" /> {t('stravaStats.globalProgression')}
         </h3>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -310,10 +303,9 @@ const StravaStats = () => {
         </div>
       </div>
 
-      {/* 2. Sport Progression Chart */}
       <div className="glass-panel p-6 rounded-xl border border-white/10">
         <h3 className="text-lg font-bold mb-6 text-slate-300 flex items-center gap-2">
-          <Activity size={20} className="text-[#00f3ff]" /> Progression by Sport
+          <Activity size={20} className="text-[#00f3ff]" /> {t('stravaStats.progressionBySport')}
         </h3>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -340,10 +332,9 @@ const StravaStats = () => {
         </div>
       </div>
 
-      {/* 3. Heart Rate Evolution Chart */}
       <div className="glass-panel p-6 rounded-xl border border-white/10">
         <h3 className="text-lg font-bold mb-6 text-slate-300 flex items-center gap-2">
-          <Heart size={20} className="text-[#ec4899]" /> Heart Rate Evolution (BPM)
+          <Heart size={20} className="text-[#ec4899]" /> {t('stravaStats.heartRateEvolution')}
         </h3>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -361,22 +352,21 @@ const StravaStats = () => {
         </div>
       </div>
 
-      {/* 3. Global Progression Table */}
       <div className="glass-panel p-6 rounded-xl border border-white/10 overflow-hidden">
-        <h3 className="text-lg font-bold mb-6 text-slate-300">Global Progression Table</h3>
+        <h3 className="text-lg font-bold mb-6 text-slate-300">{t('stravaStats.globalProgressionTable')}</h3>
         <div className="max-h-96 overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-black/80 backdrop-blur-md z-10">
               <tr className="text-xs text-slate-400 uppercase tracking-wider border-b border-white/10">
-                <th className="p-4 font-medium">Date</th>
-                <th className="p-4 font-medium">Activity</th>
-                <th className="p-4 font-medium">Type</th>
-                <th className="p-4 font-medium text-right">Dist (km)</th>
-                <th className="p-4 font-medium text-right text-[#fc4c02]">Cumulative (km)</th>
+                <th className="p-4 font-medium">{t('stravaStats.date')}</th>
+                <th className="p-4 font-medium">{t('stravaStats.activity')}</th>
+                <th className="p-4 font-medium">{t('stravaStats.type')}</th>
+                <th className="p-4 font-medium text-right">{t('stravaStats.distance')}</th>
+                <th className="p-4 font-medium text-right text-[#fc4c02]">{t('stravaStats.cumulative')}</th>
               </tr>
             </thead>
             <tbody className="text-sm">
-              {globalProgression.slice().reverse().map((entry, index) => ( // Show newest first in table for readability? User asked for "oldest to newest" progression, but tables usually show newest first. I'll stick to oldest->newest as implied by "progression table" or maybe newest->oldest is better for logs. The user said "prenant l'activité la plus vieille a la plus recente que tu fasse 1 tableau". This implies the ORDER of calculation. For display, usually newest on top is better, but "Progression Table" often implies a log. I will show Oldest -> Newest to match the chart direction.
+              {globalProgression.slice().reverse().map((entry, index) => (
                 <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                   <td className="p-4 text-slate-300 whitespace-nowrap">{formatDate(entry.fullDate)}</td>
                   <td className="p-4 font-bold text-white">{entry.name}</td>
@@ -394,10 +384,9 @@ const StravaStats = () => {
         </div>
       </div>
 
-      {/* 4. Sport Progression Table */}
       <div className="glass-panel p-6 rounded-xl border border-white/10 overflow-hidden">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-slate-300">Sport Progression Table</h3>
+          <h3 className="text-lg font-bold text-slate-300">{t('stravaStats.sportProgressionTable')}</h3>
           <div className="flex items-center gap-2">
             <Filter size={16} className="text-slate-400" />
             <select 
@@ -416,10 +405,10 @@ const StravaStats = () => {
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-black/80 backdrop-blur-md z-10">
               <tr className="text-xs text-slate-400 uppercase tracking-wider border-b border-white/10">
-                <th className="p-4 font-medium">Date</th>
-                <th className="p-4 font-medium">Activity</th>
-                <th className="p-4 font-medium text-right">Dist (km)</th>
-                <th className="p-4 font-medium text-right text-[#00f3ff]">Sport Cumulative (km)</th>
+                <th className="p-4 font-medium">{t('stravaStats.date')}</th>
+                <th className="p-4 font-medium">{t('stravaStats.activity')}</th>
+                <th className="p-4 font-medium text-right">{t('stravaStats.distance')}</th>
+                <th className="p-4 font-medium text-right text-[#00f3ff]">{t('stravaStats.sportCumulative')}</th>
               </tr>
             </thead>
             <tbody className="text-sm">
@@ -433,7 +422,7 @@ const StravaStats = () => {
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan="4" className="p-4 text-center text-slate-500">Select a sport</td></tr>
+                <tr><td colSpan="4" className="p-4 text-center text-slate-500">{t('stravaStats.selectSport')}</td></tr>
               )}
             </tbody>
           </table>

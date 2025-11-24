@@ -26,18 +26,13 @@ const StravaConnect = () => {
     if (errorParam) {
       setError('Strava authentication failed. Please try again.');
     } else if (code) {
-      // We have an authorization code from Strava OAuth callback
       handleConnect(code);
     } else {
-      // Check if user is returning from Strava login
-      // If we have a stored OAuth URL and login redirect flag, redirect to OAuth
       const storedOAuthUrl = sessionStorage.getItem('strava_oauth_url');
       const loginRedirect = sessionStorage.getItem('strava_login_redirect');
       
       if (storedOAuthUrl && loginRedirect === 'true' && !code && !errorParam) {
-        // User has logged in on Strava, now redirect to OAuth authorization
         sessionStorage.removeItem('strava_login_redirect');
-        // Small delay to ensure page is loaded
         setTimeout(() => {
           window.location.href = storedOAuthUrl;
         }, 1000);
@@ -104,18 +99,14 @@ const StravaConnect = () => {
   const initiateAuth = async () => {
     try {
       setError('');
-      // Clear any existing code from URL
       window.history.replaceState({}, document.title, '/strava-connect');
       
-      // Get the OAuth URL from backend
       const response = await api.get('/strava/auth');
       const stravaOAuthUrl = response.data.url;
       
-      // Store the OAuth URL in sessionStorage to use after login
       sessionStorage.setItem('strava_oauth_url', stravaOAuthUrl);
       sessionStorage.setItem('strava_login_redirect', 'true');
       
-      // Redirect directly to Strava login page
       window.location.href = 'https://www.strava.com/login';
     } catch (err) {
       console.error('Failed to initiate Strava auth:', err);
