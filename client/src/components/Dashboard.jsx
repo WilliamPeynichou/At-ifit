@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [weights, setWeights] = useState([]);
   const [stravaActivities, setStravaActivities] = useState([]);
   const [combinedData, setCombinedData] = useState([]);
+  const [intensityData, setIntensityData] = useState([]); // New state for intensity graph
   const [metric, setMetric] = useState('distance'); // 'distance' | 'calories' | 'bpm'
   const [activityTypes, setActivityTypes] = useState([]);
   const [user, setUser] = useState(null);
@@ -52,6 +53,7 @@ const Dashboard = () => {
       // Process combined data if we have weights
       if (weightsRes.status === 'fulfilled') {
         processCombinedData(weightsRes.value.data, activities);
+        processIntensityData(weightsRes.value.data, activities); // Process intensity data in parallel
       }
 
     } catch (error) {
@@ -125,6 +127,54 @@ const Dashboard = () => {
     });
 
     setCombinedData(merged);
+  };
+
+  // Separate function to process relative effort data - runs in parallel, doesn't modify existing code
+  const processIntensityData = (weightData, activityData) => {
+    // 1. Create a map of all unique dates
+    const dateMap = new Set();
+    weightData.forEach(w => dateMap.add(new Date(w.date).toDateString()));
+    activityData.forEach(a => dateMap.add(new Date(a.start_date).toDateString()));
+
+    // 2. Convert to array and sort
+    const sortedDates = Array.from(dateMap)
+      .map(d => new Date(d))
+      .sort((a, b) => a - b);
+
+    // 3. Build the relative effort dataset with activities grouped by sport type
+    let lastKnownWeight = null;
+    const merged = sortedDates.map(date => {
+      const dateStr = date.toDateString();
+      
+      // Find weight for this day (same logic as original)
+      const weightEntry = weightData.find(w => new Date(w.date).toDateString() === dateStr);
+      if (weightEntry) lastKnownWeight = weightEntry.weight;
+
+      // Aggregate activities for this day
+      const dayActivities = activityData.filter(a => new Date(a.start_date).toDateString() === dateStr);
+      
+      const entry = {
+        date: date.toISOString(),
+        displayDate: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        weight: lastKnownWeight,
+        actualWeight: weightEntry ? weightEntry.weight : null,
+      };
+
+      // Calculate Relative Effort by sport type using Strava's suffer_score
+      dayActivities.forEach(a => {
+        const type = a.type || 'Unknown';
+        // Use Strava's suffer_score directly (this is the relative effort, can be 0-300+)
+        if (a.suffer_score !== null && a.suffer_score !== undefined) {
+          const effortKey = `${type}_effort`;
+          entry[effortKey] = (entry[effortKey] || 0) + a.suffer_score;
+          entry[effortKey] = parseFloat(entry[effortKey].toFixed(1));
+        }
+      });
+
+      return entry;
+    });
+
+    setIntensityData(merged);
   };
 
   useEffect(() => {
@@ -407,10 +457,10 @@ const Dashboard = () => {
                     type="monotone" 
                     dataKey="weight" 
                     name="Weight"
-                    stroke="var(--neon-cyan)" 
+                    stroke="#ffff00" 
                     strokeWidth={3}
                     dot={false}
-                    activeDot={{ r: 6, fill: 'var(--neon-cyan)', stroke: '#fff', strokeWidth: 2 }} 
+                    activeDot={{ r: 6, fill: '#ffff00', stroke: '#fff', strokeWidth: 2 }} 
                     connectNulls={true}
                   />
                   
@@ -419,6 +469,112 @@ const Dashboard = () => {
                   )}
                   
                   {metric === 'distance' && <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Second Graph: Weight vs Intensity */}
+          <div className="glass-panel rounded-3xl p-8 relative overflow-hidden group border border-white/5 bg-black/40">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-30"></div>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-bold text-white tracking-widest flex items-center gap-3">
+                <span className="w-2 h-2 bg-neon-cyan rounded-full animate-pulse shadow-[0_0_10px_#00f3ff]"></span>
+                {t('dashboard.correlation')}: {t('dashboard.relativeEffort') || 'EFFORT RELATIF'}
+              </h2>
+            </div>
+            <div className="h-96">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={intensityData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#475569"
+                    tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(str) => new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    dy={15}
+                  />
+                  {/* Left Axis: Weight */}
+                  <YAxis 
+                    yAxisId="left"
+                    stroke="#475569"
+                    tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                    tickLine={false}
+                    axisLine={false}
+                    domain={['auto', 'auto']} 
+                    dx={-10}
+                    label={{ value: 'kg', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }}
+                  />
+                  {/* Right Axis: Relative Effort */}
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#475569"
+                    tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={10}
+                    domain={['auto', 'auto']}
+                    label={{ 
+                      value: t('dashboard.relativeEffort') || 'Effort relatif', 
+                      angle: 90, 
+                      position: 'insideRight', 
+                      fill: '#64748b', 
+                      fontSize: 10 
+                    }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(0, 0, 0, 0.9)', 
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '12px',
+                      color: '#fff',
+                      boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.5)',
+                      padding: '12px'
+                    }}
+                    itemStyle={{ fontSize: '14px', fontWeight: 'bold' }}
+                    labelFormatter={(label) => new Date(label).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  />
+                  
+                  {/* Relative Effort Bars - Stacked by Sport Type */}
+                  {activityTypes.map((type, index) => {
+                    const effortKey = `${type}_effort`;
+                    return (
+                      <Bar 
+                        key={type}
+                        yAxisId="right"
+                        dataKey={effortKey} 
+                        name={type}
+                        stackId="effort"
+                        fill={ACTIVITY_COLORS[type] || ACTIVITY_COLORS.Default} 
+                        opacity={0.8}
+                        barSize={20}
+                        radius={index === activityTypes.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                      />
+                    );
+                  })}
+
+                  {/* Weight Line (Foreground) */}
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="weight" 
+                    name="Weight"
+                    stroke="#ffff00" 
+                    strokeWidth={3}
+                    dot={false}
+                    activeDot={{ r: 6, fill: '#ffff00', stroke: '#fff', strokeWidth: 2 }} 
+                    connectNulls={true}
+                  />
+                  
+                  {targetWeight && (
+                     <Line yAxisId="left" type="monotone" dataKey={() => targetWeight} name="Target" stroke="var(--neon-purple)" strokeDasharray="6 6" dot={false} strokeWidth={2} opacity={0.6} />
+                  )}
+                  
+                  {/* Legend for sport types */}
+                  <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
