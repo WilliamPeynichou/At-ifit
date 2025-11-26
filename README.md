@@ -8,7 +8,7 @@ Ce projet a été développé avec une architecture moderne **Fullstack JavaScri
 
 *   **Frontend** : [React](https://react.dev/) (Vite) pour une interface utilisateur dynamique et réactive.
 *   **Backend** : [Node.js](https://nodejs.org/) avec [Express](https://expressjs.com/) pour l'API REST.
-*   **Base de données** : [SQLite](https://www.sqlite.org/) gérée via l'ORM [Sequelize](https://sequelize.org/) pour la persistance des données (Utilisateurs, Poids).
+*   **Base de données** : [MySQL](https://www.mysql.com/) gérée via l'ORM [Sequelize](https://sequelize.org/) pour la persistance des données (Utilisateurs, Poids).
 *   **Design** : CSS pur avec une esthétique "Cyberpunk/Neon" personnalisée.
 *   **Intégration** : API [Strava](https://www.strava.com/) pour récupérer automatiquement les activités sportives.
 

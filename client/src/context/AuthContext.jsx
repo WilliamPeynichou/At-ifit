@@ -5,20 +5,21 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [accessToken, setAccessToken] = useState(localStorage.getItem('accessToken'));
+  const [refreshToken, setRefreshToken] = useState(localStorage.getItem('refreshToken'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
+    if (accessToken) {
       loadUser();
     } else {
       setLoading(false);
     }
-  }, [token]);
+  }, [accessToken]);
 
   const loadUser = async () => {
     try {
-      const currentToken = localStorage.getItem('token');
+      const currentToken = localStorage.getItem('accessToken');
       if (!currentToken) {
         setLoading(false);
         return;
@@ -32,18 +33,59 @@ export const AuthProvider = ({ children }) => {
       console.error('Error loading user:', error);
       // Only logout if it's an auth error, not a network error
       if (error.response?.status === 401) {
-        logout();
+        // Try to refresh token before logging out
+        const refresh = localStorage.getItem('refreshToken');
+        if (refresh) {
+          try {
+            await refreshAccessToken();
+            return; // Retry loadUser after refresh
+          } catch (refreshError) {
+            logout();
+          }
+        } else {
+          logout();
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const refreshAccessToken = async () => {
+    const refresh = localStorage.getItem('refreshToken');
+    if (!refresh) {
+      throw new Error('No refresh token available');
+    }
+
+    try {
+      const res = await api.post('/auth/refresh', { refreshToken: refresh });
+      const newAccessToken = res.data.accessToken;
+      setAccessToken(newAccessToken);
+      localStorage.setItem('accessToken', newAccessToken);
+      return newAccessToken;
+    } catch (error) {
+      // Refresh failed, clear tokens
+      logout();
+      throw error;
+    }
+  };
+
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
-    setToken(res.data.token);
-    setUser(res.data.user);
-    localStorage.setItem('token', res.data.token);
+    
+    // Check if response has the expected structure
+    if (!res.data || !res.data.accessToken || !res.data.refreshToken || !res.data.user) {
+      throw new Error('Invalid response format from server');
+    }
+    
+    const { accessToken, refreshToken: refresh, user: userData } = res.data;
+    
+    setAccessToken(accessToken);
+    setRefreshToken(refresh);
+    setUser(userData);
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refresh);
+    
     await loadUser(); // Reload full user data
     return res.data;
   };
@@ -53,16 +95,17 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post('/auth/register', { email, password, pseudo, country });
       
       // Check if response has the expected structure
-      if (!res.data || !res.data.token || !res.data.user) {
+      if (!res.data || !res.data.accessToken || !res.data.refreshToken || !res.data.user) {
         throw new Error('Invalid response format from server');
       }
       
-      const token = res.data.token;
-      const user = res.data.user;
+      const { accessToken, refreshToken: refresh, user: userData } = res.data;
       
-      setToken(token);
-      setUser(user);
-      localStorage.setItem('token', token);
+      setAccessToken(accessToken);
+      setRefreshToken(refresh);
+      setUser(userData);
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refresh);
       
       // Reload full user data after setting token
       try {
@@ -80,14 +123,39 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setToken(null);
+  const logout = async () => {
+    const refresh = localStorage.getItem('refreshToken');
+    
+    // Try to revoke refresh token on server
+    if (refresh) {
+      try {
+        await api.post('/auth/logout', { refreshToken: refresh });
+      } catch (error) {
+        console.error('Error during logout:', error);
+        // Continue with logout even if server call fails
+      }
+    }
+    
+    setAccessToken(null);
+    setRefreshToken(null);
     setUser(null);
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, loadUser }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token: accessToken, // Keep 'token' for backward compatibility
+      accessToken,
+      refreshToken,
+      loading, 
+      login, 
+      register, 
+      logout, 
+      loadUser,
+      refreshAccessToken
+    }}>
       {children}
     </AuthContext.Provider>
   );

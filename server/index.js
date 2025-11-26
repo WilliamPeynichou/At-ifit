@@ -4,6 +4,7 @@ const cors = require('cors');
 const sequelize = require('./database');
 const User = require('./models/User');
 const Weight = require('./models/Weight');
+const RefreshToken = require('./models/RefreshToken');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const stravaRoutes = require('./routes/strava');
@@ -26,7 +27,13 @@ if (missingEnvVars.length > 0) {
   console.error('   JWT_SECRET=your-secret-key-here');
   console.error('   STRAVA_CLIENT_ID=your-strava-client-id');
   console.error('   STRAVA_CLIENT_SECRET=your-strava-client-secret');
-  console.error('   STRAVA_REDIRECT_URI=http://localhost:3001/api/strava/callback\n');
+  console.error('   STRAVA_REDIRECT_URI=http://localhost:3001/api/strava/callback');
+  console.error('\n   # MySQL Database (optional - uses config.json if not set)');
+  console.error('   DB_HOST=localhost');
+  console.error('   DB_PORT=3306');
+  console.error('   DB_DATABASE=ecocycle_db');
+  console.error('   DB_USERNAME=root');
+  console.error('   DB_PASSWORD=  # Vide par défaut sur Mac\n');
   logger.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
   process.exit(1);
 }
@@ -42,14 +49,28 @@ app.use(express.json());
 User.hasMany(Weight, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Weight.belongsTo(User, { foreignKey: 'userId' });
 
-// Sync Database
-sequelize.sync({ alter: true })
+User.hasMany(RefreshToken, { foreignKey: 'userId', onDelete: 'CASCADE' });
+RefreshToken.belongsTo(User, { foreignKey: 'userId' });
+
+// Test Database Connection and Sync
+sequelize.authenticate()
   .then(() => {
-    logger.info('Database synced successfully');
+    logger.info('✅ Connexion à MySQL établie avec succès');
+    // Sync RefreshToken table separately to avoid issues with existing tables
+    return RefreshToken.sync({ alter: true });
+  })
+  .then(() => {
+    logger.info('✅ Table RefreshTokens synchronisée');
+    // Sync other tables without alter to avoid "too many keys" error
+    return sequelize.sync({ alter: false });
+  })
+  .then(() => {
+    logger.info('✅ Base de données synchronisée avec succès');
   })
   .catch((error) => {
-    logger.error('Database sync failed', error);
-    logger.warn('Server will continue despite database sync error');
+    logger.error('❌ Erreur de connexion/synchronisation MySQL:', error.message);
+    logger.warn('⚠️  Le serveur continuera malgré l\'erreur de base de données');
+    logger.warn('💡 Vérifiez que MySQL est démarré et que la base de données existe');
   });
 
 // Routes

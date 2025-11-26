@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import Onboarding from './Onboarding';
 
 const ProtectedRoute = ({ children }) => {
-  const { token, loading, user } = useAuth();
+  const { token, accessToken, loading, user } = useAuth();
+  const effectiveToken = accessToken || token; // Support both old and new token names
   const location = useLocation();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
@@ -37,7 +38,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!token) {
+  if (!effectiveToken) {
     return <Navigate to="/login" replace />;
   }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,62 +12,80 @@ const NewUserStrava = () => {
   const [stravaConnected, setStravaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [checkingConnection, setCheckingConnection] = useState(false);
+  const pollIntervalRef = useRef(null);
+  const stravaWindowRef = useRef(null);
 
   useEffect(() => {
     checkStravaStatus();
-    // Check for Strava callback
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const errorParam = urlParams.get('error');
     
-    if (errorParam) {
-      setError(t('common.error') || 'L\'authentification Strava a échoué. Veuillez réessayer.');
-    } else if (code) {
-      handleStravaConnect(code);
-    } else {
-      // Check if user is returning from Strava login
-      // If we have a stored OAuth URL and login redirect flag, redirect to OAuth
-      const storedOAuthUrl = sessionStorage.getItem('strava_oauth_url');
-      const loginRedirect = sessionStorage.getItem('strava_login_redirect');
-      const redirectPage = sessionStorage.getItem('strava_redirect_page');
+    // Check for Strava callback from popup
+    const handleMessage = async (event) => {
+      // Vérifier l'origine pour la sécurité
+      if (event.origin !== window.location.origin) return;
       
-      if (storedOAuthUrl && loginRedirect === 'true' && redirectPage === '/new-user-strava' && !code && !errorParam) {
-        // User has logged in on Strava, now redirect to OAuth authorization
-        sessionStorage.removeItem('strava_login_redirect');
-        sessionStorage.removeItem('strava_redirect_page');
-        // Small delay to ensure page is loaded
-        setTimeout(() => {
-          window.location.href = storedOAuthUrl;
-        }, 1000);
+      if (event.data.type === 'STRAVA_CONNECTED') {
+        // Arrêter le polling
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+        }
+        
+        setCheckingConnection(false);
+        await checkStravaStatus();
+        await loadUser();
+        
+        // Fermer la fenêtre popup si elle existe
+        if (stravaWindowRef.current && !stravaWindowRef.current.closed) {
+          stravaWindowRef.current.close();
+        }
+        
+        // Rediriger vers la page principale
+        navigate('/');
+      } else if (event.data.type === 'STRAVA_ERROR') {
+        // Arrêter le polling
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+        }
+        
+        setCheckingConnection(false);
+        setError(event.data.error || 'Erreur lors de la connexion Strava');
+        
+        // Fermer la fenêtre popup si elle existe
+        if (stravaWindowRef.current && !stravaWindowRef.current.closed) {
+          stravaWindowRef.current.close();
+        }
       }
-    }
-  }, []);
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [navigate, loadUser]);
 
   const checkStravaStatus = async () => {
     try {
       const res = await api.get('/user');
-      setStravaConnected(!!res.data.stravaAccessToken);
+      const isConnected = !!res.data.stravaAccessToken;
+      setStravaConnected(isConnected);
+      
+      // Si connecté, rediriger vers la page principale
+      if (isConnected) {
+        await loadUser();
+        // Attendre un peu pour que les données soient chargées
+        setTimeout(() => {
+          navigate('/');
+        }, 1000);
+      }
+      
+      return isConnected;
     } catch (error) {
       console.error('Error checking Strava status:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStravaConnect = async (code) => {
-    setLoading(true);
-    setError('');
-    try {
-      await api.post('/strava/connect', { code });
-      await checkStravaStatus();
-      if (loadUser) {
-        await loadUser();
-      }
-      // Clean URL
-      window.history.replaceState({}, document.title, '/new-user-strava');
-    } catch (error) {
-      console.error('Error connecting Strava:', error);
-      setError(t('common.error') || 'Échec de la connexion à Strava');
+      return false;
     } finally {
       setLoading(false);
     }
@@ -76,23 +94,85 @@ const NewUserStrava = () => {
   const initiateAuth = async () => {
     try {
       setError('');
-      // Clear any existing code from URL
-      window.history.replaceState({}, document.title, '/new-user-strava');
+      setCheckingConnection(true);
       
       // Get the OAuth URL from backend
       const response = await api.get('/strava/auth');
       const stravaOAuthUrl = response.data.url;
       
-      // Store the OAuth URL in sessionStorage to use after login
-      sessionStorage.setItem('strava_oauth_url', stravaOAuthUrl);
-      sessionStorage.setItem('strava_login_redirect', 'true');
-      sessionStorage.setItem('strava_redirect_page', '/new-user-strava');
+      // Ouvrir dans un nouvel onglet
+      const width = 600;
+      const height = 700;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
       
-      // Redirect directly to Strava login page
-      window.location.href = 'https://www.strava.com/login';
+      stravaWindowRef.current = window.open(
+        stravaOAuthUrl,
+        'stravaAuth',
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+      );
+
+      if (!stravaWindowRef.current) {
+        setError('Veuillez autoriser les popups pour cette page');
+        setCheckingConnection(false);
+        return;
+      }
+
+      // Le callback Strava enverra un message via postMessage
+      // Le polling sert de backup si le message n'est pas reçu
+      pollIntervalRef.current = setInterval(async () => {
+        // Vérifier si la fenêtre est fermée
+        if (stravaWindowRef.current && stravaWindowRef.current.closed) {
+          clearInterval(pollIntervalRef.current);
+          setCheckingConnection(false);
+          
+          // Vérifier une dernière fois si Strava est connecté
+          const isConnected = await checkStravaStatus();
+          if (!isConnected) {
+            setError('Connexion Strava annulée ou échouée');
+          }
+          return;
+        }
+
+        // Vérifier le statut de connexion (backup si postMessage ne fonctionne pas)
+        try {
+          const res = await api.get('/user');
+          const isConnected = !!res.data.stravaAccessToken;
+          
+          if (isConnected) {
+            clearInterval(pollIntervalRef.current);
+            setCheckingConnection(false);
+            
+            // Fermer la fenêtre popup
+            if (stravaWindowRef.current && !stravaWindowRef.current.closed) {
+              stravaWindowRef.current.close();
+            }
+            
+            // Recharger les données utilisateur et rediriger
+            await loadUser();
+            navigate('/');
+          }
+        } catch (error) {
+          console.error('Error checking connection status:', error);
+        }
+      }, 2000); // Vérifier toutes les 2 secondes
+
+      // Timeout de sécurité après 5 minutes
+      setTimeout(() => {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          setCheckingConnection(false);
+          if (stravaWindowRef.current && !stravaWindowRef.current.closed) {
+            stravaWindowRef.current.close();
+          }
+          setError('Timeout: La connexion Strava a pris trop de temps');
+        }
+      }, 300000); // 5 minutes
+      
     } catch (err) {
       console.error('Failed to initiate Strava auth:', err);
       setError(t('common.error') || 'Échec de l\'initialisation de la connexion Strava. Veuillez réessayer.');
+      setCheckingConnection(false);
     }
   };
 
@@ -173,10 +253,19 @@ const NewUserStrava = () => {
                   </p>
                 </div>
                 
-                {loading ? (
+                {loading || checkingConnection ? (
                   <div className="text-center py-8">
                     <div className="w-12 h-12 border-4 border-[#fc4c02] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-400">{t('common.loading') || 'Chargement...'}</p>
+                    <p className="text-slate-400">
+                      {checkingConnection 
+                        ? 'En attente de la connexion Strava...' 
+                        : (t('common.loading') || 'Chargement...')}
+                    </p>
+                    {checkingConnection && (
+                      <p className="text-slate-500 text-sm mt-2">
+                        Une nouvelle fenêtre s'est ouverte. Autorisez l'application dans cette fenêtre.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <button

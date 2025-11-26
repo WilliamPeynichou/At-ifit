@@ -36,6 +36,12 @@ const validateRequest = (validations) => {
         if (rules.max !== undefined && Number(value) > rules.max) {
           errors.push(`${field} must be at most ${rules.max}`);
         }
+        
+        // Password strength validation
+        if (rules.validateStrength && field === 'password') {
+          const passwordErrors = validatePasswordStrength(value);
+          errors.push(...passwordErrors);
+        }
       }
     }
     
@@ -51,11 +57,41 @@ const validateRequest = (validations) => {
   };
 };
 
+/**
+ * Validate password strength
+ * Requires: minimum 8 characters, at least one uppercase, one lowercase, one number, one special character
+ */
+const validatePasswordStrength = (password) => {
+  const errors = [];
+  
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+  
+  if (!/\d/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+  
+  if (!/[!@#$%^&*(),.?":{}|<>\[\]\\\/_+\-=~`]/.test(password)) {
+    errors.push('Password must contain at least one special character');
+  }
+  
+  return errors;
+};
+
 // Common validation rules
 const validations = {
   register: {
     email: { required: true, type: 'email' },
-    password: { required: true, minLength: 6 },
+    password: { required: true, minLength: 8, validateStrength: true },
     pseudo: { required: false }
   },
   

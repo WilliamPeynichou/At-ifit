@@ -15,6 +15,7 @@ import StatsExplanation from './pages/StatsExplanation';
 import NewUserProfile from './pages/NewUserProfile';
 import NewUserWeight from './pages/NewUserWeight';
 import NewUserStrava from './pages/NewUserStrava';
+import StravaCallback from './pages/StravaCallback';
 
 
 function App() {
@@ -126,6 +127,10 @@ function App() {
                     <NewUserStrava />
                   </ProtectedRoute>
                 }
+              />
+              <Route
+                path="/strava-callback"
+                element={<StravaCallback />}
               />
 
             </Routes>

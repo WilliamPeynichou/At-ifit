@@ -1,0 +1,9 @@
+
+> server@1.0.0 start
+> node index.js
+
+[dotenv@17.2.3] injecting env (14) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[INFO] Server running on http://localhost:3001 {}
+[INFO] ✅ Connexion à MySQL établie avec succès {}
+[INFO] ✅ Table RefreshTokens synchronisée {}
+[INFO] ✅ Base de données synchronisée avec succès {}

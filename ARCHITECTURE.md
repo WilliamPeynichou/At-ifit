@@ -24,8 +24,8 @@ server/
 │   └── update_tokens.js      # Script de mise à jour manuelle des tokens
 ├── .env                      # Variables d'environnement
 ├── database.js               # Configuration Sequelize
-├── database.sqlite           # Fichier de base de données SQLite
 ├── index.js                  # Fichier serveur principal
+├── README.md                 # Documentation de configuration MySQL
 └── package.json
 
 client/
@@ -206,8 +206,12 @@ STRAVA_REDIRECT_URI=http://localhost:3001/api/strava/callback
 VICTOR_STRAVA_CLIENT_ID=victor-client-id
 VICTOR_STRAVA_CLIENT_SECRET=victor-client-secret
 
-# Base de données (SQLite - auto-configurée)
-# Aucune configuration supplémentaire nécessaire pour SQLite
+# Base de données MySQL (optionnel - utilise config.json si non défini)
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=ecocycle_db
+DB_USERNAME=root
+DB_PASSWORD=
 
 # Serveur
 PORT=3001
@@ -299,9 +303,11 @@ logger.debug('Informations de débogage', { details });
 - Redémarrer le serveur après avoir modifié `.env`
 
 **"Échec de la synchronisation de la base de données"**
-- Vérifier les permissions du fichier de base de données
-- Supprimer `database.sqlite` et redémarrer (sera recréé)
-- Vérifier la configuration Sequelize dans `config/config.json`
+- Vérifier que MySQL est démarré et accessible (`brew services start mysql` sur Mac)
+- Vérifier que la base de données existe (créer avec `CREATE DATABASE ecocycle_db`)
+- Vérifier les identifiants MySQL dans `config/config.json` ou `.env`
+- Sur Mac, le mot de passe root est généralement vide par défaut
+- Tester la connexion avec `node check_db_connection.js`
 
 **"Échec du rafraîchissement du token Strava"**
 - Vérifier les identifiants Strava dans `.env`
