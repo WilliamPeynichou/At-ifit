@@ -120,15 +120,37 @@ export const translations = {
       pageSubtitle: "Comprenez toutes les métriques affichées dans votre tableau de bord",
       backToDashboard: "Retour au tableau de bord",
       note: "Note",
+      tcaWarning: {
+        title: "⚠️ IMPORTANT : Dangers liés à l'obsession de perte de poids",
+        intro: "Cette application est conçue pour vous aider à suivre votre poids et votre activité physique de manière saine et équilibrée. Cependant, il est essentiel d'être conscient des risques liés à une obsession de la perte de poids.",
+        definition: "Les Troubles du Comportement Alimentaire (TCA) sont des maladies psychiatriques graves qui peuvent se développer lorsque la perte de poids devient une obsession. Ces troubles incluent l'anorexie mentale, la boulimie et l'hyperphagie boulimique. Ils se caractérisent par des pratiques alimentaires anormales associées à une grande souffrance psychique et peuvent avoir des conséquences graves sur la santé.",
+        danger: "⚠️ Attention : Une obsession de la perte de poids peut conduire à des troubles du comportement alimentaire. Si vous remarquez des comportements compulsifs, des restrictions excessives ou une détresse psychologique liée à l'alimentation et au poids, il est essentiel de consulter un professionnel de santé.",
+        learnMore: "En savoir plus sur les Troubles du Comportement Alimentaire (TCA)"
+      },
       bmi: {
         title: "IMC (Indice de Masse Corporelle)",
-        description: "L'IMC est une mesure de votre poids par rapport à votre taille. Il permet d'évaluer si votre poids est adapté à votre taille. Cette valeur est calculée automatiquement à partir de votre poids actuel et de votre taille.",
+        description: "L'IMC (Indice de Masse Corporelle) est un indicateur utilisé pour évaluer la relation entre votre poids et votre taille. Il permet d'estimer si votre poids est adapté à votre taille et d'identifier les risques potentiels pour la santé. Cette valeur est calculée automatiquement à partir de votre poids actuel et de votre taille.",
+        whatIs: "Qu'est-ce que l'IMC ?",
+        whatIsDesc: "L'IMC est un outil de dépistage qui permet d'évaluer le statut pondéral d'un individu. Il a été développé au 19ème siècle par le statisticien belge Adolphe Quetelet. Bien qu'il ne mesure pas directement la graisse corporelle, il fournit une estimation utile pour la plupart des adultes.",
         calculation: "IMC = Poids (kg) / Taille (m)²",
+        calculationDesc: "Pour calculer votre IMC, divisez votre poids en kilogrammes par le carré de votre taille en mètres. Par exemple, si vous pesez 70 kg et mesurez 1,75 m : IMC = 70 / (1,75 × 1,75) = 70 / 3,06 = 22,9",
+        genderDifferences: "Différences selon le sexe",
+        genderDifferencesDesc: "Le calcul de l'IMC est identique pour les hommes et les femmes : IMC = Poids (kg) / Taille (m)². Cependant, l'interprétation peut varier selon le sexe en raison des différences de composition corporelle.\n\n• Hommes : Généralement, les hommes ont une masse musculaire plus importante et une densité osseuse plus élevée que les femmes. Pour un même IMC, un homme aura souvent moins de graisse corporelle qu'une femme.\n\n• Femmes : Les femmes ont naturellement un pourcentage de graisse corporelle plus élevé que les hommes pour un même IMC. Cela est dû aux différences hormonales et à la nécessité de maintenir des réserves énergétiques pour la reproduction.\n\n• Interprétation : Bien que les seuils d'IMC soient les mêmes pour les deux sexes (18,5-24,9 pour le poids normal), les professionnels de santé peuvent tenir compte de ces différences lors de l'évaluation. Par exemple, une femme avec un IMC de 23 peut avoir un pourcentage de graisse corporelle normal, tandis qu'un homme avec le même IMC pourrait avoir un pourcentage de graisse légèrement plus bas.\n\n• Limites : L'IMC ne distingue pas la masse grasse de la masse musculaire. Un athlète très musclé peut avoir un IMC élevé sans être en surpoids, tandis qu'une personne sédentaire avec le même IMC peut avoir un excès de graisse.",
+        transgenderConsiderations: "Considérations pour les personnes transgenres",
+        transgenderConsiderationsDesc: "Pour les personnes transgenres, l'interprétation de l'IMC peut nécessiter des nuances supplémentaires en raison des changements hormonaux et de la composition corporelle.\n\n• Calcul identique : Le calcul de l'IMC reste le même : IMC = Poids (kg) / Taille (m)². Il n'y a pas de formule différente.\n\n• Traitement hormonal (TH) : Les traitements hormonaux peuvent modifier la composition corporelle :\n  - TH féminisant (œstrogènes) : Peut entraîner une redistribution des graisses vers les hanches et les cuisses, une légère augmentation de la masse grasse, et une diminution potentielle de la masse musculaire.\n  - TH masculinisant (testostérone) : Peut entraîner une augmentation de la masse musculaire, une redistribution des graisses vers l'abdomen, et une augmentation de la densité osseuse.\n\n• Interprétation adaptée : Les professionnels de santé peuvent interpréter l'IMC en fonction du sexe assigné à la naissance ET du sexe de transition, en tenant compte de la durée du traitement hormonal. Après plusieurs années de TH, la composition corporelle peut se rapprocher de celle du sexe de transition.\n\n• Durée du traitement : Plus le traitement hormonal est long, plus la composition corporelle se rapproche de celle du sexe de transition. Après 2-5 ans de TH, certains professionnels utilisent les seuils d'IMC du sexe de transition.\n\n• Consultation professionnelle : Il est recommandé de consulter un professionnel de santé connaissant les spécificités de la santé transgenre pour une interprétation adaptée de l'IMC et des autres indicateurs de santé.\n\n• Limites supplémentaires : L'IMC peut être moins précis pour les personnes transgenres, notamment en période de transition, car les changements de composition corporelle peuvent être rapides et varier considérablement d'une personne à l'autre.",
+        possibleValues: "Valeurs possibles",
+        possibleValuesDesc: "L'IMC peut théoriquement aller de moins de 15 (dénutrition sévère) à plus de 40 (obésité morbide). Les valeurs normales se situent généralement entre 18,5 et 24,9. Cependant, l'IMC a ses limites : il ne tient pas compte de la masse musculaire, de la densité osseuse, ni de la répartition des graisses.",
+        categoriesTitle: "Catégories d'IMC et leurs conséquences",
         underweight: "Insuffisance pondérale",
+        underweightConsequences: "Un IMC inférieur à 18,5 peut indiquer une insuffisance pondérale. Les conséquences peuvent inclure : affaiblissement du système immunitaire, risque accru d'ostéoporose, carences nutritionnelles, fatigue chronique, troubles de la fertilité, et complications cardiaques. Il est important de consulter un professionnel de santé si votre IMC est dans cette catégorie.",
         normal: "Poids normal",
+        normalConsequences: "Un IMC entre 18,5 et 24,9 est considéré comme normal. Cette catégorie est associée à un risque réduit de maladies cardiovasculaires, de diabète de type 2, et d'autres problèmes de santé liés au poids. Cependant, même dans cette catégorie, il est important de maintenir une alimentation équilibrée et une activité physique régulière.",
         overweight: "Surpoids",
-        obese: "Obésité"
+        overweightConsequences: "Un IMC entre 25 et 29,9 indique un surpoids. Les conséquences peuvent inclure : risque accru de diabète de type 2, hypertension artérielle, maladies cardiovasculaires, apnée du sommeil, problèmes articulaires, et certains types de cancer. Une perte de poids modérée (5-10%) peut significativement réduire ces risques.",
+        obese: "Obésité",
+        obeseConsequences: "Un IMC de 30 ou plus indique une obésité. Les conséquences peuvent être graves : risque très élevé de diabète de type 2, maladies cardiovasculaires, hypertension, accidents vasculaires cérébraux, certains cancers, problèmes respiratoires, et complications articulaires. Il est fortement recommandé de consulter un professionnel de santé pour établir un plan de perte de poids adapté et sécurisé."
       },
+      consequences: "Conséquences réelles",
       startDate: {
         title: "Date de Début",
         description: "La date à laquelle vous avez commencé à enregistrer votre poids dans l'application. Cette date marque le début de votre suivi."
@@ -151,19 +173,23 @@ export const translations = {
       },
       dayDelta7: {
         title: "Delta 7 Jours",
-        description: "La différence de poids entre aujourd'hui et il y a 7 jours. Une valeur positive indique une prise de poids, une valeur négative une perte de poids."
+        description: "La différence de poids entre aujourd'hui et il y a 7 jours. Une valeur positive indique une prise de poids, une valeur négative une perte de poids.",
+        consequences: "Consequences réelles : Une perte de poids rapide (> 1 kg/semaine) peut indiquer une perte d'eau, de muscle plutôt que de graisse, et peut être dangereuse. Une perte de poids saine se situe généralement entre 0,5 et 1 kg par semaine. Une prise de poids rapide peut indiquer une rétention d'eau, des changements hormonaux, ou une consommation excessive."
       },
       dayDelta30: {
         title: "Delta 30 Jours",
-        description: "La différence de poids entre aujourd'hui et il y a 30 jours. Cette métrique donne une vue plus large de votre progression mensuelle."
+        description: "La différence de poids entre aujourd'hui et il y a 30 jours. Cette métrique donne une vue plus large de votre progression mensuelle.",
+        consequences: "Consequences réelles : Une perte de poids de 2-4 kg par mois est généralement considérée comme saine et durable. Une perte plus rapide peut entraîner une perte de masse musculaire, un ralentissement du métabolisme, et des risques de carences nutritionnelles. Une prise de poids importante peut nécessiter une consultation médicale."
       },
       weeklyAvg: {
         title: "Moyenne Hebdomadaire",
-        description: "La moyenne de changement de poids par semaine, calculée sur toute la période de suivi. Cette valeur projette votre tendance actuelle sur une semaine."
+        description: "La moyenne de changement de poids par semaine, calculée sur toute la période de suivi. Cette valeur projette votre tendance actuelle sur une semaine.",
+        consequences: "Consequences réelles : Cette moyenne vous aide à comprendre votre rythme de progression. Une moyenne stable indique une approche durable. Des fluctuations importantes peuvent indiquer des problèmes de régularité dans votre alimentation ou votre activité physique."
       },
       monthlyAvg: {
         title: "Moyenne Mensuelle",
-        description: "La moyenne de changement de poids par mois, calculée sur toute la période de suivi. Cette valeur projette votre tendance actuelle sur un mois."
+        description: "La moyenne de changement de poids par mois, calculée sur toute la période de suivi. Cette valeur projette votre tendance actuelle sur un mois.",
+        consequences: "Consequences réelles : Cette moyenne donne une vision à long terme de votre progression. Une moyenne de 2-4 kg par mois est généralement saine. Des valeurs extrêmes peuvent indiquer des problèmes de santé ou des approches non durables nécessitant un ajustement."
       },
       daysToGoal: {
         title: "Jours Estimés vers Cible",
@@ -185,6 +211,18 @@ export const translations = {
       bpm: {
         title: "BPM (Battements par Minute)",
         description: "La fréquence cardiaque moyenne lors de vos activités Strava pour chaque jour. Cette métrique n'est disponible que si vous utilisez un moniteur de fréquence cardiaque avec Strava."
+      },
+      relativeEffort: {
+        title: "Effort Relatif",
+        description: "L'effort relatif est une métrique calculée par Strava qui quantifie l'intensité de vos activités physiques. Cette valeur est basée sur le \"suffer score\" de Strava et permet de comparer l'intensité de différentes activités, indépendamment de leur durée ou de leur type.",
+        whatIs: "Qu'est-ce que l'Effort Relatif ?",
+        whatIsDesc: "L'effort relatif (Relative Effort) est un score développé par Strava qui mesure l'intensité perçue de votre effort pendant une activité. Contrairement à des métriques simples comme la distance ou la durée, l'effort relatif prend en compte plusieurs facteurs pour donner une mesure normalisée de l'intensité de votre activité.",
+        calculation: "Comment c'est calculé ?",
+        calculationDesc: "L'effort relatif est calculé par Strava en utilisant principalement votre fréquence cardiaque (si disponible), la durée de l'activité, et l'intensité de l'effort. Le calcul prend en compte :\n• Votre fréquence cardiaque par rapport à votre fréquence cardiaque maximale\n• La durée de l'activité\n• L'intensité moyenne maintenue\n\nPlus votre fréquence cardiaque est élevée et plus l'activité dure longtemps, plus l'effort relatif sera élevé. Pour les activités sans moniteur de fréquence cardiaque, Strava utilise d'autres données comme la puissance (watts) pour le cyclisme ou le \"suffer score\" basé sur l'intensité perçue.",
+        howToRead: "Comment lire les données ?",
+        howToReadDesc: "L'effort relatif est cumulatif : si vous faites plusieurs activités dans la journée, les scores s'additionnent. Par exemple, une course de 50 points d'effort relatif suivie d'une séance de vélo de 30 points donnera un total de 80 points pour la journée. Cela permet de visualiser la charge d'entraînement totale de votre journée, indépendamment du type d'activité pratiquée.",
+        ranges: "Valeurs et signification",
+        rangesDesc: "• 0-25 : Effort léger (échauffement, récupération active)\n• 26-50 : Effort modéré (entraînement d'endurance de base)\n• 51-100 : Effort intense (entraînement par intervalles, compétition courte)\n• 101-200 : Effort très intense (compétition longue, entraînement très dur)\n• 200+ : Effort extrême (ultra-endurance, efforts maximaux prolongés)\n\nNote : Ces valeurs peuvent varier selon votre niveau de forme physique. Un effort relatif de 100 pour un athlète entraîné peut être différent de celui d'un débutant."
       },
       dailyFuel: {
         title: "Objectif d'Apport Calorique Quotidien",
@@ -365,15 +403,37 @@ export const translations = {
       pageSubtitle: "Understand all the metrics displayed in your dashboard",
       backToDashboard: "Back to Dashboard",
       note: "Note",
+      tcaWarning: {
+        title: "⚠️ IMPORTANT: Dangers of Weight Loss Obsession",
+        intro: "This application is designed to help you track your weight and physical activity in a healthy and balanced way. However, it is essential to be aware of the risks associated with an obsession with weight loss.",
+        definition: "Eating Disorders (TCA - Troubles du Comportement Alimentaire) are serious psychiatric conditions that can develop when weight loss becomes an obsession. These disorders include anorexia nervosa, bulimia, and binge eating disorder. They are characterized by abnormal eating behaviors associated with significant psychological distress and can have serious health consequences.",
+        danger: "⚠️ Warning: An obsession with weight loss can lead to eating disorders. If you notice compulsive behaviors, excessive restrictions, or psychological distress related to food and weight, it is essential to consult a healthcare professional.",
+        learnMore: "Learn more about Eating Disorders (TCA)"
+      },
       bmi: {
         title: "BMI (Body Mass Index)",
-        description: "BMI is a measure of your weight relative to your height. It helps assess if your weight is appropriate for your height. This value is automatically calculated from your current weight and height.",
+        description: "BMI (Body Mass Index) is an indicator used to assess the relationship between your weight and height. It helps estimate if your weight is appropriate for your height and identify potential health risks. This value is automatically calculated from your current weight and height.",
+        whatIs: "What is BMI?",
+        whatIsDesc: "BMI is a screening tool that allows assessment of an individual's weight status. It was developed in the 19th century by Belgian statistician Adolphe Quetelet. Although it does not directly measure body fat, it provides a useful estimate for most adults.",
         calculation: "BMI = Weight (kg) / Height (m)²",
+        calculationDesc: "To calculate your BMI, divide your weight in kilograms by the square of your height in meters. For example, if you weigh 70 kg and are 1.75 m tall: BMI = 70 / (1.75 × 1.75) = 70 / 3.06 = 22.9",
+        genderDifferences: "Differences by gender",
+        genderDifferencesDesc: "The BMI calculation is identical for men and women: BMI = Weight (kg) / Height (m)². However, interpretation may vary by gender due to differences in body composition.\n\n• Men: Generally, men have greater muscle mass and higher bone density than women. For the same BMI, a man will often have less body fat than a woman.\n\n• Women: Women naturally have a higher percentage of body fat than men for the same BMI. This is due to hormonal differences and the need to maintain energy reserves for reproduction.\n\n• Interpretation: Although BMI thresholds are the same for both sexes (18.5-24.9 for normal weight), healthcare professionals may take these differences into account during evaluation. For example, a woman with a BMI of 23 may have a normal body fat percentage, while a man with the same BMI might have a slightly lower body fat percentage.\n\n• Limitations: BMI does not distinguish between fat mass and muscle mass. A very muscular athlete may have a high BMI without being overweight, while a sedentary person with the same BMI may have excess fat.",
+        transgenderConsiderations: "Considerations for transgender individuals",
+        transgenderConsiderationsDesc: "For transgender individuals, BMI interpretation may require additional nuances due to hormonal changes and body composition shifts.\n\n• Same calculation: The BMI calculation remains the same: BMI = Weight (kg) / Height (m)². There is no different formula.\n\n• Hormone therapy (HT): Hormone treatments can modify body composition:\n  - Feminizing HT (estrogens): May lead to fat redistribution to hips and thighs, slight increase in fat mass, and potential decrease in muscle mass.\n  - Masculinizing HT (testosterone): May lead to increased muscle mass, fat redistribution to abdomen, and increased bone density.\n\n• Adapted interpretation: Healthcare professionals may interpret BMI based on both assigned sex at birth AND transitioned gender, taking into account the duration of hormone therapy. After several years of HT, body composition may approach that of the transitioned gender.\n\n• Treatment duration: The longer the hormone therapy, the more body composition approaches that of the transitioned gender. After 2-5 years of HT, some professionals use BMI thresholds of the transitioned gender.\n\n• Professional consultation: It is recommended to consult a healthcare professional knowledgeable about transgender health specifics for an adapted interpretation of BMI and other health indicators.\n\n• Additional limitations: BMI may be less accurate for transgender individuals, especially during transition, as body composition changes can be rapid and vary considerably from person to person.",
+        possibleValues: "Possible values",
+        possibleValuesDesc: "BMI can theoretically range from less than 15 (severe malnutrition) to more than 40 (morbid obesity). Normal values are generally between 18.5 and 24.9. However, BMI has its limitations: it does not account for muscle mass, bone density, or fat distribution.",
+        categoriesTitle: "BMI categories and their consequences",
         underweight: "Underweight",
+        underweightConsequences: "A BMI below 18.5 may indicate underweight. Consequences can include: weakened immune system, increased risk of osteoporosis, nutritional deficiencies, chronic fatigue, fertility issues, and cardiac complications. It is important to consult a healthcare professional if your BMI is in this category.",
         normal: "Normal",
+        normalConsequences: "A BMI between 18.5 and 24.9 is considered normal. This category is associated with reduced risk of cardiovascular disease, type 2 diabetes, and other weight-related health problems. However, even in this category, it is important to maintain a balanced diet and regular physical activity.",
         overweight: "Overweight",
-        obese: "Obese"
+        overweightConsequences: "A BMI between 25 and 29.9 indicates overweight. Consequences can include: increased risk of type 2 diabetes, high blood pressure, cardiovascular disease, sleep apnea, joint problems, and certain types of cancer. Moderate weight loss (5-10%) can significantly reduce these risks.",
+        obese: "Obese",
+        obeseConsequences: "A BMI of 30 or more indicates obesity. Consequences can be serious: very high risk of type 2 diabetes, cardiovascular disease, hypertension, stroke, certain cancers, respiratory problems, and joint complications. It is strongly recommended to consult a healthcare professional to establish an appropriate and safe weight loss plan."
       },
+      consequences: "Real consequences",
       startDate: {
         title: "Start Date",
         description: "The date when you started logging your weight in the application. This date marks the beginning of your tracking journey."
@@ -396,19 +456,23 @@ export const translations = {
       },
       dayDelta7: {
         title: "7 Day Delta",
-        description: "The weight difference between today and 7 days ago. A positive value indicates weight gain, a negative value indicates weight loss."
+        description: "The weight difference between today and 7 days ago. A positive value indicates weight gain, a negative value indicates weight loss.",
+        consequences: "Real consequences: Rapid weight loss (> 1 kg/week) may indicate water or muscle loss rather than fat loss, and can be dangerous. Healthy weight loss is generally between 0.5 and 1 kg per week. Rapid weight gain may indicate water retention, hormonal changes, or excessive consumption."
       },
       dayDelta30: {
         title: "30 Day Delta",
-        description: "The weight difference between today and 30 days ago. This metric provides a broader view of your monthly progress."
+        description: "The weight difference between today and 30 days ago. This metric provides a broader view of your monthly progress.",
+        consequences: "Real consequences: Weight loss of 2-4 kg per month is generally considered healthy and sustainable. Faster loss can lead to muscle mass loss, slowed metabolism, and risks of nutritional deficiencies. Significant weight gain may require medical consultation."
       },
       weeklyAvg: {
         title: "Weekly Average",
-        description: "The average weight change per week, calculated over your entire tracking period. This value projects your current trend over a week."
+        description: "The average weight change per week, calculated over your entire tracking period. This value projects your current trend over a week.",
+        consequences: "Real consequences: This average helps you understand your progression rate. A stable average indicates a sustainable approach. Significant fluctuations may indicate problems with consistency in your diet or physical activity."
       },
       monthlyAvg: {
         title: "Monthly Average",
-        description: "The average weight change per month, calculated over your entire tracking period. This value projects your current trend over a month."
+        description: "The average weight change per month, calculated over your entire tracking period. This value projects your current trend over a month.",
+        consequences: "Real consequences: This average provides a long-term view of your progress. An average of 2-4 kg per month is generally healthy. Extreme values may indicate health problems or unsustainable approaches requiring adjustment."
       },
       daysToGoal: {
         title: "Estimated Days to Target",
@@ -430,6 +494,18 @@ export const translations = {
       bpm: {
         title: "BPM (Beats Per Minute)",
         description: "The average heart rate during your Strava activities for each day. This metric is only available if you use a heart rate monitor with Strava."
+      },
+      relativeEffort: {
+        title: "Relative Effort",
+        description: "Relative Effort is a metric calculated by Strava that quantifies the intensity of your physical activities. This value is based on Strava's \"suffer score\" and allows you to compare the intensity of different activities, regardless of their duration or type.",
+        whatIs: "What is Relative Effort?",
+        whatIsDesc: "Relative Effort is a score developed by Strava that measures the perceived intensity of your effort during an activity. Unlike simple metrics like distance or duration, Relative Effort takes into account several factors to provide a normalized measure of your activity's intensity.",
+        calculation: "How is it calculated?",
+        calculationDesc: "Relative Effort is calculated by Strava primarily using your heart rate (if available), activity duration, and effort intensity. The calculation takes into account:\n• Your heart rate relative to your maximum heart rate\n• Activity duration\n• Average intensity maintained\n\nThe higher your heart rate and the longer the activity lasts, the higher the Relative Effort will be. For activities without a heart rate monitor, Strava uses other data such as power (watts) for cycling or \"suffer score\" based on perceived intensity.",
+        howToRead: "How to read the data?",
+        howToReadDesc: "Relative Effort is cumulative: if you do multiple activities in a day, the scores add up. For example, a run of 50 Relative Effort points followed by a bike session of 30 points will give a total of 80 points for the day. This allows you to visualize the total training load of your day, regardless of the type of activity performed.",
+        ranges: "Values and meaning",
+        rangesDesc: "• 0-25: Light effort (warm-up, active recovery)\n• 26-50: Moderate effort (base endurance training)\n• 51-100: Intense effort (interval training, short competition)\n• 101-200: Very intense effort (long competition, very hard training)\n• 200+: Extreme effort (ultra-endurance, prolonged maximal efforts)\n\nNote: These values may vary depending on your fitness level. A Relative Effort of 100 for a trained athlete may be different from that of a beginner."
       },
       dailyFuel: {
         title: "Daily Fuel Target",

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { User } from 'lucide-react';
+import { User, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { countryNames, countryToLanguage } from '../i18n/translations';
 
 const UserProfile = ({ onUpdate }) => {
@@ -160,7 +161,16 @@ const UserProfile = ({ onUpdate }) => {
           {formData.consoKcal && (
             <div className="col-span-2 mt-2 grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-green-400 mb-2 uppercase tracking-widest">{t('profile.dailyFuelTarget')} <span className="text-green-600 ml-2">/// {t('profile.calculated')}</span></label>
+                <label className="block text-xs font-bold text-green-400 mb-2 uppercase tracking-widest flex items-center gap-2">
+                  {t('profile.dailyFuelTarget')} <span className="text-green-600 ml-2">/// {t('profile.calculated')}</span>
+                  <Link
+                    to="/stats-explanation#daily-fuel"
+                    className="p-1 rounded-full bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 transition-all group"
+                    title={t('stats.dailyFuel.title') || 'En savoir plus sur l\'Objectif Calorique'}
+                  >
+                    <Info className="w-3 h-3 group-hover:scale-110 transition-transform" />
+                  </Link>
+                </label>
                 <div className="input-cyber bg-green-500/10 border-green-500/30 text-green-400 font-mono text-lg flex items-center justify-between">
                   <span>{formData.consoKcal} KCAL</span>
                 </div>

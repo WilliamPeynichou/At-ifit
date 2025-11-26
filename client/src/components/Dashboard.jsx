@@ -288,7 +288,16 @@ const Dashboard = () => {
               <div className="p-2 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
                 <Scale className="w-5 h-5 text-neon-cyan" />
               </div>
-              <h2 className="text-lg font-bold text-white tracking-wider">{t('dashboard.bmiStatus')}</h2>
+              <h2 className="text-lg font-bold text-white tracking-wider flex items-center gap-2">
+                {t('dashboard.bmiStatus')}
+                <Link
+                  to="/stats-explanation#bmi"
+                  className="p-1 rounded-full bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/30 text-neon-cyan transition-all group"
+                  title={t('stats.bmi.title') || 'En savoir plus sur l\'IMC'}
+                >
+                  <Info className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                </Link>
+              </h2>
             </div>
             <div className="relative z-10">
               {user && user.height && currentWeight > 0 ? (
@@ -356,9 +365,17 @@ const Dashboard = () => {
                 </button>
                 <button 
                   onClick={() => setMetric('calories')}
-                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'calories' ? 'bg-[#ef4444] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all flex items-center gap-1.5 ${metric === 'calories' ? 'bg-[#ef4444] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                 >
                   {t('dashboard.calories')}
+                  <Link
+                    to="/stats-explanation#calories"
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-0.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all group"
+                    title={t('stats.calories.title') || 'En savoir plus sur les Calories'}
+                  >
+                    <Info className="w-3 h-3 group-hover:scale-110 transition-transform" />
+                  </Link>
                 </button>
                 <button 
                   onClick={() => setMetric('bpm')}
@@ -481,6 +498,13 @@ const Dashboard = () => {
               <h2 className="text-xl font-bold text-white tracking-widest flex items-center gap-3">
                 <span className="w-2 h-2 bg-neon-cyan rounded-full animate-pulse shadow-[0_0_10px_#00f3ff]"></span>
                 {t('dashboard.correlation')}: {t('dashboard.relativeEffort') || 'EFFORT RELATIF'}
+                <Link
+                  to="/stats-explanation#relative-effort"
+                  className="ml-2 p-1.5 rounded-full bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/30 text-neon-cyan transition-all group"
+                  title={t('stats.relativeEffort.title') || 'En savoir plus sur l\'Effort Relatif'}
+                >
+                  <Info className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                </Link>
               </h2>
             </div>
             <div className="h-96">
