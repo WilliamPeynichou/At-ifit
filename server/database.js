@@ -14,7 +14,7 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || dbConfig.host,
     port: process.env.DB_PORT || dbConfig.port,
     dialect: dbConfig.dialect,
-    logging: dbConfig.logging,
+      logging: dbConfig.logging,
     pool: {
       max: 5,
       min: 0,

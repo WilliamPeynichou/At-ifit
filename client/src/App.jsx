@@ -16,33 +16,22 @@ import NewUserProfile from './pages/NewUserProfile';
 import NewUserWeight from './pages/NewUserWeight';
 import NewUserStrava from './pages/NewUserStrava';
 import StravaCallback from './pages/StravaCallback';
+import Chatbot from './components/Chatbot';
+import ParticlesBackground from './components/ParticlesBackground';
 
 
 function App() {
+  const [isChatOpen, setIsChatOpen] = React.useState(false);
+
   return (
     <BrowserRouter>
       <AuthProvider>
         <LanguageProvider>
           <div className="min-h-screen bg-black text-slate-200 antialiased overflow-x-hidden relative">
           {/* Global Particle Background */}
-          <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-            {[...Array(20)].map((_, i) => (
-              <div 
-                key={i}
-                className="particle"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  width: `${Math.random() * 3 + 1}px`,
-                  height: `${Math.random() * 3 + 1}px`,
-                  animationDelay: `${Math.random() * 5}s`,
-                  animationDuration: `${10 + Math.random() * 20}s`
-                }}
-              />
-            ))}
-          </div>
+          <ParticlesBackground />
           
-          <div className="relative z-10">
+          <div className={`relative z-10 transition-all duration-300 ease-in-out ${isChatOpen ? 'md:mr-[400px]' : ''}`}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -135,6 +124,8 @@ function App() {
 
             </Routes>
           </div>
+          
+          <Chatbot isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
         </div>
         </LanguageProvider>
       </AuthProvider>

@@ -212,8 +212,8 @@ const StatsExplanation = () => {
                   {stat.calculation && (
                     <div className="mb-4">
                       <div className="bg-black/30 rounded-lg p-3 mb-2 border border-white/5">
-                        <p className="text-sm text-slate-400 font-mono">
-                          {stat.calculation}
+                      <p className="text-sm text-slate-400 font-mono">
+                        {stat.calculation}
                         </p>
                       </div>
                       {stat.calculationDesc && (

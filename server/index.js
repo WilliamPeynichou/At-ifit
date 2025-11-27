@@ -8,6 +8,7 @@ const RefreshToken = require('./models/RefreshToken');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const stravaRoutes = require('./routes/strava');
+const aiCoachRoutes = require('./routes/aiCoach');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
 const { errorHandler, notFoundHandler, asyncHandler, sendSuccess, sendError } = require('./middleware/errorHandler');
@@ -77,6 +78,7 @@ sequelize.authenticate()
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/strava', stravaRoutes);
+app.use('/api/ai-coach', aiCoachRoutes);
 
 // Weight Routes
 app.get('/api/weight', 

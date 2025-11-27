@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
             logout();
           }
         } else {
-          logout();
+        logout();
         }
       }
     } finally {
