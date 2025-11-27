@@ -1,0 +1,18 @@
+Finir la fonctionnalité de l'IA et mise en relation bdd dans le prompt.
+Faire en sorte que l'IA puisse récupérer les données de l'utilisateur connecté de manière sécurisée.
+faire en que l'IA recupere les données du user en bdd
+
+Mettre en place un login google
+Et faire en sorte que l'automatisattion Google Calendar presente dans n8n fonctionne avec l'agent sur le site
+
+Faire en sorte que tout le monde puisse fetch ces infos strava 
+
+Securité :
+- Mettre en place un système de token pour les requêtes API.
+- Nettoyer le code et le rendre plus propre.
+- Mettre en place un système de logging pour les erreurs.
+- Mettre en place un système de monitoring pour les performances.
+- Mettre en place un système de backup pour les données.
+
+Mettre en prod pour beta testeur
+
