@@ -217,3 +217,68 @@
 }
 [AI Coach] Réponse de l'AI extraite: Pour accéder à vos informations, j’ai besoin d’un peu plus de précisions, comme par exemple votre ad...
 [AI Coach Route] Résultat du service: { success: true, hasMessage: true, messageLength: 265 }
+[WARN] Expired token attempt { ip: '::1' }
+[WARN] Expired token attempt { ip: '::1' }
+[INFO] Access token refreshed { userId: 10 }
+[AI Coach Route] Requête reçue: {
+  userId: 10,
+  message: 'fais moi un programme pour la semaine prochaine de...'
+}
+[AI Coach] Envoi de la requête au webhook n8n: {
+  url: 'https://williampeynichou.app.n8n.cloud/webhook/34393d88-7535-40f2-a32b-8b12196ffc55/chat',
+  body: {
+    action: 'sendMessage',
+    sessionId: '10',
+    chatInput: 'fais moi un programme pour la semaine prochaine de velo pour un entrainement de perte de poid optimisé'
+  }
+}
+[AI Coach] Statut de la réponse: 500 Internal Server Error
+[AI Coach] Erreur HTTP: {"message":"Error in workflow"}
+[AI Coach] Erreur lors de la communication avec l'AI Coach: Error: Error in workflow
+    at sendMessageToAICoach (/Users/williampeynichou/projetAppliSport/server/services/aiCoachService.js:53:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /Users/williampeynichou/projetAppliSport/server/routes/aiCoach.js:26:20
+[AI Coach Route] Résultat du service: { success: false, hasMessage: false, messageLength: undefined }
+[AI Coach Route] Erreur du service: Error in workflow
+[AI Coach Route] Requête reçue: {
+  userId: 10,
+  message: 'fais moi un programme pour la semaine prochaine de...'
+}
+[AI Coach] Envoi de la requête au webhook n8n: {
+  url: 'https://williampeynichou.app.n8n.cloud/webhook/34393d88-7535-40f2-a32b-8b12196ffc55/chat',
+  body: {
+    action: 'sendMessage',
+    sessionId: '10',
+    chatInput: 'fais moi un programme pour la semaine prochaine de velo pour un entrainement de perte de poid optimisé'
+  }
+}
+[AI Coach] Statut de la réponse: 500 Internal Server Error
+[AI Coach] Erreur HTTP: {"message":"Error in workflow"}
+[AI Coach] Erreur lors de la communication avec l'AI Coach: Error: Error in workflow
+    at sendMessageToAICoach (/Users/williampeynichou/projetAppliSport/server/services/aiCoachService.js:53:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /Users/williampeynichou/projetAppliSport/server/routes/aiCoach.js:26:20
+[AI Coach Route] Résultat du service: { success: false, hasMessage: false, messageLength: undefined }
+[AI Coach Route] Erreur du service: Error in workflow
+[WARN] Expired token attempt { ip: '::1' }
+[WARN] Expired token attempt { ip: '::1' }
+[INFO] Access token refreshed { userId: 1 }
+[AI Coach Route] Requête reçue: { userId: 10, message: 'tu marche toi ?...' }
+[AI Coach] Envoi de la requête au webhook n8n: {
+  url: 'https://williampeynichou.app.n8n.cloud/webhook/34393d88-7535-40f2-a32b-8b12196ffc55/chat',
+  body: {
+    action: 'sendMessage',
+    sessionId: '10',
+    chatInput: 'tu marche toi ?'
+  }
+}
+[AI Coach] Statut de la réponse: 500 Internal Server Error
+[AI Coach] Erreur HTTP: {"message":"Error in workflow"}
+[AI Coach] Erreur lors de la communication avec l'AI Coach: Error: Error in workflow
+    at sendMessageToAICoach (/Users/williampeynichou/projetAppliSport/server/services/aiCoachService.js:53:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /Users/williampeynichou/projetAppliSport/server/routes/aiCoach.js:26:20
+[AI Coach Route] Résultat du service: { success: false, hasMessage: false, messageLength: undefined }
+[AI Coach Route] Erreur du service: Error in workflow
+[INFO] User logged out { userId: 10 }
+[INFO] User logged in { userId: 1, email: 'WILLIAMPEYNICHOU@GMAIL.COM', ip: '::1' }

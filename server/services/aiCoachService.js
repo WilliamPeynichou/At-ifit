@@ -33,7 +33,10 @@ async function sendMessageToAICoach(userId, message, token) {
     
     console.log('[AI Coach] Envoi de la requête au webhook n8n:', {
       url: AI_COACH_WEBHOOK_URL,
-      body: requestBody
+      userId: userId,
+      messageLength: message.length,
+      hasUserContext: !!userContext,
+      userContextKeys: userContext ? Object.keys(userContext) : []
     });
     
     const response = await fetch(AI_COACH_WEBHOOK_URL, {
@@ -41,7 +44,8 @@ async function sendMessageToAICoach(userId, message, token) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      timeout: 60000 // 60 secondes de timeout
     });
 
     console.log('[AI Coach] Statut de la réponse:', response.status, response.statusText);
@@ -70,25 +74,47 @@ async function sendMessageToAICoach(userId, message, token) {
     const data = await response.json();
     console.log('[AI Coach] Réponse complète du webhook:', JSON.stringify(data, null, 2));
     
-    // La réponse de l'AI se trouve dans data.output
-    if (!data.output) {
-      console.error('[AI Coach] Structure de réponse inattendue:', data);
-      throw new Error(`Réponse invalide du webhook n8n: champ "output" manquant. Réponse reçue: ${JSON.stringify(data)}`);
+    // La réponse de l'AI peut être dans data.output, data.response, ou directement dans data
+    let aiMessage = null;
+    
+    if (data.output) {
+      aiMessage = data.output;
+    } else if (data.response) {
+      aiMessage = data.response;
+    } else if (typeof data === 'string') {
+      aiMessage = data;
+    } else if (data.message) {
+      aiMessage = data.message;
+    } else if (data.text) {
+      aiMessage = data.text;
     }
     
-    console.log('[AI Coach] Réponse de l\'AI extraite:', data.output.substring(0, 100) + '...');
+    if (!aiMessage || (typeof aiMessage === 'string' && !aiMessage.trim())) {
+      console.error('[AI Coach] Structure de réponse inattendue:', data);
+      throw new Error(`Réponse invalide du webhook n8n: aucun message trouvé. Réponse reçue: ${JSON.stringify(data)}`);
+    }
+    
+    // S'assurer que c'est une string
+    const messageText = typeof aiMessage === 'string' ? aiMessage : JSON.stringify(aiMessage);
+    
+    console.log('[AI Coach] Réponse de l\'AI extraite:', messageText.substring(0, 100) + '...');
     
     return {
       success: true,
-      message: data.output,
+      message: messageText,
       sessionId: data.sessionId || sessionId
     };
     
   } catch (error) {
-    console.error('[AI Coach] Erreur lors de la communication avec l\'AI Coach:', error);
+    console.error('[AI Coach] Erreur lors de la communication avec l\'AI Coach:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    });
     return {
       success: false,
-      error: error.message
+      error: error.message || 'Erreur inconnue lors de la communication avec l\'AI'
     };
   }
 }
