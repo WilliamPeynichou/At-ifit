@@ -59,6 +59,11 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING, // 'FR', 'US', 'GB', 'TR', 'IT'
     allowNull: true,
     defaultValue: 'FR'
+  },
+  imc: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    comment: 'Indice de Masse Corporelle (IMC)'
   }
 }, {
   timestamps: true

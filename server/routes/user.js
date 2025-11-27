@@ -6,6 +6,7 @@ const auth = require('../middleware/auth');
 const { validateRequest, validations } = require('../middleware/validation');
 const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHandler');
 const { getValidStravaToken, fetchStravaActivities } = require('../utils/stravaHelpers');
+const { updateUserIMCAndCalories } = require('../utils/userCalculations');
 const logger = require('../utils/logger');
 
 /**
@@ -97,6 +98,12 @@ router.post('/',
     
     await user.update({ height, age, pseudo, gender, targetWeight, country });
     
+    // Mettre à jour automatiquement l'IMC
+    await updateUserIMCAndCalories(user);
+    
+    // Recharger l'utilisateur pour avoir les valeurs mises à jour
+    await user.reload();
+    
     sendSuccess(res, {
       id: user.id,
       email: user.email,
@@ -107,7 +114,8 @@ router.post('/',
       targetWeight: user.targetWeight,
       consoKcal: user.consoKcal,
       weeksToGoal: user.weeksToGoal,
-      country: user.country
+      country: user.country,
+      imc: user.imc
     }, 'Profile updated successfully');
   })
 );
@@ -193,9 +201,14 @@ router.post('/calculate-calories',
       }
     }
     
-    // 6. Save to User
+    // 6. Calculer l'IMC
+    const imc = weight && user.height ? 
+      parseFloat((weight / Math.pow(user.height / 100, 2)).toFixed(2)) : null;
+    
+    // 7. Save to User (mettre à jour consoKcal et imc)
     await user.update({ 
       consoKcal: Math.round(targetCalories),
+      imc: imc,
       weeksToGoal
     });
     

@@ -7,7 +7,9 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "revoke-strava": "node scripts/revoke_all_strava_tokens.js"
+    "revoke-strava": "node scripts/revoke_all_strava_tokens.js",
+    "tunnel:tcp": "node tunnel/mysqlTunnel.js",
+    "tunnel:proxy": "node tunnel/mysqlProxy.js"
   },
   "keywords": [],
   "author": "",

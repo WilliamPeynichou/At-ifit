@@ -8,11 +8,19 @@ const { sendMessageToAICoach } = require('../services/aiCoachService');
 // POST /api/ai-coach/message
 router.post('/message', auth, async (req, res) => {
   try {
-    // Utiliser req.userId du middleware auth au lieu du body
+    // Utiliser req.userId du middleware auth (vérifié par le token JWT)
     const userId = req.userId;
     const { message } = req.body;
     
-    console.log('[AI Coach Route] Requête reçue:', { userId, message: message?.substring(0, 50) + '...' });
+    // Récupérer le token pour le transmettre à n8n pour vérification
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    console.log('[AI Coach Route] Requête reçue:', { 
+      userId, 
+      authenticatedUserId: req.userId,
+      hasToken: !!token,
+      message: message?.substring(0, 50) + '...' 
+    });
     
     // Validation
     if (!message || !message.trim()) {
@@ -22,8 +30,19 @@ router.post('/message', auth, async (req, res) => {
       });
     }
 
-    // Appel au webhook n8n avec le userId authentifié
-    const result = await sendMessageToAICoach(userId, message.trim());
+    // Vérification de sécurité : s'assurer que le userId correspond bien à l'utilisateur authentifié
+    if (!userId || userId !== req.userId) {
+      console.error('[AI Coach Route] Erreur de sécurité: userId mismatch', { 
+        providedUserId: userId, 
+        authenticatedUserId: req.userId 
+      });
+      return res.status(403).json({
+        error: 'Accès non autorisé'
+      });
+    }
+
+    // Appel au webhook n8n avec le userId authentifié et le token pour vérification
+    const result = await sendMessageToAICoach(userId, message.trim(), token);
     
     console.log('[AI Coach Route] Résultat du service:', { 
       success: result.success, 

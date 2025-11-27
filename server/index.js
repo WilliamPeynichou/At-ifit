@@ -12,6 +12,7 @@ const aiCoachRoutes = require('./routes/aiCoach');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
 const { errorHandler, notFoundHandler, asyncHandler, sendSuccess, sendError } = require('./middleware/errorHandler');
+const { updateUserIMCAndCalories } = require('./utils/userCalculations');
 const logger = require('./utils/logger');
 
 // Validate required environment variables
@@ -113,10 +114,19 @@ app.post('/api/weight',
       }
     });
     
+    // Récupérer l'utilisateur pour mettre à jour l'IMC
+    const user = await User.findByPk(req.userId);
+    
     if (existingWeight) {
       // Mettre à jour le poids existant pour cette date
       existingWeight.weight = weightValue;
       await existingWeight.save();
+      
+      // Mettre à jour l'IMC
+      if (user) {
+        await updateUserIMCAndCalories(user, { currentWeight: weightValue });
+      }
+      
       return sendSuccess(res, existingWeight, 'Weight updated successfully', 200);
     }
     
@@ -126,6 +136,11 @@ app.post('/api/weight',
       date: date, 
       userId: req.userId 
     });
+    
+    // Mettre à jour l'IMC
+    if (user) {
+      await updateUserIMCAndCalories(user, { currentWeight: weightValue });
+    }
     
     sendSuccess(res, newWeight, 'Weight added successfully', 201);
   })
