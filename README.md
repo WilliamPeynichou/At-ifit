@@ -1,37 +1,187 @@
-# At-ifit
+# 🚴 At-ifit
 
 Application de suivi sportif et nutritionnel intelligent, connectée à Strava.
 
-## 🛠 Comment l'application a été créée
+![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-Express%205-339933?logo=node.js)
+![MySQL](https://img.shields.io/badge/MySQL-Sequelize-4479A1?logo=mysql)
+![Strava](https://img.shields.io/badge/Strava-API-FC4C02?logo=strava)
 
-Ce projet a été développé avec une architecture moderne **Fullstack JavaScript** :
+## 📋 Table des matières
 
-*   **Frontend** : [React](https://react.dev/) (Vite) pour une interface utilisateur dynamique et réactive.
-*   **Backend** : [Node.js](https://nodejs.org/) avec [Express](https://expressjs.com/) pour l'API REST.
-*   **Base de données** : [MySQL](https://www.mysql.com/) gérée via l'ORM [Sequelize](https://sequelize.org/) pour la persistance des données (Utilisateurs, Poids).
-*   **Design** : CSS pur avec une esthétique "Cyberpunk/Neon" personnalisée.
-*   **Intégration** : API [Strava](https://www.strava.com/) pour récupérer automatiquement les activités sportives.
+- [Fonctionnalités](#-fonctionnalités)
+- [Technologies](#-technologies)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Lancement](#-lancement)
+- [Structure du projet](#-structure-du-projet)
 
-## 🚀 Fonctionnalités Principales
+## ✨ Fonctionnalités
 
-### 1. Dashboard Unifié
-*   **Suivi du Poids** : Saisie et visualisation de l'évolution du poids.
-*   **Corrélation Activité/Poids** : Graphique combinant la courbe de poids avec les barres d'activités Strava (Distance, Calories ou BPM).
-*   **Statistiques** : Calcul automatique de l'IMC, des variations de poids (7j, 30j) et des records.
+### 🎯 Dashboard Unifié
+- **Suivi du poids** : Saisie et visualisation de l'évolution du poids
+- **Corrélation Activité/Poids** : Graphique combinant la courbe de poids avec les activités Strava
+- **Statistiques temps réel** : IMC, variations (7j/30j), records personnels
 
-### 2. Connexion Strava
-*   Authentification sécurisée via OAuth2.
-*   Récupération automatique des activités (Course, Vélo, Natation, etc.).
-*   Analyse détaillée des performances (Distance totale, Dénivelé, Fréquence cardiaque).
+### 🏃 Intégration Strava
+- Authentification sécurisée OAuth2
+- Récupération automatique des activités (Course, Vélo, Natation...)
+- Analyse des performances (Distance, Dénivelé, Fréquence cardiaque)
 
-### 3. Calculateur de Calories Intelligent (KCAL)
-*   **Calcul TDEE** : Estimation précise des besoins caloriques journaliers basée sur le métabolisme de base (Mifflin-St Jeor) et l'historique d'activité réel importé de Strava.
-*   **Ajustement Dynamique** : L'objectif calorique s'adapte automatiquement en fonction de la différence entre votre poids actuel et votre poids cible (`delta`).
-*   **Estimation Temporelle** : Calcul du temps estimé (en semaines) pour atteindre votre objectif de poids selon votre déficit/surplus calorique.
+### 🔥 Calculateur KCAL Intelligent
+- **Calcul TDEE** : Métabolisme de base (Mifflin-St Jeor) + activité réelle Strava
+- **Ajustement dynamique** : Objectif calorique adapté selon votre delta poids
+- **Estimation temporelle** : Temps estimé pour atteindre votre objectif
 
-### 4. Profil Pilote
-*   Gestion des informations personnelles (Age, Taille, Objectif).
-*   Affichage en temps réel de l'objectif calorique calculé et de l'estimation de temps.
+### 🤖 Coach IA
+- Chatbot intégré pour conseils personnalisés
+- Analyse de vos données d'entraînement
+- Recommandations basées sur vos objectifs
+
+### 🌍 Multi-langues
+- Français, Anglais, Italien, Turc
+- Détection automatique selon le pays utilisateur
+
+## 🛠 Technologies
+
+### Frontend
+| Tech | Version | Usage |
+|------|---------|-------|
+| React | 19.2 | UI Framework |
+| Vite | 7.2 | Build tool |
+| Tailwind CSS | 4.1 | Styling |
+| Recharts | 3.4 | Graphiques |
+| Lucide React | - | Icônes |
+
+### Backend
+| Tech | Version | Usage |
+|------|---------|-------|
+| Node.js | - | Runtime |
+| Express | 5.1 | API REST |
+| Sequelize | 6.37 | ORM MySQL |
+| JWT | - | Authentification |
+| bcryptjs | - | Hash passwords |
+
+### Base de données
+- **MySQL** avec Sequelize ORM
+- Modèles : User, Weight, RefreshToken
+
+## 📦 Installation
+
+### Prérequis
+- Node.js >= 18
+- MySQL >= 8.0
+- Compte développeur Strava
+
+### 1. Cloner le projet
+```bash
+git clone https://github.com/WilliamPeynichou/At-ifit.git
+cd At-ifit
+```
+
+### 2. Installer les dépendances
+```bash
+# Backend
+cd server && npm install
+
+# Frontend
+cd ../client && npm install
+```
+
+## ⚙️ Configuration
+
+### Variables d'environnement
+
+Créer un fichier `server/.env` :
+
+```env
+# Base de données
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_DATABASE=at_ifit
+DB_PORT=3306
+
+# JWT
+JWT_SECRET=your_super_secret_jwt_key
+
+# Strava OAuth
+STRAVA_CLIENT_ID=your_strava_client_id
+STRAVA_CLIENT_SECRET=your_strava_client_secret
+STRAVA_REDIRECT_URI=http://localhost:3001/api/strava/callback
+
+# OpenAI (pour le Coach IA)
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### Configuration Strava
+
+1. Créer une application sur [Strava Developers](https://www.strava.com/settings/api)
+2. Configurer le callback URL : `http://localhost:3001/api/strava/callback`
+3. Copier Client ID et Client Secret dans `.env`
+
+## 🚀 Lancement
+
+### Développement
+
+```bash
+# Terminal 1 - Backend (port 3001)
+cd server && npm run dev
+
+# Terminal 2 - Frontend (port 5174)
+cd client && npm run dev
+```
+
+### Production
+
+```bash
+# Build frontend
+cd client && npm run build
+
+# Start backend
+cd server && npm start
+```
+
+## 📁 Structure du projet
+
+```
+At-ifit/
+├── client/                 # Frontend React
+│   ├── src/
+│   │   ├── components/     # Composants réutilisables
+│   │   ├── context/        # Contextes React (Auth, Language)
+│   │   ├── hooks/          # Custom hooks
+│   │   ├── i18n/           # Traductions
+│   │   ├── pages/          # Pages/Routes
+│   │   └── assets/         # Images, fonts
+│   └── package.json
+│
+├── server/                 # Backend Express
+│   ├── middleware/         # Auth, validation, rate limiting
+│   ├── models/             # Modèles Sequelize
+│   ├── routes/             # Routes API
+│   ├── services/           # Services métier
+│   ├── utils/              # Helpers
+│   └── package.json
+│
+└── README.md
+```
+
+## Sécurité
+
+- Authentification JWT avec refresh tokens
+- Rate limiting sur les endpoints sensibles
+- Hash des mots de passe avec bcrypt
+- Validation des entrées utilisateur
+- Protection CORS configurée
+
+## Responsive
+
+L'application est optimisée pour :
+- Mobile (320px+)
+- Tablet (768px+)
+- Desktop (1024px+)
 
 ---
-*Développé par William Peynichou.*
+
+**Développé par [William Peynichou](https://github.com/WilliamPeynichou)**
