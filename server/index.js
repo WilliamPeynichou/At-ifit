@@ -58,21 +58,23 @@ RefreshToken.belongsTo(User, { foreignKey: 'userId' });
 sequelize.authenticate()
   .then(() => {
     logger.info('✅ Connexion à MySQL établie avec succès');
-    // Sync RefreshToken table separately to avoid issues with existing tables
-    return RefreshToken.sync({ alter: true });
-  })
-  .then(() => {
-    logger.info('✅ Table RefreshTokens synchronisée');
-    // Sync other tables without alter to avoid "too many keys" error
-    return sequelize.sync({ alter: false });
+    // Sync tables without alter to avoid "too many keys" error
+    // Use { force: false, alter: false } to only create tables if they don't exist
+    return sequelize.sync({ force: false, alter: false });
   })
   .then(() => {
     logger.info('✅ Base de données synchronisée avec succès');
   })
   .catch((error) => {
-    logger.error('❌ Erreur de connexion/synchronisation MySQL:', error.message);
-    logger.warn('⚠️  Le serveur continuera malgré l\'erreur de base de données');
-    logger.warn('💡 Vérifiez que MySQL est démarré et que la base de données existe');
+    // Log full error for debugging
+    if (error.message.includes('Too many keys')) {
+      logger.warn('⚠️  Erreur "Too many keys" détectée - cela peut être ignoré si les tables existent déjà');
+      logger.warn('💡 Les tables existantes seront utilisées sans modification');
+    } else {
+      logger.error('❌ Erreur de connexion/synchronisation MySQL:', error.message);
+      logger.warn('⚠️  Le serveur continuera malgré l\'erreur de base de données');
+      logger.warn('💡 Vérifiez que MySQL est démarré et que la base de données existe');
+    }
   });
 
 // Routes

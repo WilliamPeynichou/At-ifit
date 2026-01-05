@@ -105,7 +105,7 @@ const Register = () => {
               onChange={(e) => setEmail(e.target.value)}
               className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
               required
-              placeholder="PILOT@ATIFIT.IO"
+              placeholder="at-ifit@gmail.com"
             />
           </div>
 
@@ -116,7 +116,7 @@ const Register = () => {
               value={pseudo}
               onChange={(e) => setPseudo(e.target.value)}
               className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
-              placeholder="MAVERICK"
+              placeholder="At Itif"
             />
           </div>
 
@@ -144,7 +144,7 @@ const Register = () => {
               onChange={(e) => setPassword(e.target.value)}
               className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
               required
-              placeholder="••••••••"
+              placeholder="atitif1!"
               minLength={6}
             />
           </div>

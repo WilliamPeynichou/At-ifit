@@ -38,17 +38,17 @@ router.get('/callback', (req, res) => {
 
   if (error) {
     logger.warn('Strava auth failed', { error });
-    return res.redirect('http://localhost:5173/strava-callback?error=auth_failed');
+    return res.redirect('http://localhost:5174/strava-callback?error=auth_failed');
   }
 
   if (!code) {
     logger.warn('No authorization code received from Strava');
-    return res.redirect('http://localhost:5173/strava-callback?error=no_code');
+    return res.redirect('http://localhost:5174/strava-callback?error=no_code');
   }
 
   const redirectUrl = state 
-    ? `http://localhost:5173/strava-callback?code=${code}&state=${state}`
-    : `http://localhost:5173/strava-callback?code=${code}`;
+    ? `http://localhost:5174/strava-callback?code=${code}&state=${state}`
+    : `http://localhost:5174/strava-callback?code=${code}`;
   
   logger.info('Strava OAuth callback received', { hasCode: !!code, hasState: !!state });
   res.redirect(redirectUrl);

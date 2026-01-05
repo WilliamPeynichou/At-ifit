@@ -83,7 +83,7 @@ const WeightForm = ({ onUpdate }) => {
         </div>
         <button
           type="submit"
-          className="btn-cyber w-full sm:w-auto h-[50px] px-3 text-xs flex items-center justify-center flex-shrink-0 whitespace-nowrap"
+          className="btn-cyber w-1/2 sm:w-auto h-[50px] px-3 text-xs flex items-center justify-center flex-shrink-0 whitespace-nowrap"
         >
           {t('weightForm.addEntry')}
         </button>

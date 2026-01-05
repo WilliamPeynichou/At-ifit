@@ -60,19 +60,19 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
               className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
               required
-              placeholder="PILOT@ATIFIT.IO"
+              placeholder="at-ifit@gmail.com"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Password</label>
+            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Password 6+ caractères, 1 majuscule,,1 chiffre, 1 caractère spécial</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
               required
-              placeholder="••••••••"
+              placeholder="atitif1!"
             />
           </div>
 
