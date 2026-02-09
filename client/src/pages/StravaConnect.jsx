@@ -30,7 +30,7 @@ const StravaConnect = () => {
     } else {
       const storedOAuthUrl = sessionStorage.getItem('strava_oauth_url');
       const loginRedirect = sessionStorage.getItem('strava_login_redirect');
-      
+
       if (storedOAuthUrl && loginRedirect === 'true' && !code && !errorParam) {
         sessionStorage.removeItem('strava_login_redirect');
         setTimeout(() => {
@@ -100,13 +100,13 @@ const StravaConnect = () => {
     try {
       setError('');
       window.history.replaceState({}, document.title, '/strava-connect');
-      
+
       const response = await api.get('/strava/auth');
       const stravaOAuthUrl = response.data.url;
-      
+
       sessionStorage.setItem('strava_oauth_url', stravaOAuthUrl);
       sessionStorage.setItem('strava_login_redirect', 'true');
-      
+
       window.location.href = 'https://www.strava.com/login';
     } catch (err) {
       console.error('Failed to initiate Strava auth:', err);
@@ -115,25 +115,25 @@ const StravaConnect = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
-        <div className="glass-panel rounded-2xl p-8 relative overflow-hidden border border-white/5 bg-black/40">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-[#fc4c02]/20 blur-3xl rounded-full"></div>
-          
+        <div className="glass-panel rounded-2xl p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 blur-3xl rounded-full" style={{ background: 'rgba(252,76,2,0.15)' }}></div>
+
           <div className="relative z-10">
             <div className="flex items-center gap-4 mb-6">
               <div className="p-3 rounded-lg bg-[#fc4c02]/10 border border-[#fc4c02]/30">
                 <Activity className="w-8 h-8 text-[#fc4c02]" />
               </div>
-              <h1 className="text-3xl font-bold text-white">Connect to Strava</h1>
+              <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Connect to Strava</h1>
             </div>
 
-            <p className="text-slate-300 mb-8 text-lg leading-relaxed">
+            <p className="mb-8 text-lg leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               Connect your Strava account to sync your activities and visualize your performance data directly in your dashboard.
             </p>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-300 p-4 rounded-lg mb-6 flex items-start gap-3">
+              <div className="p-4 rounded-lg mb-6 flex items-start gap-3" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#b91c1c' }}>
                 <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold">Error</p>
@@ -143,7 +143,7 @@ const StravaConnect = () => {
             )}
 
             {success && !error && (
-              <div className="bg-green-500/10 border border-green-500/20 text-green-300 p-4 rounded-lg mb-6 flex items-start gap-3">
+              <div className="p-4 rounded-lg mb-6 flex items-start gap-3" style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)', color: '#15803d' }}>
                 <CheckCircle size={20} className="flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold">Success!</p>
@@ -155,27 +155,28 @@ const StravaConnect = () => {
             {isConnected || success ? (
               <div className="space-y-6">
                 {stravaAthlete && (
-                  <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                    <p className="text-sm text-slate-400 mb-1">Connected as:</p>
-                    <p className="text-lg font-bold text-white">
+                  <div className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)' }}>
+                    <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Connected as:</p>
+                    <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                       {stravaAthlete.firstname} {stravaAthlete.lastname}
                     </p>
                     {stravaAthlete.email && (
-                      <p className="text-sm text-slate-400 mt-1">{stravaAthlete.email}</p>
+                      <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{stravaAthlete.email}</p>
                     )}
                   </div>
                 )}
-                
-                <div className="bg-green-500/10 border border-green-500/20 text-green-300 p-6 rounded-lg flex flex-col items-center gap-3 text-center">
+
+                <div className="p-6 rounded-lg flex flex-col items-center gap-3 text-center" style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)', color: '#15803d' }}>
                   <CheckCircle size={48} />
                   <h3 className="text-xl font-bold">Strava Connected</h3>
                   <p>Your Strava account is connected and syncing activities.</p>
                 </div>
-                
+
                 <button
                   onClick={handleDisconnect}
                   disabled={disconnecting}
-                  className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 font-bold py-4 px-8 rounded-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full font-bold py-4 px-8 rounded-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#b91c1c' }}
                 >
                   <LogOut size={20} />
                   {disconnecting ? 'DISCONNECTING...' : 'DISCONNECT STRAVA'}
@@ -186,16 +187,16 @@ const StravaConnect = () => {
                 {loading ? (
                   <div className="text-center py-8">
                     <div className="w-12 h-12 border-4 border-[#fc4c02] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-400">Connecting to Strava...</p>
+                    <p style={{ color: 'var(--text-muted)' }}>Connecting to Strava...</p>
                   </div>
                 ) : (
                   <>
-                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6 mb-6">
-                      <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                    <div className="rounded-lg p-6 mb-6" style={{ background: 'rgba(0,85,255,0.08)', border: '1px solid rgba(0,85,255,0.2)' }}>
+                      <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                         <Mail size={20} />
                         How it works
                       </h3>
-                      <ol className="space-y-3 text-slate-300 text-sm">
+                      <ol className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                         <li className="flex items-start gap-3">
                           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fc4c02]/20 border border-[#fc4c02]/30 flex items-center justify-center text-[#fc4c02] font-bold text-xs">1</span>
                           <span>Click the button below to be redirected to Strava's secure login page</span>
@@ -215,8 +216,8 @@ const StravaConnect = () => {
                       </ol>
                     </div>
 
-                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
-                      <p className="text-blue-300 text-sm flex items-start gap-2">
+                    <div className="rounded-lg p-4 mb-6" style={{ background: 'rgba(0,85,255,0.08)', border: '1px solid rgba(0,85,255,0.2)' }}>
+                      <p className="text-sm flex items-start gap-2" style={{ color: 'var(--accent-blue)' }}>
                         <Lock size={16} className="flex-shrink-0 mt-0.5" />
                         <span>
                           <strong>How it works:</strong> When you click the button below:
@@ -229,18 +230,18 @@ const StravaConnect = () => {
                         </span>
                       </p>
                     </div>
-                    
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
-                      <p className="text-yellow-300 text-sm">
-                        <strong>⚠️ Important:</strong> Make sure you log in with <strong>your own</strong> Strava account. 
+
+                    <div className="rounded-lg p-4 mb-6" style={{ background: 'rgba(202,138,4,0.08)', border: '1px solid rgba(202,138,4,0.25)' }}>
+                      <p className="text-sm" style={{ color: '#a16207' }}>
+                        <strong>⚠️ Important:</strong> Make sure you log in with <strong>your own</strong> Strava account.
                         Each user must connect their own Strava account to see their own data.
                       </p>
                     </div>
 
                     {user && (
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-6">
-                        <p className="text-sm text-slate-400 mb-1">Connecting for user:</p>
-                        <p className="text-lg font-bold text-white">{user.email}</p>
+                      <div className="rounded-lg p-4 mb-6" style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)' }}>
+                        <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Connecting for user:</p>
+                        <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{user.email}</p>
                       </div>
                     )}
 
@@ -249,12 +250,13 @@ const StravaConnect = () => {
                         href="https://www.strava.com/logout"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-full bg-slate-700/50 hover:bg-slate-700/70 border border-slate-600/50 text-slate-300 font-bold py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-3 text-sm"
+                        className="block w-full font-bold py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-3 text-sm"
+                        style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)', color: 'var(--text-secondary)' }}
                       >
                         <LogOut size={18} />
                         LOG OUT FROM STRAVA FIRST (Recommended)
                       </a>
-                      
+
                       <button
                         onClick={initiateAuth}
                         className="w-full bg-[#fc4c02] hover:bg-[#e34402] text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-[#fc4c02]/20 flex items-center justify-center gap-3"
@@ -269,13 +271,13 @@ const StravaConnect = () => {
               </div>
             )}
 
-            <div className="mt-8 pt-6 border-t border-white/5 text-sm text-slate-500">
+            <div className="mt-8 pt-6 text-sm" style={{ borderTop: '1px solid var(--glass-border)', color: 'var(--text-muted)' }}>
               <p className="mb-2">
-                <strong>Security:</strong> By connecting, you allow us to read your public activity data. 
+                <strong>Security:</strong> By connecting, you allow us to read your public activity data.
                 We do not write to your Strava account and we never store your Strava password.
               </p>
               <p>
-                Your Strava credentials are handled securely by Strava's OAuth 2.0 system. 
+                Your Strava credentials are handled securely by Strava's OAuth 2.0 system.
                 We only receive an access token that allows us to read your activities.
               </p>
             </div>

@@ -43,7 +43,7 @@ const NewUserProfile = () => {
 
     try {
       await api.post('/user', formData);
-      
+
       // Update language if country changed
       if (formData.country) {
         const newLang = countryToLanguage[formData.country] || 'FR';
@@ -51,11 +51,11 @@ const NewUserProfile = () => {
           changeLanguage(newLang);
         }
       }
-      
+
       if (loadUser) {
         await loadUser();
       }
-      
+
       // Navigate to next step
       navigate('/new-user-weight');
     } catch (error) {
@@ -68,25 +68,25 @@ const NewUserProfile = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="glass-panel rounded-3xl p-8 w-full max-w-2xl relative z-10 border border-white/10 bg-black/40">
+      <div className="glass-panel rounded-3xl p-8 w-full max-w-2xl relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-xl bg-neon-purple/10 border border-neon-purple/30">
+            <div className="p-3 rounded-xl" style={{ background: 'rgba(249,115,22,0.1)', border: '1.5px solid var(--glass-border)' }}>
               <User className="w-8 h-8 text-neon-purple" />
             </div>
             <h1 className="text-3xl font-black tracking-widest">
-              <span className="text-white">STEP 1</span>
+              <span style={{ color: 'var(--text-primary)' }}>STEP 1</span>
               <span className="text-neon-purple">: PROFILE</span>
             </h1>
           </div>
-          <p className="text-slate-400 text-sm">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             {t('newUser.profile.subtitle') || 'Complete your profile to get started'}
           </p>
         </div>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-300 px-4 py-3 rounded-lg mb-6 text-sm font-medium">
+          <div className="px-4 py-3 rounded-lg mb-6 text-sm font-medium" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626' }}>
             {error}
           </div>
         )}
@@ -117,9 +117,9 @@ const NewUserProfile = () => {
                 onChange={handleChange}
                 className="input-cyber w-full"
               >
-                <option value="male" className="bg-slate-900">{t('profile.male')}</option>
-                <option value="female" className="bg-slate-900">{t('profile.female')}</option>
-                <option value="other" className="bg-slate-900">{t('profile.other')}</option>
+                <option value="male" style={{ background: 'var(--sand-light)' }}>{t('profile.male')}</option>
+                <option value="female" style={{ background: 'var(--sand-light)' }}>{t('profile.female')}</option>
+                <option value="other" style={{ background: 'var(--sand-light)' }}>{t('profile.other')}</option>
               </select>
             </div>
 
@@ -164,28 +164,28 @@ const NewUserProfile = () => {
                 className="input-cyber w-full"
                 required
               >
-                <option value="FR" className="bg-slate-900">{countryNames.FR[language] || countryNames.FR.EN}</option>
-                <option value="US" className="bg-slate-900">{countryNames.US[language] || countryNames.US.EN}</option>
-                <option value="GB" className="bg-slate-900">{countryNames.GB[language] || countryNames.GB.EN}</option>
-                <option value="TR" className="bg-slate-900">{countryNames.TR[language] || countryNames.TR.EN}</option>
-                <option value="IT" className="bg-slate-900">{countryNames.IT[language] || countryNames.IT.EN}</option>
+                <option value="FR" style={{ background: 'var(--sand-light)' }}>{countryNames.FR[language] || countryNames.FR.EN}</option>
+                <option value="US" style={{ background: 'var(--sand-light)' }}>{countryNames.US[language] || countryNames.US.EN}</option>
+                <option value="GB" style={{ background: 'var(--sand-light)' }}>{countryNames.GB[language] || countryNames.GB.EN}</option>
+                <option value="TR" style={{ background: 'var(--sand-light)' }}>{countryNames.TR[language] || countryNames.TR.EN}</option>
+                <option value="IT" style={{ background: 'var(--sand-light)' }}>{countryNames.IT[language] || countryNames.IT.EN}</option>
               </select>
             </div>
 
             {/* Target Weight - Highlighted */}
             <div className="md:col-span-2">
-              <div className="bg-neon-purple/10 border-2 border-neon-purple/50 rounded-xl p-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-neon-purple/20 blur-3xl rounded-full"></div>
+              <div className="rounded-xl p-6 relative overflow-hidden" style={{ background: 'rgba(249,115,22,0.08)', border: '2px solid var(--glass-border)' }}>
+                <div className="absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full" style={{ background: 'rgba(249,115,22,0.15)' }}></div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-neon-purple/20 border border-neon-purple/40">
-                      <Target className="w-6 h-6 text-neon-purple" />
+                    <div className="p-2 rounded-lg" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid var(--glass-border)' }}>
+                      <Target className="w-6 h-6" style={{ color: 'var(--accent-orange)' }} />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-neon-purple mb-1 uppercase tracking-widest">
                         {t('profile.targetWeight')} - {t('newUser.profile.targetLabel') || 'YOUR GOAL'}
                       </label>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         {t('newUser.profile.targetDescription') || 'Enter your target weight goal'}
                       </p>
                     </div>
@@ -195,7 +195,8 @@ const NewUserProfile = () => {
                     name="targetWeight"
                     value={formData.targetWeight}
                     onChange={handleChange}
-                    className="input-cyber w-full border-neon-purple/50 focus:border-neon-purple text-lg font-bold"
+                    className="input-cyber w-full text-lg font-bold"
+                    style={{ borderColor: 'var(--glass-border)' }}
                     required
                     placeholder="70.0"
                     step="0.1"
@@ -220,4 +221,3 @@ const NewUserProfile = () => {
 };
 
 export default NewUserProfile;
-

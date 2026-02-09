@@ -74,13 +74,13 @@ const UserProfile = ({ onUpdate }) => {
 
   return (
     <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-neon-purple/20 blur-3xl rounded-full"></div>
-      
+      <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(249, 115, 22, 0.2)' }}></div>
+
       <div className="flex items-center gap-3 mb-6 relative z-10">
-        <div className="p-2 rounded-lg bg-neon-purple/10 border border-neon-purple/30">
-          <User className="w-5 h-5 text-neon-purple" />
+        <div className="p-2 rounded-lg" style={{ background: 'rgba(249, 115, 22, 0.1)', border: '1px solid var(--glass-border)' }}>
+          <User className="w-5 h-5" style={{ color: 'var(--accent-orange)' }} />
         </div>
-        <h2 className="text-lg font-bold text-white tracking-wider">{t('profile.pilotProfile')}</h2>
+        <h2 className="text-lg font-bold tracking-wider" style={{ color: 'var(--text-primary)' }}>{t('profile.pilotProfile')}</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
@@ -104,9 +104,9 @@ const UserProfile = ({ onUpdate }) => {
               onChange={handleChange}
               className="input-cyber"
             >
-              <option value="male" className="bg-slate-900">{t('profile.male')}</option>
-              <option value="female" className="bg-slate-900">{t('profile.female')}</option>
-              <option value="other" className="bg-slate-900">{t('profile.other')}</option>
+              <option value="male" style={{ background: 'var(--sand-light)' }}>{t('profile.male')}</option>
+              <option value="female" style={{ background: 'var(--sand-light)' }}>{t('profile.female')}</option>
+              <option value="other" style={{ background: 'var(--sand-light)' }}>{t('profile.other')}</option>
             </select>
           </div>
           <div>
@@ -132,13 +132,14 @@ const UserProfile = ({ onUpdate }) => {
             />
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('profile.targetWeight')} <span className="text-neon-purple ml-2">/// {t('profile.missionGoal')}</span></label>
+            <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('profile.targetWeight')} <span style={{ color: 'var(--accent-orange)' }} className="ml-2">/// {t('profile.missionGoal')}</span></label>
             <input
               type="number"
               name="targetWeight"
               value={formData.targetWeight || ''}
               onChange={handleChange}
-              className="input-cyber border-neon-purple/30 focus:border-neon-purple"
+              className="input-cyber"
+              style={{ borderColor: 'var(--glass-border)' }}
               placeholder={t('profile.optional')}
             />
           </div>
@@ -151,34 +152,35 @@ const UserProfile = ({ onUpdate }) => {
               className="input-cyber"
               required
             >
-              <option value="FR" className="bg-slate-900">{countryNames.FR[language] || countryNames.FR.EN}</option>
-              <option value="US" className="bg-slate-900">{countryNames.US[language] || countryNames.US.EN}</option>
-              <option value="GB" className="bg-slate-900">{countryNames.GB[language] || countryNames.GB.EN}</option>
-              <option value="TR" className="bg-slate-900">{countryNames.TR[language] || countryNames.TR.EN}</option>
-              <option value="IT" className="bg-slate-900">{countryNames.IT[language] || countryNames.IT.EN}</option>
+              <option value="FR" style={{ background: 'var(--sand-light)' }}>{countryNames.FR[language] || countryNames.FR.EN}</option>
+              <option value="US" style={{ background: 'var(--sand-light)' }}>{countryNames.US[language] || countryNames.US.EN}</option>
+              <option value="GB" style={{ background: 'var(--sand-light)' }}>{countryNames.GB[language] || countryNames.GB.EN}</option>
+              <option value="TR" style={{ background: 'var(--sand-light)' }}>{countryNames.TR[language] || countryNames.TR.EN}</option>
+              <option value="IT" style={{ background: 'var(--sand-light)' }}>{countryNames.IT[language] || countryNames.IT.EN}</option>
             </select>
           </div>
           {formData.consoKcal && (
             <div className="col-span-2 mt-2 grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-green-400 mb-2 uppercase tracking-widest flex items-center gap-2">
-                  {t('profile.dailyFuelTarget')} <span className="text-green-600 ml-2">/// {t('profile.calculated')}</span>
+                <label className="block text-xs font-bold mb-2 uppercase tracking-widest flex items-center gap-2" style={{ color: 'var(--accent-blue)' }}>
+                  {t('profile.dailyFuelTarget')} <span style={{ color: 'var(--accent-orange)' }} className="ml-2">/// {t('profile.calculated')}</span>
                   <Link
                     to="/stats-explanation#daily-fuel"
-                    className="p-1 rounded-full bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 transition-all group"
+                    className="p-1 rounded-full transition-all group"
+                    style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}
                     title={t('stats.dailyFuel.title') || 'En savoir plus sur l\'Objectif Calorique'}
                   >
                     <Info className="w-3 h-3 group-hover:scale-110 transition-transform" />
                   </Link>
                 </label>
-                <div className="input-cyber bg-green-500/10 border-green-500/30 text-green-400 font-mono text-lg flex items-center justify-between">
+                <div className="input-cyber font-mono text-lg flex items-center justify-between" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}>
                   <span>{formData.consoKcal} KCAL</span>
                 </div>
               </div>
               {formData.weeksToGoal && (
                 <div>
-                  <label className="block text-xs font-bold text-blue-400 mb-2 uppercase tracking-widest">{t('profile.estTimeToGoal')} <span className="text-blue-600 ml-2">/// {t('profile.projected')}</span></label>
-                  <div className="input-cyber bg-blue-500/10 border-blue-500/30 text-blue-400 font-mono text-lg flex items-center justify-between">
+                  <label className="block text-xs font-bold mb-2 uppercase tracking-widest" style={{ color: 'var(--accent-blue)' }}>{t('profile.estTimeToGoal')} <span style={{ color: 'var(--accent-orange)' }} className="ml-2">/// {t('profile.projected')}</span></label>
+                  <div className="input-cyber font-mono text-lg flex items-center justify-between" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}>
                     <span>{formData.weeksToGoal} {t('dashboard.weeks') || 'WEEKS'}</span>
                   </div>
                 </div>

@@ -29,24 +29,24 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
 
-      <div className="glass-panel p-10 rounded-3xl w-full max-w-md relative z-10 animate-float border border-white/10 bg-black/40 shadow-[0_0_50px_-10px_rgba(0,243,255,0.1)]">
+      <div className="glass-panel p-10 rounded-3xl w-full max-w-md relative z-10 animate-float" style={{ border: '1.5px solid var(--glass-border)' }}>
         <div className="flex flex-col items-center justify-center gap-6 mb-10">
           <div className="relative group cursor-pointer">
-            <div className="absolute inset-0 bg-neon-cyan blur-xl opacity-20 group-hover:opacity-50 transition-opacity duration-500 rounded-full"></div>
-            <div className="relative bg-black rounded-2xl p-4 border border-neon-cyan/30 group-hover:border-neon-cyan/60 transition-colors">
-              <Activity className="w-10 h-10 text-neon-cyan" />
+            <div className="absolute inset-0 blur-xl opacity-20 group-hover:opacity-50 transition-opacity duration-500 rounded-full" style={{ background: 'var(--accent-blue)' }}></div>
+            <div className="relative rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.3)', border: '1.5px solid var(--glass-border)' }}>
+              <Activity className="w-10 h-10" style={{ color: 'var(--accent-blue)' }} />
             </div>
           </div>
           <h1 className="text-4xl font-black tracking-widest">
-            <span className="text-white">AT</span>
+            <span style={{ color: 'var(--text-primary)' }}>AT</span>
             <span className="text-neon-cyan">.IFIT</span>
           </h1>
         </div>
 
-        <h2 className="text-xs font-bold text-slate-500 mb-8 text-center uppercase tracking-[0.3em]">INITIATE SEQUENCE</h2>
+        <h2 className="text-xs font-bold mb-8 text-center uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>INITIATE SEQUENCE</h2>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-300 px-4 py-3 rounded-lg mb-6 text-sm font-medium flex items-center justify-center">
+          <div className="px-4 py-3 rounded-lg mb-6 text-sm font-medium flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626' }}>
             {error}
           </div>
         )}
@@ -58,7 +58,7 @@ const Login = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
+              className="input-cyber"
               required
               placeholder="at-ifit@gmail.com"
             />
@@ -70,7 +70,7 @@ const Login = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-cyber bg-black/50 border-white/10 focus:border-neon-cyan/50"
+              className="input-cyber"
               required
               placeholder="atitif1!"
             />
@@ -85,9 +85,9 @@ const Login = () => {
           </button>
         </form>
 
-        <p className="mt-10 text-center text-xs text-slate-500 tracking-wide">
+        <p className="mt-10 text-center text-xs tracking-wide" style={{ color: 'var(--text-muted)' }}>
           NO ACCESS?{' '}
-          <Link to="/register" className="text-neon-purple hover:text-white transition-colors font-bold tracking-widest ml-2">
+          <Link to="/register" className="text-neon-purple hover:text-neon-cyan transition-colors font-bold tracking-widest ml-2">
             CREATE ACCOUNT
           </Link>
         </p>

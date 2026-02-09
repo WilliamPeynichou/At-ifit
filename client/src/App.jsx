@@ -27,7 +27,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <LanguageProvider>
-          <div className="min-h-screen bg-black text-slate-200 antialiased overflow-x-hidden relative">
+          <div className="min-h-screen antialiased overflow-x-hidden relative" style={{ color: 'var(--text-primary)' }}>
           {/* Global Particle Background */}
           <ParticlesBackground />
           
