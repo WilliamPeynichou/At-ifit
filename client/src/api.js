@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
 });
 
 // Flag to prevent multiple simultaneous refresh attempts
@@ -40,7 +40,7 @@ api.interceptors.response.use(
 
     if (!error.response) {
       console.error('Network Error:', error.message);
-      console.error('Make sure the backend server is running on http://localhost:3001');
+      console.error('Make sure the backend server is running on', import.meta.env.VITE_API_URL || 'http://localhost:3001');
       return Promise.reject(error);
     }
     

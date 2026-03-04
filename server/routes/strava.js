@@ -36,19 +36,21 @@ router.get('/auth', auth, asyncHandler(async (req, res) => {
 router.get('/callback', (req, res) => {
   const { code, error, state } = req.query;
 
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5174';
+
   if (error) {
     logger.warn('Strava auth failed', { error });
-    return res.redirect('http://localhost:5174/strava-callback?error=auth_failed');
+    return res.redirect(`${frontendUrl}/strava-callback?error=auth_failed`);
   }
 
   if (!code) {
     logger.warn('No authorization code received from Strava');
-    return res.redirect('http://localhost:5174/strava-callback?error=no_code');
+    return res.redirect(`${frontendUrl}/strava-callback?error=no_code`);
   }
 
-  const redirectUrl = state 
-    ? `http://localhost:5174/strava-callback?code=${code}&state=${state}`
-    : `http://localhost:5174/strava-callback?code=${code}`;
+  const redirectUrl = state
+    ? `${frontendUrl}/strava-callback?code=${code}&state=${state}`
+    : `${frontendUrl}/strava-callback?code=${code}`;
   
   logger.info('Strava OAuth callback received', { hasCode: !!code, hasState: !!state });
   res.redirect(redirectUrl);

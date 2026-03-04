@@ -1,123 +1,150 @@
-const AI_COACH_WEBHOOK_URL = 'https://williampeynichou.app.n8n.cloud/webhook/34393d88-7535-40f2-a32b-8b12196ffc55/chat';
 const { getUserContext } = require('./userContextService');
+const logger = require('../utils/logger');
+
+// Configurable via .env — supporte Ollama (local) et Mistral cloud
+const MISTRAL_API_URL = process.env.MISTRAL_API_URL || 'https://api.mistral.ai/v1/chat/completions';
+const MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-large-latest';
 
 /**
- * Envoie un message au coach AI et récupère la réponse
- * @param {string} userId - ID unique de l'utilisateur (vérifié par le middleware auth)
- * @param {string} message - Message de l'utilisateur
- * @param {string} token - Token JWT pour vérification dans n8n
- * @returns {Promise<Object>} Réponse de l'AI
+ * Construit le system prompt à partir du contexte utilisateur
  */
-async function sendMessageToAICoach(userId, message, token) {
-  try {
-    // Convertir userId en string si nécessaire
-    const sessionId = String(userId);
-    
-    // Récupérer le contexte utilisateur pour enrichir la requête
-    // Le userId est déjà vérifié par le middleware auth
-    const userContext = await getUserContext(parseInt(userId));
-    
-    if (!userContext) {
-      console.warn('[AI Coach] Contexte utilisateur non trouvé pour userId:', userId);
-      // Continuer quand même, mais avec un contexte minimal
-    }
-    
-    const requestBody = {
-      action: 'sendMessage',
-      sessionId: sessionId,
-      chatInput: message,
-      userContext: userContext || { userId: parseInt(userId) }, // Contexte utilisateur ou minimal
-      authToken: token, // Token JWT pour vérification dans n8n
-      authenticatedUserId: parseInt(userId) // ID vérifié par le backend
-    };
-    
-    console.log('[AI Coach] Envoi de la requête au webhook n8n:', {
-      url: AI_COACH_WEBHOOK_URL,
-      userId: userId,
-      messageLength: message.length,
-      hasUserContext: !!userContext,
-      userContextKeys: userContext ? Object.keys(userContext) : []
+function buildSystemPrompt(context) {
+  if (!context) {
+    return `Tu es un coach sportif et nutritionnel expert et bienveillant.
+Réponds en français, de façon concise et motivante.
+Adapte tes conseils selon ce que l'utilisateur partage avec toi.`;
+  }
+
+  const lines = [
+    `Tu es un coach sportif et nutritionnel expert et bienveillant.`,
+    `Voici le profil de l'utilisateur avec qui tu discutes :`,
+    ``,
+    `Identité :`,
+    `- Pseudo : ${context.pseudo || 'Utilisateur'}`,
+  ];
+
+  if (context.age) lines.push(`- Âge : ${context.age} ans`);
+  if (context.height) lines.push(`- Taille : ${context.height} cm`);
+  if (context.gender) lines.push(`- Genre : ${context.gender}`);
+  if (context.country) lines.push(`- Pays : ${context.country}`);
+
+  if (context.weightStats?.current) {
+    lines.push(``, `Suivi du poids :`);
+    lines.push(`- Poids actuel : ${context.weightStats.current} kg`);
+    if (context.targetWeight) lines.push(`- Objectif : ${context.targetWeight} kg`);
+    if (context.weightStats.trend) lines.push(`- Tendance (30j) : ${context.weightStats.trend}`);
+  }
+
+  if (context.consoKcal) {
+    lines.push(``, `Nutrition :`);
+    lines.push(`- TDEE estimé : ${context.consoKcal} kcal/jour`);
+    if (context.weeksToGoal) lines.push(`- Semaines estimées pour l'objectif : ${context.weeksToGoal}`);
+  }
+
+  if (context.recentActivities?.length > 0) {
+    lines.push(``, `Activités récentes (Strava) :`);
+    context.recentActivities.slice(0, 5).forEach(a => {
+      const parts = [a.type];
+      if (a.distance) parts.push(a.distance);
+      if (a.duration) parts.push(a.duration);
+      if (a.date) parts.push(new Date(a.date).toLocaleDateString('fr-FR'));
+      lines.push(`- ${parts.join(' | ')}`);
     });
-    
-    const response = await fetch(AI_COACH_WEBHOOK_URL, {
+  } else if (!context.stravaConnected) {
+    lines.push(``, `Strava : non connecté`);
+  }
+
+  lines.push(
+    ``,
+    `Instructions :`,
+    `- Réponds toujours en français, de façon concise et motivante.`,
+    `- Utilise le prénom de l'utilisateur quand c'est naturel.`,
+    `- Base tes conseils sur les données ci-dessus quand c'est pertinent.`,
+    `- Si tu n'as pas assez de données pour répondre précisément, dis-le et demande les informations manquantes.`
+  );
+
+  return lines.join('\n');
+}
+
+/**
+ * Envoie un message à Mistral AI et retourne la réponse
+ * @param {number} userId - ID utilisateur (vérifié par middleware auth)
+ * @param {string} message - Message courant de l'utilisateur
+ * @param {Array} history - Historique de la conversation [{role, content}]
+ * @returns {Promise<Object>} { success, message } ou { success: false, error }
+ */
+async function sendMessageToAICoach(userId, message, history = []) {
+  const apiKey = process.env.MISTRAL_API_KEY;
+
+  if (!apiKey || (apiKey === 'your_mistral_api_key_here' && MISTRAL_API_URL.includes('mistral.ai'))) {
+    logger.error('[AI Coach] MISTRAL_API_KEY non configurée');
+    return {
+      success: false,
+      error: 'Le service IA n\'est pas configuré. Veuillez contacter l\'administrateur.'
+    };
+  }
+
+  try {
+    const userContext = await getUserContext(parseInt(userId));
+    const systemPrompt = buildSystemPrompt(userContext);
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history,
+      { role: 'user', content: message }
+    ];
+
+    logger.info('[AI Coach] Requête Mistral', {
+      userId,
+      historyLength: history.length,
+      messageLength: message.length,
+      hasContext: !!userContext
+    });
+
+    const response = await fetch(MISTRAL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify(requestBody),
-      timeout: 60000 // 60 secondes de timeout
+      body: JSON.stringify({
+        model: MISTRAL_MODEL,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1024
+      }),
+      signal: AbortSignal.timeout(30000)
     });
 
-    console.log('[AI Coach] Statut de la réponse:', response.status, response.statusText);
-
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[AI Coach] Erreur HTTP:', errorText);
-      
-      let errorMessage = `Erreur HTTP ${response.status}`;
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.code === 404 && errorData.message?.includes('not registered')) {
-          errorMessage = 'Le workflow n8n n\'est pas activé. Veuillez activer le workflow dans n8n pour utiliser le chatbot.';
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      } catch (e) {
-        // Si ce n'est pas du JSON, utiliser le texte brut
-        errorMessage = errorText || errorMessage;
-      }
-      
-      throw new Error(errorMessage);
+      const errorBody = await response.text();
+      logger.error('[AI Coach] Erreur API Mistral', { status: response.status, body: errorBody });
+      return {
+        success: false,
+        error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.'
+      };
     }
 
     const data = await response.json();
-    console.log('[AI Coach] Réponse complète du webhook:', JSON.stringify(data, null, 2));
-    
-    // La réponse de l'AI peut être dans data.output, data.response, ou directement dans data
-    let aiMessage = null;
-    
-    if (data.output) {
-      aiMessage = data.output;
-    } else if (data.response) {
-      aiMessage = data.response;
-    } else if (typeof data === 'string') {
-      aiMessage = data;
-    } else if (data.message) {
-      aiMessage = data.message;
-    } else if (data.text) {
-      aiMessage = data.text;
+    const aiMessage = data.choices?.[0]?.message?.content;
+
+    if (!aiMessage) {
+      logger.error('[AI Coach] Réponse Mistral vide', { data });
+      return { success: false, error: 'Réponse vide du service IA.' };
     }
-    
-    if (!aiMessage || (typeof aiMessage === 'string' && !aiMessage.trim())) {
-      console.error('[AI Coach] Structure de réponse inattendue:', data);
-      throw new Error(`Réponse invalide du webhook n8n: aucun message trouvé. Réponse reçue: ${JSON.stringify(data)}`);
-    }
-    
-    // S'assurer que c'est une string
-    const messageText = typeof aiMessage === 'string' ? aiMessage : JSON.stringify(aiMessage);
-    
-    console.log('[AI Coach] Réponse de l\'AI extraite:', messageText.substring(0, 100) + '...');
-    
-    return {
-      success: true,
-      message: messageText,
-      sessionId: data.sessionId || sessionId
-    };
-    
+
+    logger.info('[AI Coach] Réponse reçue', { userId, responseLength: aiMessage.length });
+
+    return { success: true, message: aiMessage };
+
   } catch (error) {
-    console.error('[AI Coach] Erreur lors de la communication avec l\'AI Coach:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-      cause: error.cause
-    });
-    return {
-      success: false,
-      error: error.message || 'Erreur inconnue lors de la communication avec l\'AI'
-    };
+    if (error.name === 'TimeoutError') {
+      logger.error('[AI Coach] Timeout Mistral', { userId });
+      return { success: false, error: 'Le service IA met trop de temps à répondre. Réessayez.' };
+    }
+    logger.error('[AI Coach] Erreur inattendue', { userId, error: error.message });
+    return { success: false, error: 'Erreur lors de la communication avec le service IA.' };
   }
 }
 
 module.exports = { sendMessageToAICoach };
-

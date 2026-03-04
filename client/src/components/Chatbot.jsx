@@ -21,10 +21,8 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
     const currentInput = inputValue;
     setInputValue('');
 
-    // Send to AI backend (userId sera extrait automatiquement du token par le backend)
-    console.log('[Chatbot] Envoi du message avec userId:', user.id);
-    const aiResponse = await sendMessage(user.id, currentInput.trim());
-    console.log('[Chatbot] Réponse reçue:', { aiResponse, error, hasResponse: !!aiResponse });
+    // userId extrait automatiquement du token JWT par le backend
+    const aiResponse = await sendMessage(currentInput.trim());
 
     if (aiResponse && aiResponse.trim()) {
       // Add AI response
