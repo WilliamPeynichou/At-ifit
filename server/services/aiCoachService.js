@@ -4,6 +4,8 @@ const logger = require('../utils/logger');
 // Configurable via .env — supporte Ollama (local) et Mistral cloud
 const MISTRAL_API_URL = process.env.MISTRAL_API_URL || 'https://api.mistral.ai/v1/chat/completions';
 const MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-large-latest';
+// CPU local : 120s. Cloud : 30s
+const MISTRAL_TIMEOUT_MS = parseInt(process.env.MISTRAL_TIMEOUT_MS || '120000', 10);
 
 /**
  * Construit le system prompt à partir du contexte utilisateur
@@ -113,7 +115,7 @@ async function sendMessageToAICoach(userId, message, history = []) {
         temperature: 0.7,
         max_tokens: 1024
       }),
-      signal: AbortSignal.timeout(30000)
+      signal: AbortSignal.timeout(MISTRAL_TIMEOUT_MS)
     });
 
     if (!response.ok) {
