@@ -162,6 +162,10 @@ async function sendMessageToAICoach(userId, message, history = []) {
       logger.error('[AI Coach] Timeout Mistral', { userId });
       return { success: false, error: 'Le service IA met trop de temps à répondre. Réessayez.' };
     }
+    if (error.message === 'fetch failed' || error.cause?.code === 'ECONNREFUSED') {
+      logger.error('[AI Coach] Ollama non joignable', { userId });
+      return { success: false, error: 'Le service IA local (Ollama) n\'est pas démarré.' };
+    }
     logger.error('[AI Coach] Erreur inattendue', { userId, error: error.message });
     return { success: false, error: 'Erreur lors de la communication avec le service IA.' };
   }
@@ -261,7 +265,11 @@ Ton naturel et motivant, comme un coach qui parle directement à son athlète.`;
   } catch (err) {
     if (err.name === 'TimeoutError') {
       logger.error('[WeeklyReport] Timeout', { userId });
-      return { success: false, error: 'Le service IA met trop de temps à répondre.' };
+      return { success: false, error: 'Le service IA met trop de temps à répondre. Réessayez.' };
+    }
+    if (err.message === 'fetch failed' || err.cause?.code === 'ECONNREFUSED') {
+      logger.error('[WeeklyReport] Ollama non joignable', { userId });
+      return { success: false, error: 'Le service IA local (Ollama) n\'est pas démarré. Lancez Ollama et réessayez.' };
     }
     logger.error('[WeeklyReport] Erreur inattendue', { userId, error: err.message });
     return { success: false, error: 'Erreur lors de la génération du bilan.' };

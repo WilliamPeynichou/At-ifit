@@ -90,6 +90,7 @@ async function syncUserActivities(userId) {
     }
   }
 
+  await User.update({ lastSyncAt: new Date() }, { where: { id: userId } });
   logger.info('[StravaSync] Sync complète terminée', { userId, totalSynced });
   return { success: true, totalSynced };
 }
@@ -115,6 +116,9 @@ async function syncSince(userId, afterTimestamp) {
     });
 
     const synced = await upsertActivities(activities || [], userId);
+    if (synced > 0) {
+      await User.update({ lastSyncAt: new Date() }, { where: { id: userId } });
+    }
     logger.info('[StravaSync] Sync partielle terminée', { userId, afterTimestamp, synced });
     return { success: true, synced };
 

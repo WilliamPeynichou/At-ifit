@@ -182,6 +182,47 @@ app.delete('/api/weight/:id',
   })
 );
 
+// ── GET /api/health — état du système ───────────────────────────────────────
+app.get('/api/health', asyncHandler(async (req, res) => {
+  const status = { status: 'ok', timestamp: new Date().toISOString(), checks: {} };
+
+  // DB
+  try {
+    await sequelize.authenticate();
+    status.checks.database = 'ok';
+  } catch {
+    status.checks.database = 'error';
+    status.status = 'degraded';
+  }
+
+  // Ollama / Mistral local
+  const ollamaUrl = process.env.MISTRAL_API_URL || '';
+  if (ollamaUrl.includes('localhost') || ollamaUrl.includes('127.0.0.1')) {
+    try {
+      const base = ollamaUrl.replace('/v1/chat/completions', '');
+      const resp = await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3000) });
+      status.checks.ollama = resp.ok ? 'ok' : 'error';
+    } catch {
+      status.checks.ollama = 'unavailable';
+    }
+  } else {
+    status.checks.ollama = 'cloud';
+  }
+
+  // Dernière sync Strava (tous utilisateurs)
+  try {
+    const [row] = await sequelize.query(
+      'SELECT MAX(lastSyncAt) AS lastSync FROM Users WHERE lastSyncAt IS NOT NULL',
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    status.checks.lastStravaSync = row?.lastSync || null;
+  } catch {
+    status.checks.lastStravaSync = null;
+  }
+
+  res.status(status.status === 'ok' ? 200 : 503).json(status);
+}));
+
 // 404 Handler
 app.use(notFoundHandler);
 

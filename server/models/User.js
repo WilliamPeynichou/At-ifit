@@ -64,6 +64,11 @@ const User = sequelize.define('User', {
     type: DataTypes.FLOAT,
     allowNull: true,
     comment: 'Indice de Masse Corporelle (IMC)'
+  },
+  lastSyncAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Dernière synchronisation Strava réussie'
   }
 }, {
   timestamps: true
