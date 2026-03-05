@@ -5,10 +5,15 @@ const sequelize = require('./database');
 const User = require('./models/User');
 const Weight = require('./models/Weight');
 const RefreshToken = require('./models/RefreshToken');
+const Activity = require('./models/Activity');
+const Goal = require('./models/Goal');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const stravaRoutes = require('./routes/strava');
 const aiCoachRoutes = require('./routes/aiCoach');
+const statsRoutes = require('./routes/stats');
+const stravaWebhookRoutes = require('./routes/stravaWebhook');
+const goalsRoutes = require('./routes/goals');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
 const { errorHandler, notFoundHandler, asyncHandler, sendSuccess, sendError } = require('./middleware/errorHandler');
@@ -54,6 +59,12 @@ Weight.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(RefreshToken, { foreignKey: 'userId', onDelete: 'CASCADE' });
 RefreshToken.belongsTo(User, { foreignKey: 'userId' });
 
+User.hasMany(Activity, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Activity.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(Goal, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Goal.belongsTo(User, { foreignKey: 'userId' });
+
 // Test Database Connection and Sync
 sequelize.authenticate()
   .then(() => {
@@ -82,6 +93,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/ai-coach', aiCoachRoutes);
+app.use('/api/stats', statsRoutes);
+// Webhook Strava — route publique (pas d'auth JWT, Strava appelle directement)
+app.use('/api/webhook', stravaWebhookRoutes);
+app.use('/api/goals', goalsRoutes);
 
 // Weight Routes
 app.get('/api/weight', 

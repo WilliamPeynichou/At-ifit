@@ -7,6 +7,8 @@ import { useLanguage } from '../context/LanguageContext';
 import StatsCard from './StatsCard';
 import WeightForm from './WeightForm';
 import UserProfile from './UserProfile';
+import WeightPerformanceChart from './WeightPerformanceChart';
+import WeeklyReport from './WeeklyReport';
 import { Activity, Scale, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -63,7 +65,7 @@ const Dashboard = () => {
   const processCombinedData = (weightData, activityData) => {
     const dateMap = new Set();
     weightData.forEach(w => dateMap.add(new Date(w.date).toDateString()));
-    activityData.forEach(a => dateMap.add(new Date(a.start_date).toDateString()));
+    activityData.forEach(a => dateMap.add(new Date(a.startDate || a.start_date).toDateString()));
 
     const sortedDates = Array.from(dateMap)
       .map(d => new Date(d))
@@ -82,14 +84,14 @@ const Dashboard = () => {
       const weightEntry = weightData.find(w => new Date(w.date).toDateString() === dateStr);
       if (weightEntry) lastKnownWeight = weightEntry.weight;
 
-      const dayActivities = activityData.filter(a => new Date(a.start_date).toDateString() === dateStr);
+      const dayActivities = activityData.filter(a => new Date(a.startDate || a.start_date).toDateString() === dateStr);
 
       const totalDistance = dayActivities.reduce((sum, a) => sum + (a.distance || 0), 0);
       const totalCalories = dayActivities.reduce((sum, a) => sum + (a.calories || a.kilojoules || 0), 0);
 
-      const activitiesWithHR = dayActivities.filter(a => a.has_heartrate && a.average_heartrate);
+      const activitiesWithHR = dayActivities.filter(a => a.averageHeartrate || a.average_heartrate);
       const avgBpm = activitiesWithHR.length > 0
-        ? (activitiesWithHR.reduce((sum, a) => sum + a.average_heartrate, 0) / activitiesWithHR.length).toFixed(0)
+        ? (activitiesWithHR.reduce((sum, a) => sum + (a.averageHeartrate || a.average_heartrate), 0) / activitiesWithHR.length).toFixed(0)
         : null;
 
       const entry = {
@@ -106,8 +108,7 @@ const Dashboard = () => {
         const type = a.type || 'Unknown';
         const dist = (a.distance || 0) / 1000;
         if (dist > 0) {
-          entry[type] = (entry[type] || 0) + dist;
-          entry[type] = parseFloat(entry[type].toFixed(2));
+          entry[type] = parseFloat(((entry[type] || 0) + dist).toFixed(2));
         }
       });
 
@@ -120,7 +121,7 @@ const Dashboard = () => {
   const processIntensityData = (weightData, activityData) => {
     const dateMap = new Set();
     weightData.forEach(w => dateMap.add(new Date(w.date).toDateString()));
-    activityData.forEach(a => dateMap.add(new Date(a.start_date).toDateString()));
+    activityData.forEach(a => dateMap.add(new Date(a.startDate || a.start_date).toDateString()));
 
     const sortedDates = Array.from(dateMap)
       .map(d => new Date(d))
@@ -133,7 +134,7 @@ const Dashboard = () => {
       const weightEntry = weightData.find(w => new Date(w.date).toDateString() === dateStr);
       if (weightEntry) lastKnownWeight = weightEntry.weight;
 
-      const dayActivities = activityData.filter(a => new Date(a.start_date).toDateString() === dateStr);
+      const dayActivities = activityData.filter(a => new Date(a.startDate || a.start_date).toDateString() === dateStr);
 
       const entry = {
         date: date.toISOString(),
@@ -144,10 +145,10 @@ const Dashboard = () => {
 
       dayActivities.forEach(a => {
         const type = a.type || 'Unknown';
-        if (a.suffer_score !== null && a.suffer_score !== undefined) {
+        const sufferScore = a.sufferScore ?? a.suffer_score;
+        if (sufferScore !== null && sufferScore !== undefined) {
           const effortKey = `${type}_effort`;
-          entry[effortKey] = (entry[effortKey] || 0) + a.suffer_score;
-          entry[effortKey] = parseFloat(entry[effortKey].toFixed(1));
+          entry[effortKey] = parseFloat(((entry[effortKey] || 0) + sufferScore).toFixed(1));
         }
       });
 
@@ -327,6 +328,16 @@ const Dashboard = () => {
         <div className="flex">
           <WeightForm onUpdate={fetchData} />
         </div>
+      </div>
+
+      {/* Bilan hebdomadaire IA */}
+      <div className="mb-6">
+        <WeeklyReport />
+      </div>
+
+      {/* Corrélation poids × performance */}
+      <div className="mb-8">
+        <WeightPerformanceChart />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

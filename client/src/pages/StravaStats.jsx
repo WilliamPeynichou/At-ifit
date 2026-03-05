@@ -7,6 +7,11 @@ import {
 } from 'recharts';
 import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut } from 'lucide-react';
 import api from '../api';
+import YearlyProgress from '../components/YearlyProgress';
+import HeartRateZones from '../components/HeartRateZones';
+import TrainingLoad from '../components/TrainingLoad';
+import GearTracker from '../components/GearTracker';
+import SportGoals from '../components/SportGoals';
 
 const StravaStats = () => {
   const { loadUser } = useAuth();
@@ -37,7 +42,19 @@ const StravaStats = () => {
         throw new Error('Invalid data format');
       }
 
-      const sortedData = data.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+      // Normalise les champs (DB camelCase ou Strava snake_case)
+      const normalize = (a) => ({
+        ...a,
+        start_date: a.startDate || a.start_date,
+        moving_time: a.movingTime ?? a.moving_time,
+        total_elevation_gain: a.totalElevationGain ?? a.total_elevation_gain,
+        average_heartrate: a.averageHeartrate ?? a.average_heartrate,
+        has_heartrate: (a.averageHeartrate ?? a.average_heartrate) != null,
+        average_watts: a.averageWatts ?? a.average_watts,
+        device_watts: (a.averageWatts ?? a.average_watts) != null,
+        suffer_score: a.sufferScore ?? a.suffer_score,
+      });
+      const sortedData = data.map(normalize).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
       setActivities(sortedData);
 
       if (sortedData.length === 0) {
@@ -211,6 +228,15 @@ const StravaStats = () => {
   const sportsList = Object.keys(sportProgression);
   const colors = ['#0055ff', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
 
+  // Activités filtrées selon le sport sélectionné
+  const filteredActivities = selectedSport === 'All'
+    ? activities
+    : activities.filter(a => a.type === selectedSport);
+
+  const filteredGlobalProgression = selectedSport === 'All'
+    ? globalProgression
+    : globalProgression.filter(a => a.type === selectedSport);
+
   // Set default selected sport if not set or if current selection doesn't exist
   useEffect(() => {
     if (sportsList.length > 0 && (!selectedSport || !sportProgression[selectedSport])) {
@@ -264,27 +290,62 @@ const StravaStats = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <span className="text-[#0055ff]">STRAVA</span> {t('stravaStats.title')}
-        </h1>
-        <div className="flex items-center gap-4">
-          <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {activities.length} {t('stravaStats.activitiesAnalyzed')}
-          </div>
-          <button
-            onClick={handleDisconnect}
-            disabled={disconnecting}
-            className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
-            style={{ background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.35)', color: '#dc2626' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.22)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.12)'}
-          >
-            <LogOut size={16} />
-            {disconnecting ? t('stravaStats.disconnecting') : t('stravaStats.disconnect')}
-          </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3" style={{ fontFamily: 'var(--font-display)' }}>
+            <span style={{ color: 'var(--accent-blue)' }}>STRAVA</span>
+            <span style={{ color: 'var(--text-primary)' }}>{t('stravaStats.title')}</span>
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+            {activities.length} activités analysées
+          </p>
         </div>
+        <button
+          onClick={handleDisconnect}
+          disabled={disconnecting}
+          className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 self-start sm:self-auto"
+          style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.2)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.1)'}
+        >
+          <LogOut size={16} />
+          {disconnecting ? t('stravaStats.disconnecting') : t('stravaStats.disconnect')}
+        </button>
       </div>
+
+      {/* Filtres par type de sport */}
+      {sportsList.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedSport('All')}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
+            style={selectedSport === 'All'
+              ? { background: 'var(--accent-blue)', color: '#fff' }
+              : { background: 'rgba(255,255,255,0.7)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', backdropFilter: 'blur(8px)' }
+            }
+          >
+            Tous · {activities.length}
+          </button>
+          {sportsList.map((sport, i) => {
+            const count = stats.find(s => s.name === sport)?.count || 0;
+            return (
+              <button
+                key={sport}
+                onClick={() => setSelectedSport(sport)}
+                className="px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-1.5"
+                style={selectedSport === sport
+                  ? { background: colors[i % colors.length], color: '#fff' }
+                  : { background: 'rgba(255,255,255,0.7)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', backdropFilter: 'blur(8px)' }
+                }
+              >
+                {sport} · {count}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <YearlyProgress />
 
       <div className="glass-panel p-6">
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
@@ -292,7 +353,7 @@ const StravaStats = () => {
         </h3>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={globalProgression}>
+            <LineChart data={filteredGlobalProgression}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" />
               <YAxis stroke="#a8a29e" />
@@ -341,7 +402,7 @@ const StravaStats = () => {
         </h3>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={globalProgression.filter(d => d.bpm > 0)}>
+            <LineChart data={filteredGlobalProgression.filter(d => d.bpm > 0)}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" />
               <YAxis stroke="#a8a29e" domain={['dataMin - 10', 'dataMax + 10']} />
@@ -431,6 +492,19 @@ const StravaStats = () => {
           </table>
         </div>
       </div>
+
+      {/* Charge d'entraînement */}
+      <TrainingLoad />
+
+      {/* Zones de fréquence cardiaque */}
+      <HeartRateZones />
+
+      {/* Suivi équipement */}
+      <GearTracker />
+
+      {/* Objectifs sportifs */}
+      <SportGoals />
+
       </div>
     </div>
   );

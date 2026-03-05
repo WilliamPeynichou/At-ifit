@@ -5,7 +5,8 @@
 
 const User = require('../models/User');
 const Weight = require('../models/Weight');
-const { getValidStravaToken, fetchStravaActivities } = require('../utils/stravaHelpers');
+const Activity = require('../models/Activity');
+const { Op } = require('sequelize');
 
 /**
  * Récupère le contexte complet d'un utilisateur pour l'agent IA
@@ -48,18 +49,17 @@ async function getUserContext(userId) {
     // Calculer les statistiques de poids
     const weightStats = calculateWeightStats(weights);
 
-    // Récupérer les activités Strava récentes (si connecté)
+    // Récupérer les activités récentes depuis la DB locale
     let recentActivities = [];
-    if (user.stravaAccessToken) {
-      try {
-        const accessToken = await getValidStravaToken(user);
-        if (accessToken) {
-          const activities = await fetchStravaActivities(accessToken, { per_page: 10 });
-          recentActivities = activities || [];
-        }
-      } catch (error) {
-        console.log('[User Context] Strava non disponible:', error.message);
-      }
+    try {
+      recentActivities = await Activity.findAll({
+        where: { userId },
+        order: [['startDate', 'DESC']],
+        limit: 10,
+        attributes: ['type', 'distance', 'movingTime', 'startDate', 'calories'],
+      });
+    } catch (error) {
+      console.log('[User Context] Erreur lecture activités DB:', error.message);
     }
 
     // Construire le contexte
@@ -85,15 +85,15 @@ async function getUserContext(userId) {
       })),
       weightStats: weightStats,
       
-      // Activités récentes
+      // Activités récentes (depuis DB locale)
       recentActivities: recentActivities.map(a => ({
         type: a.type,
         distance: a.distance ? (a.distance / 1000).toFixed(2) + ' km' : null,
-        duration: a.moving_time ? formatDuration(a.moving_time) : null,
-        date: a.start_date,
-        calories: a.calories || a.kilojoules ? (a.calories || a.kilojoules / 4.184).toFixed(0) : null
+        duration: a.movingTime ? formatDuration(a.movingTime) : null,
+        date: a.startDate,
+        calories: a.calories || null,
       })),
-      
+
       // Statut Strava
       stravaConnected: !!user.stravaAccessToken,
       

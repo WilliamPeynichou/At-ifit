@@ -167,4 +167,105 @@ async function sendMessageToAICoach(userId, message, history = []) {
   }
 }
 
-module.exports = { sendMessageToAICoach };
+// ── Cache mémoire pour le rapport hebdomadaire (24h) ────────────────────────
+const reportCache = new Map(); // userId → { report, generatedAt }
+const REPORT_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+
+/**
+ * Génère ou retourne depuis le cache le rapport hebdomadaire IA
+ * @param {number} userId
+ * @param {boolean} force - Ignore le cache si true
+ */
+async function generateWeeklyReport(userId, force = false) {
+  const cached = reportCache.get(userId);
+  if (!force && cached && Date.now() - cached.generatedAt < REPORT_TTL_MS) {
+    return { success: true, report: cached.report, cached: true, generatedAt: cached.generatedAt };
+  }
+
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey || (apiKey === 'your_mistral_api_key_here' && MISTRAL_API_URL.includes('mistral.ai'))) {
+    return { success: false, error: 'Service IA non configuré.' };
+  }
+
+  try {
+    const userContext = await getUserContext(parseInt(userId));
+    const pseudo = userContext?.pseudo || 'Athlète';
+
+    const actsSummary = (userContext?.recentActivities || []).slice(0, 10).map(a => {
+      const parts = [a.type];
+      if (a.distance) parts.push(a.distance);
+      if (a.duration) parts.push(a.duration);
+      if (a.date) parts.push(new Date(a.date).toLocaleDateString('fr-FR'));
+      return `  - ${parts.join(' | ')}`;
+    }).join('\n') || '  (aucune activité récente)';
+
+    const weightInfo = userContext?.weightStats?.current
+      ? `Poids actuel : ${userContext.weightStats.current} kg${userContext.weightStats.trend ? ` (tendance : ${userContext.weightStats.trend})` : ''}`
+      : 'Poids non renseigné.';
+
+    const systemPrompt = `Tu es un coach sportif et nutritionnel expert.
+Tu dois rédiger un bilan hebdomadaire structuré en exactement 3 paragraphes.
+
+Profil de l'athlète :
+- Pseudo : ${pseudo}
+${userContext?.age ? `- Âge : ${userContext.age} ans` : ''}
+${userContext?.consoKcal ? `- TDEE estimé : ${userContext.consoKcal} kcal/jour` : ''}
+
+${weightInfo}
+
+Activités de la semaine :
+${actsSummary}
+
+Format de réponse OBLIGATOIRE :
+Paragraphe 1 : Bilan des activités (volume, fréquence, types).
+Paragraphe 2 : Analyse du poids et de la nutrition si données disponibles.
+Paragraphe 3 : Conseil motivant et recommandation concrète pour la semaine suivante.
+
+N'utilise PAS de tirets (-), de listes à puces (*), ni de titres en gras (**Titre :**).
+Chaque paragraphe doit être séparé par une ligne vide.
+Ton naturel et motivant, comme un coach qui parle directement à son athlète.`;
+
+    const response = await fetch(MISTRAL_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: MISTRAL_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: 'Génère mon bilan de la semaine.' },
+        ],
+        temperature: 0.7,
+        max_tokens: parseInt(process.env.MISTRAL_MAX_TOKENS || '512', 10),
+      }),
+      signal: AbortSignal.timeout(MISTRAL_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      logger.error('[WeeklyReport] Erreur API', { status: response.status, body: errorBody });
+      return { success: false, error: 'Service IA temporairement indisponible.' };
+    }
+
+    const data = await response.json();
+    const report = data.choices?.[0]?.message?.content;
+    if (!report) return { success: false, error: 'Réponse vide du service IA.' };
+
+    const generatedAt = Date.now();
+    reportCache.set(userId, { report, generatedAt });
+    logger.info('[WeeklyReport] Rapport généré', { userId, length: report.length });
+
+    return { success: true, report, cached: false, generatedAt };
+  } catch (err) {
+    if (err.name === 'TimeoutError') {
+      logger.error('[WeeklyReport] Timeout', { userId });
+      return { success: false, error: 'Le service IA met trop de temps à répondre.' };
+    }
+    logger.error('[WeeklyReport] Erreur inattendue', { userId, error: err.message });
+    return { success: false, error: 'Erreur lors de la génération du bilan.' };
+  }
+}
+
+module.exports = { sendMessageToAICoach, generateWeeklyReport };

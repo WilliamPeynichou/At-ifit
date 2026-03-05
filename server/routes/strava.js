@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const User = require('../models/User');
+const Activity = require('../models/Activity');
+const { syncUserActivities } = require('../services/stravaSync');
+const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
 const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHandler');
 const { 
@@ -88,12 +91,18 @@ router.post('/connect', auth, asyncHandler(async (req, res) => {
       stravaExpiresAt: expires_at
     });
 
-    logger.info('Strava connected successfully', { 
-      userId: req.userId, 
+    logger.info('Strava connected successfully', {
+      userId: req.userId,
       userEmail: user.email,
       stravaAthleteId: athlete?.id,
       stravaAthleteName: athlete?.firstname + ' ' + athlete?.lastname
     });
+
+    // Sync initiale en background (non bloquante)
+    syncUserActivities(req.userId).catch(err =>
+      logger.error('[Strava] Erreur sync post-connect', { userId: req.userId, error: err.message })
+    );
+
     sendSuccess(res, { athlete }, 'Strava connected successfully');
     
   } catch (error) {
@@ -108,28 +117,50 @@ router.post('/connect', auth, asyncHandler(async (req, res) => {
 
 router.get('/activities', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
-  
-  if (!user) {
-    return sendError(res, 'User not found', 404);
-  }
-  
+
+  if (!user) return sendError(res, 'User not found', 404);
   if (!user.stravaAccessToken) {
     return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
   }
 
-  const accessToken = await getValidStravaToken(user);
-  
-  if (!accessToken) {
-    return sendError(res, 'Failed to get valid Strava token. Please reconnect your Strava account.', 401);
+  const { type, limit = 200, page = 1 } = req.query;
+
+  // Vérifie si la DB est vide pour cet utilisateur → sync initiale
+  const count = await Activity.count({ where: { userId: req.userId } });
+  if (count === 0) {
+    logger.info('[Strava] DB vide, déclenchement sync initiale', { userId: req.userId });
+    syncUserActivities(req.userId).catch(err =>
+      logger.error('[Strava] Erreur sync background', { userId: req.userId, error: err.message })
+    );
   }
 
-  try {
-    const activities = await fetchStravaActivities(accessToken, { per_page: 50 });
-    sendSuccess(res, activities);
-  } catch (error) {
-    logger.error('Failed to fetch Strava activities', error);
-    return sendError(res, 'Failed to fetch Strava activities', 500);
+  // Construit la requête Sequelize
+  const where = { userId: req.userId };
+  if (type) where.type = type;
+
+  const activities = await Activity.findAll({
+    where,
+    order: [['startDate', 'DESC']],
+    limit: Math.min(parseInt(limit), 500),
+    offset: (parseInt(page) - 1) * Math.min(parseInt(limit), 500),
+    attributes: { exclude: ['raw'] },
+  });
+
+  // Si DB vide et sync en cours, retomber sur Strava direct (transition)
+  if (activities.length === 0 && count === 0) {
+    try {
+      const { getValidStravaToken: getToken } = require('../utils/stravaHelpers');
+      const accessToken = await getToken(user);
+      if (accessToken) {
+        const fresh = await fetchStravaActivities(accessToken, { per_page: 50 });
+        return sendSuccess(res, fresh || []);
+      }
+    } catch (err) {
+      logger.warn('[Strava] Fallback Strava direct échoué', { userId: req.userId });
+    }
   }
+
+  sendSuccess(res, activities);
 }));
 
 router.delete('/disconnect', auth, asyncHandler(async (req, res) => {

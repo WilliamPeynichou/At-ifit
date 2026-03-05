@@ -2,7 +2,7 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHandler');
 const { aiCoachLimiter } = require('../middleware/rateLimiter');
-const { sendMessageToAICoach } = require('../services/aiCoachService');
+const { sendMessageToAICoach, generateWeeklyReport } = require('../services/aiCoachService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -36,6 +36,22 @@ router.post('/message', auth, aiCoachLimiter, asyncHandler(async (req, res) => {
   }
 
   logger.error('[AI Coach Route] Échec service IA', { userId, error: result.error });
+  return sendError(res, result.error, 503);
+}));
+
+// GET /api/ai-coach/weekly-report
+router.get('/weekly-report', auth, aiCoachLimiter, asyncHandler(async (req, res) => {
+  const force = req.query.force === 'true';
+  const result = await generateWeeklyReport(req.userId, force);
+
+  if (result.success) {
+    return sendSuccess(res, {
+      report: result.report,
+      cached: result.cached,
+      generatedAt: result.generatedAt,
+    });
+  }
+
   return sendError(res, result.error, 503);
 }));
 
