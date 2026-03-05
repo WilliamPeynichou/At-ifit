@@ -1,0 +1,145 @@
+/*
+ * Cyclist pixel-art loader
+ * Technique : box-shadow grid (1 div de 4×4px, chaque "pixel" = spread 4px)
+ * Couleurs  : #131014 (corps/cadre) | #0055ff (roues/accent) | #e8e8e8 (peau)
+ * Grid unit : 4px — coordonnées (x,y) → offset-x = x*4px, offset-y = y*4px
+ */
+
+/* ── Frame 0 — position pédale 0° ── */
+.cyclist-f0 {
+  box-shadow:
+    /* tête */
+    16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8,
+    16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8,
+    /* torse */
+    16px 8px 0 4px #131014, 20px 8px 0 4px #131014,
+    12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014,
+    4px 16px 0 4px #131014, 8px 16px 0 4px #131014,
+    16px 16px 0 4px #131014, 12px 16px 0 4px #131014,
+    /* jambes */
+    12px 20px 0 4px #131014, 16px 20px 0 4px #131014,
+    8px 24px 0 4px #131014, 20px 24px 0 4px #131014,
+    4px 28px 0 4px #131014, 24px 28px 0 4px #131014,
+    /* cadre vélo */
+    4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff,
+    4px 24px 0 4px #0055ff,
+    24px 20px 0 4px #0055ff, 24px 24px 0 4px #0055ff,
+    /* roue avant */
+    0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff,
+    4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff,
+    /* roue arrière */
+    20px 28px 0 4px #0055ff,
+    24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff,
+    32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff;
+}
+
+/* ── Frame 1 — position pédale 90° ── */
+.cyclist-f1 {
+  box-shadow:
+    16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8,
+    16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8,
+    16px 8px 0 4px #131014, 20px 8px 0 4px #131014,
+    12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014,
+    4px 16px 0 4px #131014, 8px 16px 0 4px #131014,
+    16px 16px 0 4px #131014, 12px 16px 0 4px #131014,
+    8px 20px 0 4px #131014, 20px 20px 0 4px #131014,
+    8px 24px 0 4px #131014, 24px 20px 0 4px #131014,
+    4px 28px 0 4px #131014, 28px 24px 0 4px #131014,
+    4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff,
+    4px 24px 0 4px #0055ff,
+    24px 24px 0 4px #0055ff,
+    0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff,
+    4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff,
+    20px 28px 0 4px #0055ff,
+    24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff,
+    32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff;
+}
+
+/* ── Frame 2 — position pédale 180° ── */
+.cyclist-f2 {
+  box-shadow:
+    16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8,
+    16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8,
+    16px 8px 0 4px #131014, 20px 8px 0 4px #131014,
+    12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014,
+    4px 16px 0 4px #131014, 8px 16px 0 4px #131014,
+    16px 16px 0 4px #131014, 12px 16px 0 4px #131014,
+    16px 20px 0 4px #131014, 12px 20px 0 4px #131014,
+    20px 24px 0 4px #131014, 8px 24px 0 4px #131014,
+    24px 28px 0 4px #131014, 4px 28px 0 4px #131014,
+    4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff,
+    4px 24px 0 4px #0055ff,
+    24px 20px 0 4px #0055ff, 24px 24px 0 4px #0055ff,
+    0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff,
+    4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff,
+    20px 28px 0 4px #0055ff,
+    24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff,
+    32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff;
+}
+
+/* ── Frame 3 — position pédale 270° ── */
+.cyclist-f3 {
+  box-shadow:
+    16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8,
+    16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8,
+    16px 8px 0 4px #131014, 20px 8px 0 4px #131014,
+    12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014,
+    4px 16px 0 4px #131014, 8px 16px 0 4px #131014,
+    16px 16px 0 4px #131014, 12px 16px 0 4px #131014,
+    12px 20px 0 4px #131014, 20px 20px 0 4px #131014,
+    12px 24px 0 4px #131014, 20px 24px 0 4px #131014,
+    8px 28px 0 4px #131014, 24px 28px 0 4px #131014,
+    4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff,
+    4px 24px 0 4px #0055ff,
+    24px 20px 0 4px #0055ff, 24px 24px 0 4px #0055ff,
+    0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff,
+    4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff,
+    20px 28px 0 4px #0055ff,
+    24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff,
+    32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff;
+}
+
+/* ── Animation ── */
+@keyframes pedal-anim {
+  0%   { box-shadow: 16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8, 16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8, 16px 8px 0 4px #131014, 20px 8px 0 4px #131014, 12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014, 4px 16px 0 4px #131014, 8px 16px 0 4px #131014, 16px 16px 0 4px #131014, 12px 16px 0 4px #131014, 12px 20px 0 4px #131014, 16px 20px 0 4px #131014, 8px 24px 0 4px #131014, 20px 24px 0 4px #131014, 4px 28px 0 4px #131014, 24px 28px 0 4px #131014, 4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff, 4px 24px 0 4px #0055ff, 24px 20px 0 4px #0055ff, 24px 24px 0 4px #0055ff, 0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff, 4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff, 20px 28px 0 4px #0055ff, 24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff, 32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff; }
+  25%  { box-shadow: 16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8, 16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8, 16px 8px 0 4px #131014, 20px 8px 0 4px #131014, 12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014, 4px 16px 0 4px #131014, 8px 16px 0 4px #131014, 16px 16px 0 4px #131014, 12px 16px 0 4px #131014, 8px 20px 0 4px #131014, 20px 20px 0 4px #131014, 8px 24px 0 4px #131014, 24px 20px 0 4px #131014, 4px 28px 0 4px #131014, 28px 24px 0 4px #131014, 4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff, 4px 24px 0 4px #0055ff, 24px 24px 0 4px #0055ff, 0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff, 4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff, 20px 28px 0 4px #0055ff, 24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff, 32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff; }
+  50%  { box-shadow: 16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8, 16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8, 16px 8px 0 4px #131014, 20px 8px 0 4px #131014, 12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014, 4px 16px 0 4px #131014, 8px 16px 0 4px #131014, 16px 16px 0 4px #131014, 12px 16px 0 4px #131014, 16px 20px 0 4px #131014, 12px 20px 0 4px #131014, 20px 24px 0 4px #131014, 8px 24px 0 4px #131014, 24px 28px 0 4px #131014, 4px 28px 0 4px #131014, 4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff, 4px 24px 0 4px #0055ff, 24px 20px 0 4px #0055ff, 24px 24px 0 4px #0055ff, 0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff, 4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff, 20px 28px 0 4px #0055ff, 24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff, 32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff; }
+  75%  { box-shadow: 16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8, 16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8, 16px 8px 0 4px #131014, 20px 8px 0 4px #131014, 12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014, 4px 16px 0 4px #131014, 8px 16px 0 4px #131014, 16px 16px 0 4px #131014, 12px 16px 0 4px #131014, 12px 20px 0 4px #131014, 20px 20px 0 4px #131014, 12px 24px 0 4px #131014, 20px 24px 0 4px #131014, 8px 28px 0 4px #131014, 24px 28px 0 4px #131014, 4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff, 4px 24px 0 4px #0055ff, 24px 20px 0 4px #0055ff, 24px 24px 0 4px #0055ff, 0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff, 4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff, 20px 28px 0 4px #0055ff, 24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff, 32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff; }
+  100% { box-shadow: 16px 0px 0 4px #e8e8e8, 20px 0px 0 4px #e8e8e8, 16px 4px 0 4px #e8e8e8, 20px 4px 0 4px #e8e8e8, 16px 8px 0 4px #131014, 20px 8px 0 4px #131014, 12px 12px 0 4px #131014, 16px 12px 0 4px #131014, 8px 12px 0 4px #131014, 4px 16px 0 4px #131014, 8px 16px 0 4px #131014, 16px 16px 0 4px #131014, 12px 16px 0 4px #131014, 12px 20px 0 4px #131014, 16px 20px 0 4px #131014, 8px 24px 0 4px #131014, 20px 24px 0 4px #131014, 4px 28px 0 4px #131014, 24px 28px 0 4px #131014, 4px 20px 0 4px #0055ff, 8px 20px 0 4px #0055ff, 4px 24px 0 4px #0055ff, 24px 20px 0 4px #0055ff, 24px 24px 0 4px #0055ff, 0px 24px 0 4px #0055ff, 0px 28px 0 4px #0055ff, 0px 32px 0 4px #0055ff, 4px 32px 0 4px #0055ff, 8px 32px 0 4px #0055ff, 20px 28px 0 4px #0055ff, 24px 32px 0 4px #0055ff, 28px 32px 0 4px #0055ff, 32px 32px 0 4px #0055ff, 32px 28px 0 4px #0055ff; }
+}
+
+/* ── Classe appliquée sur le div pixel ── */
+.cyclist-pixel {
+  width: 4px;
+  height: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: pedal-anim 0.6s steps(1) infinite;
+}
+
+/* ── Wrapper loader ── */
+.cyclist-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  gap: 32px;
+}
+
+.cyclist-canvas {
+  position: relative;
+  width: 80px;
+  height: 60px;
+}
+
+.cyclist-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}

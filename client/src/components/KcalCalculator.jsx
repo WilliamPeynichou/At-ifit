@@ -54,7 +54,7 @@ const KcalCalculator = () => {
   if (loading) return <div className="p-8 text-center" style={{ color: 'var(--text-primary)' }}>Chargement...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto space-y-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
@@ -68,9 +68,9 @@ const KcalCalculator = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Form Section */}
-        <div className="glass-panel rounded-2xl p-6 shadow-xl">
+        <div className="glass-panel p-6 shadow-xl">
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-            <Target className="w-5 h-5" style={{ color: 'var(--accent-orange)' }} />
+            <Target className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
             Configuration
           </h2>
 
@@ -84,8 +84,8 @@ const KcalCalculator = () => {
                   className="p-3 rounded-xl transition-all"
                   style={
                     formData.gender === 'male'
-                      ? { background: 'rgba(0, 85, 255, 0.15)', border: '1.5px solid var(--accent-blue)', color: 'var(--accent-blue)' }
-                      : { background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)', color: 'var(--text-secondary)' }
+                      ? { background: 'rgba(0, 85, 255, 0.15)', border: '1px solid var(--accent-blue)', color: 'var(--accent-blue)' }
+                      : { background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }
                   }
                 >
                   Homme
@@ -96,8 +96,8 @@ const KcalCalculator = () => {
                   className="p-3 rounded-xl transition-all"
                   style={
                     formData.gender === 'female'
-                      ? { background: 'rgba(249, 115, 22, 0.15)', border: '1.5px solid var(--accent-orange)', color: 'var(--accent-orange)' }
-                      : { background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)', color: 'var(--text-secondary)' }
+                      ? { background: 'rgba(0, 85, 255, 0.15)', border: '1px solid var(--accent-blue)', color: 'var(--accent-blue)' }
+                      : { background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }
                   }
                 >
                   Femme
@@ -148,8 +148,8 @@ const KcalCalculator = () => {
         <div className="space-y-6">
           {result ? (
             <>
-              <div className="glass-panel backdrop-blur-xl rounded-2xl p-6 shadow-xl" style={{ borderColor: 'var(--accent-orange)' }}>
-                <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--accent-orange)' }}>Objectif Quotidien</h3>
+              <div className="glass-panel p-6" style={{ borderColor: 'rgba(0,85,255,0.2)' }}>
+                <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--accent-blue)' }}>Objectif Quotidien</h3>
                 <div className="flex items-baseline gap-2">
                   <span className="text-5xl font-bold" style={{ color: 'var(--text-primary)' }}>{result.targetCalories}</span>
                   <span className="text-xl" style={{ color: 'var(--text-muted)' }}>kcal</span>
@@ -159,7 +159,7 @@ const KcalCalculator = () => {
                 </p>
                 {result.delta > 0 && (
                   <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '1px solid var(--glass-border)' }}>
-                    <p className="text-sm" style={{ color: 'var(--accent-orange)' }}>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       <span className="font-semibold">{result.delta} kg</span> restant pour atteindre la cible.
                     </p>
                     {result.weeksToGoal && (
@@ -178,12 +178,12 @@ const KcalCalculator = () => {
                   Détails
                 </h3>
 
-                <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Métabolisme de Base (BMR)</span>
                   <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{result.bmr} kcal</span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)' }}>
                   <div className="flex flex-col">
                     <span style={{ color: 'var(--text-muted)' }}>Facteur d'Activité</span>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Basé sur ~{result.avgHoursPerWeek}h/semaine (Strava)</span>

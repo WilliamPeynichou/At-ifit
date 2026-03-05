@@ -52,7 +52,7 @@ const NewUserWeight = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="glass-panel rounded-3xl p-8 w-full max-w-2xl relative z-10">
+      <div className="glass-panel p-8 w-full max-w-2xl relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">

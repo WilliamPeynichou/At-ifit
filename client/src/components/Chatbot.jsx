@@ -68,17 +68,18 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
         className={`fixed top-0 right-0 h-full shadow-2xl transition-transform duration-300 ease-out z-50 flex flex-col
           ${isOpen ? 'translate-x-0 w-full md:w-[400px]' : 'translate-x-full w-full md:w-[400px] pointer-events-none'}`}
         style={{
-          background: 'rgba(212,197,169,0.95)',
+          background: 'rgba(255,255,255,0.92)',
           backdropFilter: 'blur(20px)',
-          borderLeft: '1.5px solid var(--glass-border)'
+          borderLeft: '1px solid var(--glass-border)',
+          boxShadow: '-8px 0 32px rgba(0,0,0,0.06)'
         }}
       >
         {/* Header */}
         <div
           className="p-4 flex items-center justify-between"
           style={{
-            borderBottom: '1.5px solid var(--glass-border)',
-            background: 'rgba(255,255,255,0.15)'
+            borderBottom: '1px solid var(--glass-border)',
+            background: 'rgba(255,255,255,0.7)'
           }}
         >
           <div className="flex items-center gap-3">
@@ -132,13 +133,13 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
                 style={
                   msg.type === 'user'
                     ? {
-                        background: 'rgba(0,85,255,0.12)',
-                        border: '1.5px solid rgba(0,85,255,0.25)',
+                        background: 'rgba(0,85,255,0.08)',
+                        border: '1px solid rgba(0,85,255,0.2)',
                         color: 'var(--text-primary)'
                       }
                     : {
-                        background: 'rgba(255,255,255,0.25)',
-                        border: '1.5px solid var(--glass-border)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid var(--glass-border)',
                         color: 'var(--text-primary)'
                       }
                 }
@@ -152,8 +153,8 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
               <div
                 className="max-w-[85%] p-3 rounded-2xl rounded-tl-none"
                 style={{
-                  background: 'rgba(255,255,255,0.25)',
-                  border: '1.5px solid var(--glass-border)',
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid var(--glass-border)',
                   color: 'var(--text-primary)'
                 }}
               >
@@ -167,8 +168,8 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
         <div
           className="p-4"
           style={{
-            borderTop: '1.5px solid var(--glass-border)',
-            background: 'rgba(255,255,255,0.15)'
+            borderTop: '1px solid var(--glass-border)',
+            background: 'rgba(255,255,255,0.7)'
           }}
         >
           <form onSubmit={handleSubmit} className="relative">
@@ -179,8 +180,8 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
               placeholder="Posez une question..."
               className="w-full rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none transition-all"
               style={{
-                background: 'rgba(255,255,255,0.35)',
-                border: '1.5px solid var(--glass-border)',
+                background: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(0,0,0,0.1)',
                 color: 'var(--text-primary)'
               }}
               onFocus={(e) => {

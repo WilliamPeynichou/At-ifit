@@ -209,7 +209,7 @@ const StravaStats = () => {
 
   const sportChartData = getSportChartData();
   const sportsList = Object.keys(sportProgression);
-  const colors = ['#fc4c02', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
+  const colors = ['#0055ff', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
 
   // Set default selected sport if not set or if current selection doesn't exist
   useEffect(() => {
@@ -222,7 +222,7 @@ const StravaStats = () => {
     return (
       <div className="min-h-screen flex justify-center items-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#fc4c02] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-[#0055ff] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p style={{ color: 'var(--text-muted)' }}>{t('stravaStats.loading')}</p>
         </div>
       </div>
@@ -236,7 +236,7 @@ const StravaStats = () => {
           <p className="mb-4 text-lg" style={{ color: '#dc2626' }}>{error}</p>
           <a
             href="/strava-connect"
-            className="text-[#fc4c02] hover:underline font-bold"
+            className="text-[#0055ff] hover:underline font-bold"
           >
             {t('stravaStats.connectAccount')}
           </a>
@@ -252,7 +252,7 @@ const StravaStats = () => {
           <p className="mb-4 text-lg" style={{ color: 'var(--text-muted)' }}>{t('stravaStats.noActivities')}</p>
           <a
             href="/strava-connect"
-            className="text-[#fc4c02] hover:underline font-bold"
+            className="text-[#0055ff] hover:underline font-bold"
           >
             {t('stravaStats.connectAccount')}
           </a>
@@ -262,11 +262,11 @@ const StravaStats = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold flex items-center gap-3">
-          <span className="text-[#fc4c02]">STRAVA</span> {t('stravaStats.title')}
+          <span className="text-[#0055ff]">STRAVA</span> {t('stravaStats.title')}
         </h1>
         <div className="flex items-center gap-4">
           <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -286,9 +286,9 @@ const StravaStats = () => {
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-xl">
+      <div className="glass-panel p-6">
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-          <TrendingUp size={20} className="text-[#fc4c02]" /> {t('stravaStats.globalProgression')}
+          <TrendingUp size={20} className="text-[#0055ff]" /> {t('stravaStats.globalProgression')}
         </h3>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -298,15 +298,15 @@ const StravaStats = () => {
               <YAxis stroke="#a8a29e" />
               <Tooltip
                 contentStyle={{ backgroundColor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
-                itemStyle={{ color: '#fc4c02' }}
+                itemStyle={{ color: '#0055ff' }}
               />
-              <Line type="monotone" dataKey="cumulativeDistance" stroke="#fc4c02" strokeWidth={3} dot={false} activeDot={{ r: 8 }} />
+              <Line type="monotone" dataKey="cumulativeDistance" stroke="#0055ff" strokeWidth={3} dot={false} activeDot={{ r: 8 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-xl">
+      <div className="glass-panel p-6">
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <Activity size={20} className="text-[#00f3ff]" /> {t('stravaStats.progressionBySport')}
         </h3>
@@ -335,7 +335,7 @@ const StravaStats = () => {
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-xl">
+      <div className="glass-panel p-6">
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <Heart size={20} className="text-[#ec4899]" /> {t('stravaStats.heartRateEvolution')}
         </h3>
@@ -355,7 +355,7 @@ const StravaStats = () => {
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-xl overflow-hidden">
+      <div className="glass-panel p-6">
         <h3 className="text-lg font-bold mb-6" style={{ color: 'var(--text-secondary)' }}>{t('stravaStats.globalProgressionTable')}</h3>
         <div className="max-h-96 overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
@@ -365,7 +365,7 @@ const StravaStats = () => {
                 <th className="p-4 font-medium">{t('stravaStats.activity')}</th>
                 <th className="p-4 font-medium">{t('stravaStats.type')}</th>
                 <th className="p-4 font-medium text-right">{t('stravaStats.distance')}</th>
-                <th className="p-4 font-medium text-right text-[#fc4c02]">{t('stravaStats.cumulative')}</th>
+                <th className="p-4 font-medium text-right text-[#0055ff]">{t('stravaStats.cumulative')}</th>
               </tr>
             </thead>
             <tbody className="text-sm">
@@ -374,12 +374,12 @@ const StravaStats = () => {
                   <td className="p-4 whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.fullDate)}</td>
                   <td className="p-4 font-bold" style={{ color: 'var(--text-primary)' }}>{entry.name}</td>
                   <td className="p-4">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ background: 'var(--glass-bg)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)' }}>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ background: 'var(--glass-white)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)' }}>
                       {entry.type}
                     </span>
                   </td>
                   <td className="p-4 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{entry.distance}</td>
-                  <td className="p-4 text-right font-mono text-[#fc4c02] font-bold">{entry.cumulativeDistance}</td>
+                  <td className="p-4 text-right font-mono text-[#0055ff] font-bold">{entry.cumulativeDistance}</td>
                 </tr>
               ))}
             </tbody>
@@ -387,7 +387,7 @@ const StravaStats = () => {
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-xl overflow-hidden">
+      <div className="glass-panel p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold" style={{ color: 'var(--text-secondary)' }}>{t('stravaStats.sportProgressionTable')}</h3>
           <div className="flex items-center gap-2">
@@ -395,7 +395,7 @@ const StravaStats = () => {
             <select
               value={selectedSport}
               onChange={(e) => setSelectedSport(e.target.value)}
-              className="input-cyber rounded-lg px-3 py-1 text-sm focus:border-[#fc4c02] outline-none"
+              className="input-cyber rounded-lg px-3 py-1 text-sm focus:border-[#0055ff] outline-none"
             >
               {sportsList.map(sport => (
                 <option key={sport} value={sport}>{sport}</option>

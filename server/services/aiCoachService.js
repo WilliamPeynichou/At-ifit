@@ -14,7 +14,14 @@ function buildSystemPrompt(context) {
   if (!context) {
     return `Tu es un coach sportif et nutritionnel expert et bienveillant.
 Réponds en français, de façon concise et motivante.
-Adapte tes conseils selon ce que l'utilisateur partage avec toi.`;
+Adapte tes conseils selon ce que l'utilisateur partage avec toi.
+
+Format de réponse OBLIGATOIRE :
+Écris en paragraphes courts et aérés, séparés par une ligne vide.
+N'utilise PAS de tirets (-), de listes à puces (*), ni de titres en gras (**Titre :**).
+Si tu dois énumérer des éléments, intègre-les dans le texte de façon fluide ou sépare chaque point par un saut de ligne simple.
+Chaque idée importante = un paragraphe distinct.
+Ton naturel, direct, comme un coach qui parle à son athlète.`;
   }
 
   const lines = [
@@ -62,7 +69,14 @@ Adapte tes conseils selon ce que l'utilisateur partage avec toi.`;
     `- Réponds toujours en français, de façon concise et motivante.`,
     `- Utilise le prénom de l'utilisateur quand c'est naturel.`,
     `- Base tes conseils sur les données ci-dessus quand c'est pertinent.`,
-    `- Si tu n'as pas assez de données pour répondre précisément, dis-le et demande les informations manquantes.`
+    `- Si tu n'as pas assez de données pour répondre précisément, dis-le et demande les informations manquantes.`,
+    ``,
+    `Format de réponse OBLIGATOIRE :`,
+    `- Écris en paragraphes courts et aérés, séparés par une ligne vide.`,
+    `- N'utilise PAS de tirets (-), de listes à puces (*), ni de titres en gras (**Titre :**).`,
+    `- Si tu dois énumérer des éléments, intègre-les dans le texte de façon fluide ou sépare chaque point par un saut de ligne simple.`,
+    `- Chaque idée importante = un paragraphe distinct.`,
+    `- Ton naturel, direct, comme un coach qui parle à son athlète.`
   );
 
   return lines.join('\n');
@@ -90,9 +104,13 @@ async function sendMessageToAICoach(userId, message, history = []) {
     const userContext = await getUserContext(parseInt(userId));
     const systemPrompt = buildSystemPrompt(userContext);
 
+    // Limite l'historique aux 4 derniers messages (2 échanges) pour éviter le timeout sur CPU
+    const MAX_HISTORY = parseInt(process.env.MISTRAL_MAX_HISTORY || '4', 10);
+    const trimmedHistory = history.slice(-MAX_HISTORY);
+
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...history,
+      ...trimmedHistory,
       { role: 'user', content: message }
     ];
 
@@ -113,7 +131,7 @@ async function sendMessageToAICoach(userId, message, history = []) {
         model: MISTRAL_MODEL,
         messages,
         temperature: 0.7,
-        max_tokens: 1024
+        max_tokens: parseInt(process.env.MISTRAL_MAX_TOKENS || '256', 10)
       }),
       signal: AbortSignal.timeout(MISTRAL_TIMEOUT_MS)
     });

@@ -73,12 +73,12 @@ const UserProfile = ({ onUpdate }) => {
   if (loading) return <div className="text-neon-cyan animate-pulse">LOADING PROFILE DATA...</div>;
 
   return (
-    <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(249, 115, 22, 0.2)' }}></div>
+    <div className="glass-panel p-6 relative ">
+      <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(0, 85, 255, 0.08)' }}></div>
 
       <div className="flex items-center gap-3 mb-6 relative z-10">
-        <div className="p-2 rounded-lg" style={{ background: 'rgba(249, 115, 22, 0.1)', border: '1px solid var(--glass-border)' }}>
-          <User className="w-5 h-5" style={{ color: 'var(--accent-orange)' }} />
+        <div className="p-2 rounded-lg" style={{ background: 'var(--accent-blue-light)', border: '1px solid var(--glass-border)' }}>
+          <User className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
         </div>
         <h2 className="text-lg font-bold tracking-wider" style={{ color: 'var(--text-primary)' }}>{t('profile.pilotProfile')}</h2>
       </div>
@@ -104,9 +104,9 @@ const UserProfile = ({ onUpdate }) => {
               onChange={handleChange}
               className="input-cyber"
             >
-              <option value="male" style={{ background: 'var(--sand-light)' }}>{t('profile.male')}</option>
-              <option value="female" style={{ background: 'var(--sand-light)' }}>{t('profile.female')}</option>
-              <option value="other" style={{ background: 'var(--sand-light)' }}>{t('profile.other')}</option>
+              <option value="male" style={{ background: 'var(--bg-secondary)' }}>{t('profile.male')}</option>
+              <option value="female" style={{ background: 'var(--bg-secondary)' }}>{t('profile.female')}</option>
+              <option value="other" style={{ background: 'var(--bg-secondary)' }}>{t('profile.other')}</option>
             </select>
           </div>
           <div>
@@ -132,7 +132,7 @@ const UserProfile = ({ onUpdate }) => {
             />
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('profile.targetWeight')} <span style={{ color: 'var(--accent-orange)' }} className="ml-2">/// {t('profile.missionGoal')}</span></label>
+            <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('profile.targetWeight')} <span style={{ color: 'var(--text-muted)' }} className="ml-2">/// {t('profile.missionGoal')}</span></label>
             <input
               type="number"
               name="targetWeight"
@@ -152,35 +152,35 @@ const UserProfile = ({ onUpdate }) => {
               className="input-cyber"
               required
             >
-              <option value="FR" style={{ background: 'var(--sand-light)' }}>{countryNames.FR[language] || countryNames.FR.EN}</option>
-              <option value="US" style={{ background: 'var(--sand-light)' }}>{countryNames.US[language] || countryNames.US.EN}</option>
-              <option value="GB" style={{ background: 'var(--sand-light)' }}>{countryNames.GB[language] || countryNames.GB.EN}</option>
-              <option value="TR" style={{ background: 'var(--sand-light)' }}>{countryNames.TR[language] || countryNames.TR.EN}</option>
-              <option value="IT" style={{ background: 'var(--sand-light)' }}>{countryNames.IT[language] || countryNames.IT.EN}</option>
+              <option value="FR" style={{ background: 'var(--bg-secondary)' }}>{countryNames.FR[language] || countryNames.FR.EN}</option>
+              <option value="US" style={{ background: 'var(--bg-secondary)' }}>{countryNames.US[language] || countryNames.US.EN}</option>
+              <option value="GB" style={{ background: 'var(--bg-secondary)' }}>{countryNames.GB[language] || countryNames.GB.EN}</option>
+              <option value="TR" style={{ background: 'var(--bg-secondary)' }}>{countryNames.TR[language] || countryNames.TR.EN}</option>
+              <option value="IT" style={{ background: 'var(--bg-secondary)' }}>{countryNames.IT[language] || countryNames.IT.EN}</option>
             </select>
           </div>
           {formData.consoKcal && (
             <div className="col-span-2 mt-2 grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold mb-2 uppercase tracking-widest flex items-center gap-2" style={{ color: 'var(--accent-blue)' }}>
-                  {t('profile.dailyFuelTarget')} <span style={{ color: 'var(--accent-orange)' }} className="ml-2">/// {t('profile.calculated')}</span>
+                  {t('profile.dailyFuelTarget')} <span style={{ color: 'var(--text-muted)' }} className="ml-2">/// {t('profile.calculated')}</span>
                   <Link
                     to="/stats-explanation#daily-fuel"
                     className="p-1 rounded-full transition-all group"
-                    style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}
+                    style={{ background: 'var(--glass-white)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}
                     title={t('stats.dailyFuel.title') || 'En savoir plus sur l\'Objectif Calorique'}
                   >
                     <Info className="w-3 h-3 group-hover:scale-110 transition-transform" />
                   </Link>
                 </label>
-                <div className="input-cyber font-mono text-lg flex items-center justify-between" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}>
+                <div className="input-cyber font-mono text-lg flex items-center justify-between" style={{ background: 'var(--glass-white)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}>
                   <span>{formData.consoKcal} KCAL</span>
                 </div>
               </div>
               {formData.weeksToGoal && (
                 <div>
-                  <label className="block text-xs font-bold mb-2 uppercase tracking-widest" style={{ color: 'var(--accent-blue)' }}>{t('profile.estTimeToGoal')} <span style={{ color: 'var(--accent-orange)' }} className="ml-2">/// {t('profile.projected')}</span></label>
-                  <div className="input-cyber font-mono text-lg flex items-center justify-between" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}>
+                  <label className="block text-xs font-bold mb-2 uppercase tracking-widest" style={{ color: 'var(--accent-blue)' }}>{t('profile.estTimeToGoal')} <span style={{ color: 'var(--text-muted)' }} className="ml-2">/// {t('profile.projected')}</span></label>
+                  <div className="input-cyber font-mono text-lg flex items-center justify-between" style={{ background: 'var(--glass-white)', border: '1px solid var(--glass-border)', color: 'var(--accent-blue)' }}>
                     <span>{formData.weeksToGoal} {t('dashboard.weeks') || 'WEEKS'}</span>
                   </div>
                 </div>

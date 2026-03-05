@@ -241,10 +241,10 @@ const Dashboard = () => {
     padding: '12px'
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen text-neon-cyan animate-pulse tracking-widest font-bold">INITIALIZING SYSTEM...</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Chargement...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       {/* Help Link */}
       <div className="mb-6 flex justify-end">
         <Link
@@ -266,7 +266,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* BMI Card */}
         <div className="flex">
-          <div className="glass-panel rounded-2xl p-6 relative overflow-hidden w-full flex flex-col">
+          <div className="glass-panel p-6 relative  w-full flex flex-col">
             <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(0,85,255,0.15)' }}></div>
             <div className="flex items-center gap-3 mb-6 relative z-10">
               <div className="p-2 rounded-lg" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>
@@ -332,8 +332,8 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="lg:col-span-2 space-y-8">
           {/* Combined Chart Section */}
-          <div className="glass-panel rounded-3xl p-8 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-[1px]" style={{ background: 'linear-gradient(to right, transparent, var(--accent-orange), transparent)', opacity: 0.4 }}></div>
+          <div className="glass-panel p-8 relative  group">
+            <div className="absolute top-0 left-0 w-full h-[1px]" style={{ background: 'linear-gradient(to right, transparent, var(--accent-blue), transparent)', opacity: 0.15 }}></div>
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-xl font-bold tracking-widest flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
                 <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent-blue)', boxShadow: '0 0 10px var(--accent-blue)' }}></span>
@@ -341,18 +341,18 @@ const Dashboard = () => {
               </h2>
 
               {/* Metric Toggle */}
-              <div className="flex items-center gap-2 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)' }}>
+              <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid var(--glass-border)' }}>
                 <button
                   onClick={() => setMetric('distance')}
-                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'distance' ? 'bg-[#fc4c02] text-white shadow-lg' : 'hover:opacity-80'}`}
-                  style={metric !== 'distance' ? { color: 'var(--text-secondary)' } : {}}
+                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'distance' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
+                  style={metric === 'distance' ? { background: 'var(--accent-blue)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('dashboard.distance')}
                 </button>
                 <button
                   onClick={() => setMetric('calories')}
-                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all flex items-center gap-1.5 ${metric === 'calories' ? 'bg-[#ef4444] text-white shadow-lg' : 'hover:opacity-80'}`}
-                  style={metric !== 'calories' ? { color: 'var(--text-secondary)' } : {}}
+                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all flex items-center gap-1.5 ${metric === 'calories' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
+                  style={metric === 'calories' ? { background: 'var(--accent-blue)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('dashboard.calories')}
                   <Link
@@ -367,8 +367,8 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => setMetric('bpm')}
-                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'bpm' ? 'bg-[#ec4899] text-white shadow-lg' : 'hover:opacity-80'}`}
-                  style={metric !== 'bpm' ? { color: 'var(--text-secondary)' } : {}}
+                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'bpm' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
+                  style={metric === 'bpm' ? { background: 'var(--accent-blue)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('dashboard.bpm')}
                 </button>
@@ -458,7 +458,7 @@ const Dashboard = () => {
                   />
 
                   {targetWeight && (
-                     <Line yAxisId="left" type="monotone" dataKey={() => targetWeight} name="Target" stroke="var(--accent-orange)" strokeDasharray="6 6" dot={false} strokeWidth={2} opacity={0.6} />
+                     <Line yAxisId="left" type="monotone" dataKey={() => targetWeight} name="Target" stroke="var(--accent-blue)" strokeDasharray="6 6" dot={false} strokeWidth={2} opacity={0.6} />
                   )}
 
                   {metric === 'distance' && <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />}
@@ -468,8 +468,8 @@ const Dashboard = () => {
           </div>
 
           {/* Second Graph: Weight vs Intensity */}
-          <div className="glass-panel rounded-3xl p-8 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-[1px]" style={{ background: 'linear-gradient(to right, transparent, var(--accent-orange), transparent)', opacity: 0.4 }}></div>
+          <div className="glass-panel p-8 relative  group">
+            <div className="absolute top-0 left-0 w-full h-[1px]" style={{ background: 'linear-gradient(to right, transparent, var(--accent-blue), transparent)', opacity: 0.15 }}></div>
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-xl font-bold tracking-widest flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
                 <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent-blue)', boxShadow: '0 0 10px var(--accent-blue)' }}></span>
@@ -560,7 +560,7 @@ const Dashboard = () => {
                   />
 
                   {targetWeight && (
-                     <Line yAxisId="left" type="monotone" dataKey={() => targetWeight} name="Target" stroke="var(--accent-orange)" strokeDasharray="6 6" dot={false} strokeWidth={2} opacity={0.6} />
+                     <Line yAxisId="left" type="monotone" dataKey={() => targetWeight} name="Target" stroke="var(--accent-blue)" strokeDasharray="6 6" dot={false} strokeWidth={2} opacity={0.6} />
                   )}
 
                   <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />

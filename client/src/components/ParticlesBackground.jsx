@@ -11,8 +11,8 @@ const ParticlesBackground = () => {
       animationDelay: `${Math.random() * 5}s`,
       animationDuration: `${10 + Math.random() * 20}s`,
       background: i % 2 === 0
-        ? 'rgba(249, 115, 22, 0.5)'
-        : 'rgba(0, 85, 255, 0.4)'
+        ? 'rgba(0, 85, 255, 0.15)'
+        : 'rgba(0, 85, 255, 0.08)'
     }));
   }, []);
 

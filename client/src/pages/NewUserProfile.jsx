@@ -68,7 +68,7 @@ const NewUserProfile = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="glass-panel rounded-3xl p-8 w-full max-w-2xl relative z-10">
+      <div className="glass-panel p-8 w-full max-w-2xl relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -117,9 +117,9 @@ const NewUserProfile = () => {
                 onChange={handleChange}
                 className="input-cyber w-full"
               >
-                <option value="male" style={{ background: 'var(--sand-light)' }}>{t('profile.male')}</option>
-                <option value="female" style={{ background: 'var(--sand-light)' }}>{t('profile.female')}</option>
-                <option value="other" style={{ background: 'var(--sand-light)' }}>{t('profile.other')}</option>
+                <option value="male" style={{ background: 'var(--bg-secondary)' }}>{t('profile.male')}</option>
+                <option value="female" style={{ background: 'var(--bg-secondary)' }}>{t('profile.female')}</option>
+                <option value="other" style={{ background: 'var(--bg-secondary)' }}>{t('profile.other')}</option>
               </select>
             </div>
 
@@ -164,11 +164,11 @@ const NewUserProfile = () => {
                 className="input-cyber w-full"
                 required
               >
-                <option value="FR" style={{ background: 'var(--sand-light)' }}>{countryNames.FR[language] || countryNames.FR.EN}</option>
-                <option value="US" style={{ background: 'var(--sand-light)' }}>{countryNames.US[language] || countryNames.US.EN}</option>
-                <option value="GB" style={{ background: 'var(--sand-light)' }}>{countryNames.GB[language] || countryNames.GB.EN}</option>
-                <option value="TR" style={{ background: 'var(--sand-light)' }}>{countryNames.TR[language] || countryNames.TR.EN}</option>
-                <option value="IT" style={{ background: 'var(--sand-light)' }}>{countryNames.IT[language] || countryNames.IT.EN}</option>
+                <option value="FR" style={{ background: 'var(--bg-secondary)' }}>{countryNames.FR[language] || countryNames.FR.EN}</option>
+                <option value="US" style={{ background: 'var(--bg-secondary)' }}>{countryNames.US[language] || countryNames.US.EN}</option>
+                <option value="GB" style={{ background: 'var(--bg-secondary)' }}>{countryNames.GB[language] || countryNames.GB.EN}</option>
+                <option value="TR" style={{ background: 'var(--bg-secondary)' }}>{countryNames.TR[language] || countryNames.TR.EN}</option>
+                <option value="IT" style={{ background: 'var(--bg-secondary)' }}>{countryNames.IT[language] || countryNames.IT.EN}</option>
               </select>
             </div>
 
@@ -179,7 +179,7 @@ const NewUserProfile = () => {
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 rounded-lg" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid var(--glass-border)' }}>
-                      <Target className="w-6 h-6" style={{ color: 'var(--accent-orange)' }} />
+                      <Target className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-neon-purple mb-1 uppercase tracking-widest">

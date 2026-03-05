@@ -20,75 +20,88 @@ const Login = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || 'Connexion échouée');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-
-      <div className="glass-panel p-10 rounded-3xl w-full max-w-md relative z-10 animate-float" style={{ border: '1.5px solid var(--glass-border)' }}>
-        <div className="flex flex-col items-center justify-center gap-6 mb-10">
-          <div className="relative group cursor-pointer">
-            <div className="absolute inset-0 blur-xl opacity-20 group-hover:opacity-50 transition-opacity duration-500 rounded-full" style={{ background: 'var(--accent-blue)' }}></div>
-            <div className="relative rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.3)', border: '1.5px solid var(--glass-border)' }}>
-              <Activity className="w-10 h-10" style={{ color: 'var(--accent-blue)' }} />
-            </div>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: 'linear-gradient(135deg, var(--bg-primary) 0%, #eef0f8 100%)',
+      }}
+    >
+      <div
+        className="glass-panel p-8 sm:p-10 w-full max-w-md"
+        
+      >
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-4 mb-8">
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'var(--accent-blue-light)', border: '1px solid rgba(0,85,255,0.15)' }}
+          >
+            <Activity className="w-8 h-8" style={{ color: 'var(--accent-blue)' }} />
           </div>
-          <h1 className="text-4xl font-black tracking-widest">
-            <span style={{ color: 'var(--text-primary)' }}>AT</span>
-            <span className="text-neon-cyan">.IFIT</span>
+          <h1 className="text-3xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}>
+            AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
           </h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Connectez-vous à votre espace</p>
         </div>
 
-        <h2 className="text-xs font-bold mb-8 text-center uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>INITIATE SEQUENCE</h2>
-
         {error && (
-          <div className="px-4 py-3 rounded-lg mb-6 text-sm font-medium flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626' }}>
+          <div
+            className="px-4 py-3 rounded-xl mb-6 text-sm font-medium"
+            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626' }}
+          >
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Email</label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+              Email
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-cyber"
+              className="input-clean"
               required
-              placeholder="at-ifit@gmail.com"
+              placeholder="vous@email.com"
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Password 6+ caractères, 1 majuscule,,1 chiffre, 1 caractère spécial</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+              Mot de passe
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-cyber"
+              className="input-clean"
               required
-              placeholder="atitif1!"
+              placeholder="••••••••"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="btn-cyber w-full mt-6 py-4 text-sm tracking-widest"
+            className="btn-primary w-full py-3.5 text-sm"
           >
-            {loading ? 'AUTHENTICATING...' : 'ENTER SYSTEM'}
+            {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
 
-        <p className="mt-10 text-center text-xs tracking-wide" style={{ color: 'var(--text-muted)' }}>
-          NO ACCESS?{' '}
-          <Link to="/register" className="text-neon-purple hover:text-neon-cyan transition-colors font-bold tracking-widest ml-2">
-            CREATE ACCOUNT
+        <p className="mt-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+          Pas de compte ?{' '}
+          <Link to="/register" className="font-semibold transition-colors" style={{ color: 'var(--accent-blue)' }}>
+            Créer un compte
           </Link>
         </p>
       </div>

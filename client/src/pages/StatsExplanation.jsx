@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Info, TrendingUp, TrendingDown, Target, Activity, Heart, Flame, Calendar, Scale, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Info, TrendingUp, TrendingDown, Target, Activity, Heart, Flame, Calendar, Scale, AlertTriangle, ExternalLink, ChevronLeft, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const StatsExplanation = () => {
@@ -116,26 +116,82 @@ const StatsExplanation = () => {
     }
   ];
 
+  const quickNavLinks = [
+    { anchor: '#bmi', label: 'IMC', icon: Scale },
+    { anchor: '#relative-effort', label: 'Effort Relatif', icon: Activity },
+    { anchor: '#calories', label: 'Calories', icon: Flame },
+    { anchor: '#daily-fuel', label: 'Carburant', icon: Heart },
+  ];
+
+  const scrollTo = (anchor) => {
+    const el = document.querySelector(anchor);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       {/* Header */}
-      <div className="mb-12 text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="p-3 rounded-xl" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>
-            <Info className="w-8 h-8 text-neon-cyan" />
+      <div className="mb-8 sm:mb-10">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm font-medium mb-6 transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-blue)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Retour au dashboard
+        </Link>
+
+        <div className="flex items-start gap-4 mb-4">
+          <div className="p-3 flex-shrink-0" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)', borderRadius: '12px' }}>
+            <BookOpen className="w-6 h-6" style={{ color: 'var(--accent-blue)' }} />
           </div>
-          <h1 className="text-4xl font-black tracking-widest">
-            <span style={{ color: 'var(--text-primary)' }}>{t('stats.pageTitle')}</span>
-          </h1>
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+              {t('stats.pageTitle')}
+            </h1>
+            <p className="mt-1 text-base" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>
+              {t('stats.pageSubtitle')}
+            </p>
+          </div>
         </div>
-        <p className="text-lg max-w-2xl mx-auto" style={{ color: 'var(--text-muted)' }}>
-          {t('stats.pageSubtitle')}
-        </p>
+
+        {/* Quick navigation buttons */}
+        <div className="flex flex-wrap gap-2 mt-6">
+          {quickNavLinks.map(({ anchor, label, icon: NavIcon }) => (
+            <button
+              key={anchor}
+              onClick={() => scrollTo(anchor)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-all duration-200"
+              style={{
+                background: 'rgba(255,255,255,0.7)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                color: 'var(--text-secondary)',
+                backdropFilter: 'blur(8px)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--accent-blue-light)';
+                e.currentTarget.style.borderColor = 'rgba(0,85,255,0.3)';
+                e.currentTarget.style.color = 'var(--accent-blue)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.7)';
+                e.currentTarget.style.borderColor = 'var(--glass-border)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <NavIcon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* TCA Warning Section - First thing visible */}
       <div
-        className="mb-12 glass-panel rounded-2xl p-6 transition-all"
+        className="mb-12 glass-panel p-6 transition-all"
         style={{ border: '2px solid rgba(220,38,38,0.4)', background: 'rgba(220,38,38,0.08)' }}
       >
         <div className="flex items-start gap-4">
@@ -192,7 +248,7 @@ const StatsExplanation = () => {
             <div
               key={index}
               id={sectionId}
-              className="glass-panel rounded-2xl p-6 transition-all"
+              className="glass-panel p-6 transition-all"
             >
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg flex-shrink-0" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>
@@ -308,14 +364,23 @@ const StatsExplanation = () => {
       </div>
 
       {/* Footer */}
-      <div className="mt-12 text-center">
+      <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all"
-          style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)', color: 'var(--accent-blue)' }}
+          className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm"
         >
-          ← {t('stats.backToDashboard')}
+          <ChevronLeft className="w-4 h-4" />
+          {t('stats.backToDashboard')}
         </Link>
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="text-sm font-medium transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-blue)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          Remonter en haut ↑
+        </button>
       </div>
     </div>
   );

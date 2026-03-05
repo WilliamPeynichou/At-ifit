@@ -20,43 +20,33 @@ const Register = () => {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Les mots de passe ne correspondent pas');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Le mot de passe doit contenir au moins 6 caractères');
       return;
     }
 
     setLoading(true);
-    setError('');
 
     try {
-      console.log('Attempting registration with:', { email, pseudo, country });
-      const result = await register(email, password, pseudo, country);
-      console.log('Registration successful:', result);
-
+      await register(email, password, pseudo, country);
       setTimeout(() => {
         navigate('/new-user-profile');
       }, 100);
     } catch (err) {
-      console.error('Registration error:', err);
-      console.error('Error response:', err.response);
-
       let errorMessage = '';
 
       if (!err.response) {
-        errorMessage = 'Network Error: Cannot connect to the server. Please make sure the backend server is running on http://localhost:3001';
-      }
-      else if (err.response?.data?.details && Array.isArray(err.response.data.details)) {
+        errorMessage = 'Erreur réseau : impossible de joindre le serveur.';
+      } else if (err.response?.data?.details && Array.isArray(err.response.data.details)) {
         errorMessage = err.response.data.details.join(', ');
-      }
-      else if (err.response?.data?.error) {
+      } else if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
-      }
-      else {
-        errorMessage = err.message || 'Registration failed. Please try again.';
+      } else {
+        errorMessage = err.message || 'Inscription échouée. Veuillez réessayer.';
       }
 
       setError(errorMessage);
@@ -66,90 +56,109 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-
-      <div className="glass-panel p-10 rounded-3xl w-full max-w-md relative z-10 animate-float" style={{ border: '1.5px solid var(--glass-border)' }}>
-        <div className="flex flex-col items-center justify-center gap-6 mb-10">
-          <div className="relative group cursor-pointer">
-            <div className="absolute inset-0 blur-xl opacity-20 group-hover:opacity-50 transition-opacity duration-500 rounded-full" style={{ background: 'var(--accent-blue)' }}></div>
-            <div className="relative rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.3)', border: '1.5px solid var(--glass-border)' }}>
-              <Activity className="w-10 h-10" style={{ color: 'var(--accent-blue)' }} />
-            </div>
+    <div
+      className="min-h-screen flex items-center justify-center p-4 py-8"
+      style={{
+        background: 'linear-gradient(135deg, var(--bg-primary) 0%, #eef0f8 100%)',
+      }}
+    >
+      <div
+        className="glass-panel p-8 sm:p-10 w-full max-w-md"
+        
+      >
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-4 mb-8">
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'var(--accent-blue-light)', border: '1px solid rgba(0,85,255,0.15)' }}
+          >
+            <Activity className="w-8 h-8" style={{ color: 'var(--accent-blue)' }} />
           </div>
-          <h1 className="text-4xl font-black tracking-widest">
-            <span style={{ color: 'var(--text-primary)' }}>AT</span>
-            <span className="text-neon-cyan">.IFIT</span>
+          <h1 className="text-3xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}>
+            AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
           </h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Créez votre compte</p>
         </div>
 
-        <h2 className="text-xs font-bold mb-8 text-center uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>NEW PILOT REGISTRATION</h2>
-
         {error && (
-          <div className="px-4 py-3 rounded-lg mb-6 text-sm font-medium flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626' }}>
+          <div
+            className="px-4 py-3 rounded-xl mb-6 text-sm font-medium"
+            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626' }}
+          >
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Email</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+              Email
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-cyber"
+              className="input-clean"
               required
-              placeholder="at-ifit@gmail.com"
+              placeholder="vous@email.com"
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Call Sign (Optional)</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+              Pseudo (optionnel)
+            </label>
             <input
               type="text"
               value={pseudo}
               onChange={(e) => setPseudo(e.target.value)}
-              className="input-cyber"
-              placeholder="At Itif"
+              className="input-clean"
+              placeholder="Votre pseudo"
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Country of Residence</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+              Pays
+            </label>
             <select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="input-cyber"
+              className="input-clean"
               required
             >
-              <option value="FR" style={{ background: 'var(--sand-light)' }}>{countryNames.FR.EN}</option>
-              <option value="US" style={{ background: 'var(--sand-light)' }}>{countryNames.US.EN}</option>
-              <option value="GB" style={{ background: 'var(--sand-light)' }}>{countryNames.GB.EN}</option>
-              <option value="TR" style={{ background: 'var(--sand-light)' }}>{countryNames.TR.EN}</option>
-              <option value="IT" style={{ background: 'var(--sand-light)' }}>{countryNames.IT.EN}</option>
+              <option value="FR">{countryNames.FR.EN}</option>
+              <option value="US">{countryNames.US.EN}</option>
+              <option value="GB">{countryNames.GB.EN}</option>
+              <option value="TR">{countryNames.TR.EN}</option>
+              <option value="IT">{countryNames.IT.EN}</option>
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Password</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+              Mot de passe
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-cyber"
+              className="input-clean"
               required
-              placeholder="atitif1!"
+              placeholder="••••••••"
               minLength={6}
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-neon-cyan uppercase tracking-widest pl-1">Confirm Password</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+              Confirmer le mot de passe
+            </label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="input-cyber"
+              className="input-clean"
               required
               placeholder="••••••••"
             />
@@ -158,16 +167,16 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="btn-cyber w-full mt-6 py-4 text-sm tracking-widest"
+            className="btn-primary w-full py-3.5 text-sm mt-2"
           >
-            {loading ? 'INITIALIZING...' : 'CREATE ACCOUNT'}
+            {loading ? 'Création...' : 'Créer mon compte'}
           </button>
         </form>
 
-        <p className="mt-10 text-center text-xs tracking-wide" style={{ color: 'var(--text-muted)' }}>
-          ALREADY REGISTERED?{' '}
-          <Link to="/login" className="text-neon-purple hover:text-neon-cyan transition-colors font-bold tracking-widest ml-2">
-            ACCESS SYSTEM
+        <p className="mt-6 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+          Déjà inscrit ?{' '}
+          <Link to="/login" className="font-semibold transition-colors" style={{ color: 'var(--accent-blue)' }}>
+            Se connecter
           </Link>
         </p>
       </div>

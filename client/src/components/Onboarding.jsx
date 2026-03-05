@@ -120,7 +120,7 @@ const Onboarding = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Rule 1: removed border border-white/10 bg-black/40 — glass-panel handles it */}
-      <div className="glass-panel rounded-3xl p-8 w-full max-w-4xl relative z-10">
+      <div className="glass-panel p-8 w-full max-w-4xl relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -186,7 +186,7 @@ const Onboarding = () => {
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={currentStep >= 2
-                ? { background: 'rgba(249,115,22,0.15)', border: '2px solid var(--accent-orange)' }
+                ? { background: 'rgba(0,85,255,0.12)', border: '2px solid var(--accent-blue)' }
                 : { background: 'rgba(255,255,255,0.2)', border: '2px solid var(--glass-border)' }
               }
             >
