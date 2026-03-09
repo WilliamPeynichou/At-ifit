@@ -77,7 +77,7 @@ const NewUserWeight = () => {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Large Weight Input */}
-          <div className="rounded-2xl p-8" style={{ background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(0,85,255,0.3)' }}>
+          <div className="rounded-2xl p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(0,85,255,0.3)' }}>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-bold text-neon-cyan mb-4 uppercase tracking-widest text-center">

@@ -321,7 +321,7 @@ const StravaStats = () => {
             className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
             style={selectedSport === 'All'
               ? { background: 'var(--accent-blue)', color: '#fff' }
-              : { background: 'rgba(255,255,255,0.7)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', backdropFilter: 'blur(8px)' }
+              : { background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', backdropFilter: 'blur(8px)' }
             }
           >
             Tous · {activities.length}
@@ -335,7 +335,7 @@ const StravaStats = () => {
                 className="px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-1.5"
                 style={selectedSport === sport
                   ? { background: colors[i % colors.length], color: '#fff' }
-                  : { background: 'rgba(255,255,255,0.7)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', backdropFilter: 'blur(8px)' }
+                  : { background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', backdropFilter: 'blur(8px)' }
                 }
               >
                 {sport} · {count}
@@ -354,11 +354,11 @@ const StravaStats = () => {
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={filteredGlobalProgression}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" />
               <YAxis stroke="#a8a29e" />
               <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
                 itemStyle={{ color: '#0055ff' }}
               />
               <Line type="monotone" dataKey="cumulativeDistance" stroke="#0055ff" strokeWidth={3} dot={false} activeDot={{ r: 8 }} />
@@ -374,11 +374,11 @@ const StravaStats = () => {
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={sportChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" />
               <YAxis stroke="#a8a29e" />
               <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
               />
               <Legend />
               {sportsList.map((sport, index) => (
@@ -403,11 +403,11 @@ const StravaStats = () => {
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={filteredGlobalProgression.filter(d => d.bpm > 0)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" />
               <YAxis stroke="#a8a29e" domain={['dataMin - 10', 'dataMax + 10']} />
               <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
                 itemStyle={{ color: '#ec4899' }}
               />
               <Line type="monotone" dataKey="bpm" stroke="#ec4899" strokeWidth={2} dot={{ r: 3, fill: '#ec4899' }} activeDot={{ r: 6 }} />

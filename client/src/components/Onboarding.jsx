@@ -154,7 +154,7 @@ const Onboarding = () => {
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={currentStep >= 1
                 ? { background: 'rgba(0,85,255,0.15)', border: '2px solid var(--accent-blue)' }
-                : { background: 'rgba(255,255,255,0.2)', border: '2px solid var(--glass-border)' }
+                : { background: 'rgba(255,255,255,0.05)', border: '2px solid var(--glass-border)' }
               }
             >
               {profileComplete ? (
@@ -187,7 +187,7 @@ const Onboarding = () => {
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={currentStep >= 2
                 ? { background: 'rgba(0,85,255,0.12)', border: '2px solid var(--accent-blue)' }
-                : { background: 'rgba(255,255,255,0.2)', border: '2px solid var(--glass-border)' }
+                : { background: 'rgba(255,255,255,0.05)', border: '2px solid var(--glass-border)' }
               }
             >
               {stravaConnected ? (
@@ -228,7 +228,7 @@ const Onboarding = () => {
               {/* Rule 11: bg-black/30 border border-white/5 → glass content area */}
               <div
                 className="rounded-xl p-6"
-                style={{ background: 'rgba(255,255,255,0.15)', border: '1.5px solid var(--glass-border)' }}
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}
               >
                 <UserProfile onUpdate={handleProfileUpdate} />
               </div>
@@ -261,7 +261,7 @@ const Onboarding = () => {
               {/* Rule 11: bg-black/30 border border-white/5 → glass content area */}
               <div
                 className="rounded-xl p-8 text-center"
-                style={{ background: 'rgba(255,255,255,0.15)', border: '1.5px solid var(--glass-border)' }}
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}
               >
                 {stravaConnected ? (
                   <div className="space-y-4">

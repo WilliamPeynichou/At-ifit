@@ -13,7 +13,7 @@ const STATUS = {
 };
 
 const tooltipStyle = {
-  backgroundColor: 'rgba(255,255,255,0.92)',
+  backgroundColor: 'rgba(19,16,20,0.97)',
   backdropFilter: 'blur(12px)',
   border: '1px solid var(--glass-border)',
   borderRadius: '12px',
@@ -96,7 +96,7 @@ const TrainingLoad = () => {
                 { label: 'Forme (CTL)', value: latest.ctl, desc: 'Charge 42j', color: '#0055ff' },
                 { label: 'Fraîcheur (TSB)', value: latest.tsb, desc: 'CTL − ATL', color: latest.tsb > 0 ? '#16a34a' : '#f97316' },
               ].map(({ label, value, desc, color }) => (
-                <div key={label} className="p-3 rounded-xl text-center" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid var(--glass-border)' }}>
+                <div key={label} className="p-3 rounded-xl text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
                   <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
                   <p className="text-2xl font-bold" style={{ color, fontFamily: 'var(--font-display)' }}>{value}</p>
                   <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{desc}</p>
@@ -108,7 +108,7 @@ const TrainingLoad = () => {
           {/* Graphique */}
           <ResponsiveContainer width="100%" height={220}>
             <ComposedChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis dataKey="weekLabel" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={28} />
               <ReferenceLine y={0} stroke="rgba(0,0,0,0.15)" strokeDasharray="4 4" />

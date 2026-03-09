@@ -229,7 +229,7 @@ const NewUserStrava = () => {
             </div>
           ) : (
             <>
-              <div className="rounded-xl p-8" style={{ background: 'rgba(255,255,255,0.15)', border: '1.5px solid var(--glass-border)' }}>
+              <div className="rounded-xl p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}>
                 <p className="text-center mb-6" style={{ color: 'var(--text-secondary)' }}>
                   {t('newUser.strava.description') || 'Connectez votre compte Strava pour importer automatiquement vos activités et améliorer votre expérience de suivi.'}
                 </p>
@@ -283,7 +283,7 @@ const NewUserStrava = () => {
                 <button
                   onClick={handleSkip}
                   className="flex-1 px-6 py-3 rounded-lg transition-all flex items-center justify-center gap-2"
-                  style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)', color: 'var(--text-muted)' }}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)', color: 'var(--text-muted)' }}
                 >
                   <X className="w-4 h-4" />
                   {t('newUser.strava.skip') || 'PASSER'}

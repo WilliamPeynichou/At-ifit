@@ -194,7 +194,7 @@ const SportGoals = () => {
             const barColor = goal.achieved ? '#16a34a' : goal.progressPct >= 70 ? '#0055ff' : 'var(--text-muted)';
 
             return (
-              <div key={goal.id} className="p-4 rounded-xl" style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid var(--glass-border)' }}>
+              <div key={goal.id} className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2">
@@ -219,7 +219,7 @@ const SportGoals = () => {
 
                 {/* Barre de progression */}
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-2 rounded-full" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                  <div className="flex-1 h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
                     <div
                       className="h-2 rounded-full transition-all duration-500"
                       style={{ width: `${goal.progressPct}%`, background: barColor }}

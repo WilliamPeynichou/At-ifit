@@ -155,7 +155,7 @@ const StravaConnect = () => {
             {isConnected || success ? (
               <div className="space-y-6">
                 {stravaAthlete && (
-                  <div className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)' }}>
+                  <div className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}>
                     <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Connected as:</p>
                     <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                       {stravaAthlete.firstname} {stravaAthlete.lastname}
@@ -239,7 +239,7 @@ const StravaConnect = () => {
                     </div>
 
                     {user && (
-                      <div className="rounded-lg p-4 mb-6" style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)' }}>
+                      <div className="rounded-lg p-4 mb-6" style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}>
                         <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Connecting for user:</p>
                         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{user.email}</p>
                       </div>
@@ -251,7 +251,7 @@ const StravaConnect = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block w-full font-bold py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-3 text-sm"
-                        style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid var(--glass-border)', color: 'var(--text-secondary)' }}
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)', color: 'var(--text-secondary)' }}
                       >
                         <LogOut size={18} />
                         LOG OUT FROM STRAVA FIRST (Recommended)

@@ -30,7 +30,7 @@ const Login = () => {
     <div
       className="min-h-screen flex items-center justify-center p-4"
       style={{
-        background: 'linear-gradient(135deg, var(--bg-primary) 0%, #eef0f8 100%)',
+        background: 'linear-gradient(135deg, #0b0a0d 0%, #0d1020 100%)',
       }}
     >
       <div
@@ -62,7 +62,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-secondary)' }}>
               Email
             </label>
             <input
@@ -76,7 +76,7 @@ const Login = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-muted)' }}>
+            <label className="block text-xs font-semibold uppercase tracking-wider pl-1" style={{ color: 'var(--text-secondary)' }}>
               Mot de passe
             </label>
             <input

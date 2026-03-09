@@ -148,7 +148,7 @@ const StatsExplanation = () => {
             <BookOpen className="w-6 h-6" style={{ color: 'var(--accent-blue)' }} />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+            <h1 className="text-3xl sm:text-4xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}>
               {t('stats.pageTitle')}
             </h1>
             <p className="mt-1 text-base" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>
@@ -165,7 +165,7 @@ const StatsExplanation = () => {
               onClick={() => scrollTo(anchor)}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-all duration-200"
               style={{
-                background: 'rgba(255,255,255,0.7)',
+                background: 'rgba(255,255,255,0.05)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: '8px',
                 color: 'var(--text-secondary)',
@@ -177,7 +177,7 @@ const StatsExplanation = () => {
                 e.currentTarget.style.color = 'var(--accent-blue)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.7)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
                 e.currentTarget.style.borderColor = 'var(--glass-border)';
                 e.currentTarget.style.color = 'var(--text-secondary)';
               }}
@@ -271,7 +271,7 @@ const StatsExplanation = () => {
                   )}
                   {stat.calculation && (
                     <div className="mb-4">
-                      <div className="rounded-lg p-3 mb-2" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid var(--glass-border)' }}>
+                      <div className="rounded-lg p-3 mb-2" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)' }}>
                         <p className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>
                           {stat.calculation}
                         </p>
@@ -327,7 +327,7 @@ const StatsExplanation = () => {
                     <div className="mt-4 space-y-4">
                       <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{t('stats.bmi.categoriesTitle')}</h3>
                       {stat.categories.map((cat, idx) => (
-                        <div key={idx} className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid var(--glass-border)' }}>
+                        <div key={idx} className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)' }}>
                           <div className="flex items-center gap-3 mb-2">
                             <span className="font-mono w-32 font-bold" style={{ color: 'var(--text-secondary)' }}>{cat.range}</span>
                             <span className={`font-bold text-lg ${cat.color}`}>{cat.label}</span>

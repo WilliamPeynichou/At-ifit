@@ -1,0 +1,20 @@
+{
+  "name": "projetapplisport",
+  "version": "1.0.0",
+  "description": "Application de suivi sportif et nutritionnel intelligent, connectée à Strava.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WilliamPeynichou/At-ifit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/WilliamPeynichou/At-ifit/issues"
+  },
+  "homepage": "https://github.com/WilliamPeynichou/At-ifit#readme"
+}

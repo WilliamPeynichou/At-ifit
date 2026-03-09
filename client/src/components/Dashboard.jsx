@@ -233,12 +233,12 @@ const Dashboard = () => {
   }
 
   const tooltipStyle = {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(19, 16, 20, 0.96)',
     backdropFilter: 'blur(12px)',
-    border: '1.5px solid var(--glass-border)',
-    borderRadius: '12px',
+    border: '1px solid rgba(0, 85, 255, 0.2)',
+    borderRadius: '4px',
     color: 'var(--text-primary)',
-    boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.15)',
+    boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.6)',
     padding: '12px'
   };
 
@@ -352,7 +352,7 @@ const Dashboard = () => {
               </h2>
 
               {/* Metric Toggle */}
-              <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid var(--glass-border)' }}>
+              <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}>
                 <button
                   onClick={() => setMetric('distance')}
                   className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'distance' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
@@ -388,7 +388,7 @@ const Dashboard = () => {
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={combinedData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis
                     dataKey="date"
                     stroke="#a8a29e"
@@ -498,7 +498,7 @@ const Dashboard = () => {
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={intensityData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis
                     dataKey="date"
                     stroke="#a8a29e"

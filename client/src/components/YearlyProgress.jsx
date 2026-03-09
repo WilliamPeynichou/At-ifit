@@ -6,7 +6,7 @@ import { Calendar } from 'lucide-react';
 const MONTHS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
 const tooltipStyle = {
-  backgroundColor: 'rgba(255,255,255,0.92)',
+  backgroundColor: 'rgba(19,16,20,0.97)',
   backdropFilter: 'blur(12px)',
   border: '1px solid var(--glass-border)',
   borderRadius: '12px',
@@ -92,7 +92,7 @@ const YearlyProgress = () => {
           {/* Graphique km/mois */}
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={monthlyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}`} width={32} />
               <Tooltip

@@ -7,7 +7,7 @@ import api from '../api';
 import { TrendingDown, Activity } from 'lucide-react';
 
 const tooltipStyle = {
-  backgroundColor: 'rgba(255,255,255,0.92)',
+  backgroundColor: 'rgba(19,16,20,0.97)',
   backdropFilter: 'blur(12px)',
   border: '1px solid var(--glass-border)',
   borderRadius: '12px',
@@ -71,7 +71,7 @@ const WeightPerformanceChart = () => {
         </div>
 
         {/* Période selector */}
-        <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid var(--glass-border)' }}>
+        <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}>
           {[8, 12, 24].map(w => (
             <button
               key={w}
@@ -106,7 +106,7 @@ const WeightPerformanceChart = () => {
         <>
           <ResponsiveContainer width="100%" height={260}>
             <ComposedChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis
                 dataKey="weekLabel"
                 tick={{ fontSize: 11, fill: 'var(--text-muted)' }}

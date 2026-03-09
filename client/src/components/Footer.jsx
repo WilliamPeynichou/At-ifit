@@ -8,7 +8,7 @@ const Footer = () => {
   return (
     <footer
       style={{
-        background: 'rgba(255,255,255,0.6)',
+        background: 'rgba(11,10,13,0.94)',
         backdropFilter: 'blur(12px)',
         borderTop: '1px solid var(--glass-border)',
       }}

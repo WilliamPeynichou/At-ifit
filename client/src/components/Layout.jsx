@@ -52,7 +52,7 @@ const Layout = ({ children }) => {
           {/* Right side */}
           <div className="flex items-center gap-3">
             {user && (
-              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm" style={{ background: 'rgba(0,0,0,0.04)', color: 'var(--text-secondary)' }}>
+              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                 {user.pseudo || user.email}
               </div>
@@ -61,7 +61,7 @@ const Layout = ({ children }) => {
               onClick={logout}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
               style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
             >
               <LogOut className="w-4 h-4" />
@@ -104,9 +104,9 @@ const Layout = ({ children }) => {
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 flex items-center"
         style={{
-          background: 'rgba(255,255,255,0.92)',
+          background: 'rgba(11, 10, 13, 0.94)',
           backdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(0,0,0,0.06)',
+          borderTop: '1px solid rgba(0, 85, 255, 0.1)',
         }}
       >
         {NAV_ITEMS.map(({ path, label, icon: Icon }) => {

@@ -63,7 +63,7 @@ const GearTracker = () => {
           const barColor = pct >= 100 ? '#dc2626' : pct >= 80 ? '#f97316' : '#0055ff';
 
           return (
-            <div key={item.gearId} className="p-4 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid var(--glass-border)' }}>
+            <div key={item.gearId} className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{CATEGORY_ICON[item.category] || '🎽'}</span>
@@ -87,7 +87,7 @@ const GearTracker = () => {
 
               {/* Barre de progression */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-2 rounded-full" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                <div className="flex-1 h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
                   <div
                     className="h-2 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(pct, 100)}%`, background: barColor }}

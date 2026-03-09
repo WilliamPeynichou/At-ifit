@@ -8,7 +8,7 @@ const ZONE_COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f97316', '#ef4444'];
 const ZONE_LABELS = ['Z1 Récup', 'Z2 Endurance', 'Z3 Tempo', 'Z4 Seuil', 'Z5 Max'];
 
 const tooltipStyle = {
-  backgroundColor: 'rgba(255,255,255,0.92)',
+  backgroundColor: 'rgba(19,16,20,0.97)',
   backdropFilter: 'blur(12px)',
   border: '1px solid var(--glass-border)',
   borderRadius: '12px',
@@ -135,7 +135,7 @@ const HeartRateZones = () => {
                       <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{d.name}</span>
                       <span className="text-xs font-bold" style={{ color }}>{d.pct}%</span>
                     </div>
-                    <div className="h-1.5 rounded-full" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                    <div className="h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
                       <div
                         className="h-1.5 rounded-full transition-all"
                         style={{ width: `${d.pct}%`, background: color }}

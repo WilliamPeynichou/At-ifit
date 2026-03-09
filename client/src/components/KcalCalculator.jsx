@@ -85,7 +85,7 @@ const KcalCalculator = () => {
                   style={
                     formData.gender === 'male'
                       ? { background: 'rgba(0, 85, 255, 0.15)', border: '1px solid var(--accent-blue)', color: 'var(--accent-blue)' }
-                      : { background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }
+                      : { background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }
                   }
                 >
                   Homme
@@ -97,7 +97,7 @@ const KcalCalculator = () => {
                   style={
                     formData.gender === 'female'
                       ? { background: 'rgba(0, 85, 255, 0.15)', border: '1px solid var(--accent-blue)', color: 'var(--accent-blue)' }
-                      : { background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }
+                      : { background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }
                   }
                 >
                   Femme
@@ -178,12 +178,12 @@ const KcalCalculator = () => {
                   Détails
                 </h3>
 
-                <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Métabolisme de Base (BMR)</span>
                   <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{result.bmr} kcal</span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
                   <div className="flex flex-col">
                     <span style={{ color: 'var(--text-muted)' }}>Facteur d'Activité</span>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Basé sur ~{result.avgHoursPerWeek}h/semaine (Strava)</span>
