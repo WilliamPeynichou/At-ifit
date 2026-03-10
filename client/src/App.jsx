@@ -22,14 +22,12 @@ import CyclistLoader from './components/CyclistLoader';
 
 function AppInner() {
   const { loading } = useAuth();
-  const [isChatOpen, setIsChatOpen] = React.useState(false);
-
   if (loading) return <CyclistLoader />;
 
   return (
     <div className="min-h-screen antialiased overflow-x-hidden relative" style={{ color: 'var(--text-primary)' }}>
       <ParticlesBackground />
-      <div className={`relative z-10 transition-all duration-300 ease-in-out ${isChatOpen ? 'md:mr-[400px]' : ''}`}>
+      <div className="relative z-10">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -118,7 +116,8 @@ function AppInner() {
           <Route path="/strava-callback" element={<StravaCallback />} />
         </Routes>
       </div>
-      <Chatbot isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
+      {/* Chatbot temporairement désactivé — réactiver quand Mistral cloud configuré */}
+      {/* <Chatbot isOpen={isChatOpen} setIsOpen={setIsChatOpen} /> */}
     </div>
   );
 }
