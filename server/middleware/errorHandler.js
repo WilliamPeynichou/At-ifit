@@ -52,10 +52,17 @@ const errorHandler = (err, req, res, next) => {
     return sendError(res, 'Token expired', 401);
   }
   
-  // Default error
+  // Default error — en prod, ne pas exposer le message interne
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal server error';
-  
+  const isProd = process.env.NODE_ENV === 'production';
+  const message = isProd && statusCode === 500
+    ? 'Internal server error'
+    : (err.message || 'Internal server error');
+
+  if (isProd && statusCode === 500) {
+    logger.error('Internal error (masqué en prod)', { message: err.message, stack: err.stack });
+  }
+
   sendError(res, message, statusCode);
 };
 

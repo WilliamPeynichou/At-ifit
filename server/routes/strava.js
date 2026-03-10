@@ -24,21 +24,36 @@ const {
 } = require('../utils/stravaHelpers');
 const logger = require('../utils/logger');
 
+// Stockage en mémoire des états OAuth en attente (TTL 10 min)
+const pendingOAuthStates = new Map();
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+function cleanExpiredStates() {
+  const now = Date.now();
+  for (const [state, { expiresAt }] of pendingOAuthStates) {
+    if (now > expiresAt) pendingOAuthStates.delete(state);
+  }
+}
+
 router.get('/auth', auth, asyncHandler(async (req, res) => {
   const { clientId, redirectUri } = getStravaCredentials(req.userId);
   const scope = 'read,activity:read_all,profile:read_all';
-  
-  const state = `${req.userId}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-  
+
+  const crypto = require('crypto');
+  const state = crypto.randomBytes(16).toString('hex');
+
+  // Stocke le state avec le userId et une expiration
+  cleanExpiredStates();
+  pendingOAuthStates.set(state, { userId: req.userId, expiresAt: Date.now() + OAUTH_STATE_TTL_MS });
+
   const url = `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&approval_prompt=force&state=${state}`;
-  
-  logger.info('Generating Strava OAuth URL', { userId: req.userId, state });
+
+  logger.info('Generating Strava OAuth URL', { userId: req.userId });
   sendSuccess(res, { url, logoutUrl: 'https://www.strava.com/logout' });
 }));
 
 router.get('/callback', (req, res) => {
   const { code, error, state } = req.query;
-
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5174';
 
   if (error) {
@@ -51,12 +66,18 @@ router.get('/callback', (req, res) => {
     return res.redirect(`${frontendUrl}/strava-callback?error=no_code`);
   }
 
-  const redirectUrl = state
-    ? `${frontendUrl}/strava-callback?code=${code}&state=${state}`
-    : `${frontendUrl}/strava-callback?code=${code}`;
-  
-  logger.info('Strava OAuth callback received', { hasCode: !!code, hasState: !!state });
-  res.redirect(redirectUrl);
+  // Valide le state
+  const pending = state ? pendingOAuthStates.get(state) : null;
+  if (!state || !pending || Date.now() > pending.expiresAt) {
+    logger.warn('Strava OAuth callback: state invalide ou expiré', { state: state ? 'present' : 'missing' });
+    return res.redirect(`${frontendUrl}/strava-callback?error=invalid_state`);
+  }
+
+  // State valide → on le consomme (one-time use)
+  pendingOAuthStates.delete(state);
+
+  logger.info('Strava OAuth callback valide', { userId: pending.userId });
+  res.redirect(`${frontendUrl}/strava-callback?code=${code}&state=${state}`);
 });
 
 router.post('/connect', auth, asyncHandler(async (req, res) => {
@@ -84,11 +105,26 @@ router.post('/connect', auth, asyncHandler(async (req, res) => {
     if (!user) {
       return sendError(res, 'User not found', 404);
     }
-    
+
+    // Vérifie que ce compte Strava n'est pas déjà lié à un autre utilisateur
+    if (athlete?.id) {
+      const existingLink = await User.findOne({
+        where: { stravaAthleteId: athlete.id }
+      });
+      if (existingLink && existingLink.id !== req.userId) {
+        logger.warn('Strava account already linked to another user', {
+          requestingUserId: req.userId,
+          ownerUserId: existingLink.id
+        });
+        return sendError(res, 'This Strava account is already linked to another user', 409);
+      }
+    }
+
     await user.update({
       stravaAccessToken: access_token,
       stravaRefreshToken: refresh_token,
-      stravaExpiresAt: expires_at
+      stravaExpiresAt: expires_at,
+      stravaAthleteId: athlete?.id || null
     });
 
     logger.info('Strava connected successfully', {
@@ -184,7 +220,8 @@ router.delete('/disconnect', auth, asyncHandler(async (req, res) => {
   await user.update({
     stravaAccessToken: null,
     stravaRefreshToken: null,
-    stravaExpiresAt: null
+    stravaExpiresAt: null,
+    stravaAthleteId: null
   });
 
   logger.info('Strava disconnected successfully', { userId: req.userId });

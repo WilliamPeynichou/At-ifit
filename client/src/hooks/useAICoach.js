@@ -36,7 +36,7 @@ export const useAICoach = () => {
       return aiResponse;
 
     } catch (err) {
-      let errorMessage = 'Erreur lors de l\'envoi du message';
+      let erroouirMessage = 'Erreur lors de l\'envoi du message';
 
       if (err.response) {
         errorMessage = err.response.data?.error || `Erreur ${err.response.status}`;

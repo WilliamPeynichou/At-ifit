@@ -63,10 +63,26 @@ const aiCoachLimiter = rateLimit({
   }
 });
 
+/**
+ * Rate limiter pour les webhooks Strava
+ * Limite à 120 requêtes par minute (2/s) — largement suffisant pour Strava
+ */
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn('[Webhook] Rate limit dépassé', { ip: req.ip });
+    res.status(429).json({ success: false, error: 'Too many requests' });
+  }
+});
+
 module.exports = {
   authLimiter,
   generalLimiter,
-  aiCoachLimiter
+  aiCoachLimiter,
+  webhookLimiter
 };
 
 
