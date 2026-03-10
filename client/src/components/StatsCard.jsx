@@ -1,23 +1,37 @@
 import React from 'react';
 
-const StatsCard = ({ title, value, subtext, color = 'green', className }) => {
+const StatsCard = ({ title, value, subtext, color = 'blue', className }) => {
   const colorStyles = {
-    green: 'border-emerald-500/30 text-emerald-400',
-    orange: 'border-amber-500/30 text-amber-400',
-    red: 'border-rose-500/30 text-rose-400',
+    blue:   { border: 'rgba(0, 85, 255, 0.22)', text: 'var(--accent-blue)', glow: 'rgba(0, 85, 255, 0.07)' },
+    green:  { border: 'rgba(0, 85, 255, 0.22)', text: 'var(--accent-blue)', glow: 'rgba(0, 85, 255, 0.07)' },
+    orange: { border: 'rgba(0, 85, 255, 0.12)', text: 'var(--text-primary)', glow: 'rgba(0, 0, 0, 0.03)' },
+    red:    { border: 'rgba(239, 68, 68, 0.22)', text: '#dc2626', glow: 'rgba(239, 68, 68, 0.06)' },
   };
 
-  const glowStyles = {
-    green: 'shadow-[0_0_15px_rgba(16,185,129,0.15)]',
-    orange: 'shadow-[0_0_15px_rgba(245,158,11,0.15)]',
-    red: 'shadow-[0_0_15px_rgba(244,63,94,0.15)]',
-  };
+  const cs = colorStyles[color] || colorStyles.blue;
 
   return (
-    <div className={`glass-card rounded-xl p-5 border ${colorStyles[color].split(' ')[0]} ${glowStyles[color]} ${className}`}>
-      <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">{title}</h3>
-      <div className={`text-2xl font-bold ${colorStyles[color].split(' ')[1]} drop-shadow-sm`}>{value}</div>
-      {subtext && <div className="text-xs mt-2 text-slate-500 font-medium">{subtext}</div>}
+    <div
+      className={`glass-card p-4 sm:p-5 ${className}`}
+      style={{ borderColor: cs.border, boxShadow: `0 2px 16px ${cs.glow}` }}
+    >
+      <h3
+        className="text-[10px] font-semibold mb-3 uppercase tracking-[0.15em]"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        {title}
+      </h3>
+      <div
+        className="text-3xl font-bold tabular-nums"
+        style={{ color: cs.text, letterSpacing: '0.02em', fontFamily: 'var(--font-display)' }}
+      >
+        {value}
+      </div>
+      {subtext && (
+        <div className="text-xs mt-2 font-medium" style={{ color: 'var(--text-muted)' }}>
+          {subtext}
+        </div>
+      )}
     </div>
   );
 };

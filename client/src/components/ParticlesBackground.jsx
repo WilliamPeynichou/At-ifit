@@ -9,14 +9,17 @@ const ParticlesBackground = () => {
       width: `${Math.random() * 3 + 1}px`,
       height: `${Math.random() * 3 + 1}px`,
       animationDelay: `${Math.random() * 5}s`,
-      animationDuration: `${10 + Math.random() * 20}s`
+      animationDuration: `${10 + Math.random() * 20}s`,
+      background: i % 2 === 0
+        ? 'rgba(0, 85, 255, 0.15)'
+        : 'rgba(0, 85, 255, 0.08)'
     }));
   }, []);
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       {particles.map((p) => (
-        <div 
+        <div
           key={p.id}
           className="particle"
           style={{
@@ -25,7 +28,8 @@ const ParticlesBackground = () => {
             width: p.width,
             height: p.height,
             animationDelay: p.animationDelay,
-            animationDuration: p.animationDuration
+            animationDuration: p.animationDuration,
+            background: p.background
           }}
         />
       ))}
@@ -34,5 +38,3 @@ const ParticlesBackground = () => {
 };
 
 export default React.memo(ParticlesBackground);
-
-

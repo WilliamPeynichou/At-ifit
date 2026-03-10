@@ -26,7 +26,7 @@ const Onboarding = () => {
       if (loadUser) {
         await loadUser();
       }
-      
+
       // Get fresh user data
       const res = await api.get('/user');
       const freshUser = res.data;
@@ -119,59 +119,93 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="glass-panel rounded-3xl p-8 w-full max-w-4xl relative z-10 border border-white/10 bg-black/40">
+      {/* Rule 1: removed border border-white/10 bg-black/40 — glass-panel handles it */}
+      <div className="glass-panel p-8 w-full max-w-4xl relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-black tracking-widest mb-2">
-              <span className="text-white">INITIALIZATION</span>
+              {/* Rule 2: text-white → text-primary */}
+              <span style={{ color: 'var(--text-primary)' }}>INITIALIZATION</span>
+              {/* Rule 5: keep text-neon-cyan */}
               <span className="text-neon-cyan">.SEQUENCE</span>
             </h1>
-            <p className="text-sm text-slate-400 tracking-wide">
+            {/* Rule 3: text-slate-400 → text-muted */}
+            <p className="text-sm tracking-wide" style={{ color: 'var(--text-muted)' }}>
               {t('onboarding.subtitle')}
             </p>
           </div>
+          {/* Rule 15: hover:bg-white/5 → glass-border hover */}
           <button
             onClick={handleSkip}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+            className="p-2 hover:bg-[rgba(249,115,22,0.1)] rounded-lg transition-colors"
             title={t('onboarding.skipOnboarding')}
           >
-            <X className="w-6 h-6 text-slate-400 hover:text-white" />
+            {/* Rule 3: text-slate-400 → text-muted; Rule 2: hover:text-white removed */}
+            <X className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center gap-4 mb-8">
           <div className="flex items-center gap-2">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-              currentStep >= 1 ? 'bg-neon-cyan/20 border-neon-cyan' : 'bg-white/5 border-white/20'
-            }`}>
+            {/* Rules 7 & 9: step circle conditional styles */}
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={currentStep >= 1
+                ? { background: 'rgba(0,85,255,0.15)', border: '2px solid var(--accent-blue)' }
+                : { background: 'rgba(255,255,255,0.05)', border: '2px solid var(--glass-border)' }
+              }
+            >
               {profileComplete ? (
+                /* Rule 5: keep text-neon-cyan */
                 <CheckCircle2 className="w-6 h-6 text-neon-cyan" />
               ) : (
-                <Circle className={`w-6 h-6 ${currentStep === 1 ? 'text-neon-cyan' : 'text-slate-500'}`} />
+                /* Rule 5: keep text-neon-cyan; Rule 4: text-slate-500 → text-muted */
+                <Circle
+                  className={`w-6 h-6 ${currentStep === 1 ? 'text-neon-cyan' : ''}`}
+                  style={currentStep !== 1 ? { color: 'var(--text-muted)' } : undefined}
+                />
               )}
             </div>
-            <span className={`text-xs font-bold uppercase tracking-widest ${
-              currentStep >= 1 ? 'text-neon-cyan' : 'text-slate-500'
-            }`}>
+            {/* Rule 5: keep text-neon-cyan; Rule 4: text-slate-500 → text-muted */}
+            <span
+              className={`text-xs font-bold uppercase tracking-widest ${currentStep >= 1 ? 'text-neon-cyan' : ''}`}
+              style={currentStep < 1 ? { color: 'var(--text-muted)' } : undefined}
+            >
               {t('onboarding.profile')}
             </span>
           </div>
-          <div className="w-16 h-[1px] bg-gradient-to-r from-neon-cyan/50 to-transparent"></div>
+          {/* Rule 10: divider gradient → glass-border gradient */}
+          <div
+            className="w-16 h-[1px]"
+            style={{ background: 'linear-gradient(to right, var(--glass-border), transparent)' }}
+          ></div>
           <div className="flex items-center gap-2">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-              currentStep >= 2 ? 'bg-neon-purple/20 border-neon-purple' : 'bg-white/5 border-white/20'
-            }`}>
+            {/* Rules 8 & 9: step circle conditional styles */}
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={currentStep >= 2
+                ? { background: 'rgba(0,85,255,0.12)', border: '2px solid var(--accent-blue)' }
+                : { background: 'rgba(255,255,255,0.05)', border: '2px solid var(--glass-border)' }
+              }
+            >
               {stravaConnected ? (
+                /* Rule 6: keep text-neon-purple */
                 <CheckCircle2 className="w-6 h-6 text-neon-purple" />
               ) : (
-                <Circle className={`w-6 h-6 ${currentStep === 2 ? 'text-neon-purple' : 'text-slate-500'}`} />
+                /* Rule 6: keep text-neon-purple; Rule 4: text-slate-500 → text-muted */
+                <Circle
+                  className={`w-6 h-6 ${currentStep === 2 ? 'text-neon-purple' : ''}`}
+                  style={currentStep !== 2 ? { color: 'var(--text-muted)' } : undefined}
+                />
               )}
             </div>
-            <span className={`text-xs font-bold uppercase tracking-widest ${
-              currentStep >= 2 ? 'text-neon-purple' : 'text-slate-500'
-            }`}>
+            {/* Rule 6: keep text-neon-purple; Rule 4: text-slate-500 → text-muted */}
+            <span
+              className={`text-xs font-bold uppercase tracking-widest ${currentStep >= 2 ? 'text-neon-purple' : ''}`}
+              style={currentStep < 2 ? { color: 'var(--text-muted)' } : undefined}
+            >
               {t('onboarding.strava')}
             </span>
           </div>
@@ -182,14 +216,20 @@ const Onboarding = () => {
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-white mb-2 tracking-wider">
+                {/* Rule 2: text-white → text-primary */}
+                <h2 className="text-xl font-bold mb-2 tracking-wider" style={{ color: 'var(--text-primary)' }}>
                   {t('onboarding.completeProfile')}
                 </h2>
-                <p className="text-sm text-slate-400">
+                {/* Rule 3: text-slate-400 → text-muted */}
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {t('onboarding.profileDesc')}
                 </p>
               </div>
-              <div className="bg-black/30 rounded-xl p-6 border border-white/5">
+              {/* Rule 11: bg-black/30 border border-white/5 → glass content area */}
+              <div
+                className="rounded-xl p-6"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}
+              >
                 <UserProfile onUpdate={handleProfileUpdate} />
               </div>
               {profileComplete && (
@@ -209,18 +249,25 @@ const Onboarding = () => {
           {currentStep === 2 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-white mb-2 tracking-wider">
+                {/* Rule 2: text-white → text-primary */}
+                <h2 className="text-xl font-bold mb-2 tracking-wider" style={{ color: 'var(--text-primary)' }}>
                   {t('onboarding.connectStrava')}
                 </h2>
-                <p className="text-sm text-slate-400">
+                {/* Rule 3: text-slate-400 → text-muted */}
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {t('onboarding.stravaDesc')}
                 </p>
               </div>
-              <div className="bg-black/30 rounded-xl p-8 border border-white/5 text-center">
+              {/* Rule 11: bg-black/30 border border-white/5 → glass content area */}
+              <div
+                className="rounded-xl p-8 text-center"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}
+              >
                 {stravaConnected ? (
                   <div className="space-y-4">
-                    <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto" />
-                    <div className="text-green-400 font-bold tracking-wider">
+                    {/* Rule 12: text-green-400 → #16a34a */}
+                    <CheckCircle2 className="w-16 h-16 mx-auto" style={{ color: '#16a34a' }} />
+                    <div className="font-bold tracking-wider" style={{ color: '#16a34a' }}>
                       {t('onboarding.stravaConnected')}
                     </div>
                     <button
@@ -232,7 +279,8 @@ const Onboarding = () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <div className="text-slate-400 text-sm">
+                    {/* Rule 3: text-slate-400 → text-muted */}
+                    <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
                       {t('onboarding.stravaDesc')}
                     </div>
                     <button
@@ -241,9 +289,11 @@ const Onboarding = () => {
                     >
                       {t('onboarding.connectStravaBtn')}
                     </button>
+                    {/* Rule 13: text-slate-500 hover:text-white → text-muted, hover text-primary */}
                     <button
                       onClick={handleComplete}
-                      className="text-sm text-slate-500 hover:text-white transition-colors underline"
+                      className="text-sm transition-colors underline hover:opacity-80"
+                      style={{ color: 'var(--text-muted)' }}
                     >
                       {t('onboarding.skipForNow')}
                     </button>
@@ -255,17 +305,24 @@ const Onboarding = () => {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center pt-6 border-t border-white/10">
+        {/* Rule 14: border-t border-white/10 → glass-border */}
+        <div
+          className="flex justify-between items-center pt-6"
+          style={{ borderTop: '1px solid var(--glass-border)' }}
+        >
+          {/* Rule 13: text-slate-500 hover:text-white → text-muted, hover text-primary */}
           <button
             onClick={handleSkip}
-            className="text-sm text-slate-500 hover:text-white transition-colors"
+            className="text-sm transition-colors hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}
           >
             {t('onboarding.skipOnboarding')}
           </button>
           {currentStep > 1 && (
+            /* Rule 5: keep text-neon-cyan */
             <button
               onClick={() => setCurrentStep(1)}
-              className="text-sm text-neon-cyan hover:text-white transition-colors"
+              className="text-sm text-neon-cyan transition-colors hover:opacity-80"
             >
               {t('onboarding.backToProfile')}
             </button>
@@ -277,4 +334,3 @@ const Onboarding = () => {
 };
 
 export default Onboarding;
-

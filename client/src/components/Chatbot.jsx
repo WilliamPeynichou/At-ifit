@@ -21,10 +21,8 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
     const currentInput = inputValue;
     setInputValue('');
 
-    // Send to AI backend (userId sera extrait automatiquement du token par le backend)
-    console.log('[Chatbot] Envoi du message avec userId:', user.id);
-    const aiResponse = await sendMessage(user.id, currentInput.trim());
-    console.log('[Chatbot] Réponse reçue:', { aiResponse, error, hasResponse: !!aiResponse });
+    // userId extrait automatiquement du token JWT par le backend
+    const aiResponse = await sendMessage(currentInput.trim());
 
     if (aiResponse && aiResponse.trim()) {
       // Add AI response
@@ -35,7 +33,7 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
       }]);
     } else {
       // Show error message or empty response warning
-      const errorMsg = error 
+      const errorMsg = error
         ? `Désolé, une erreur s'est produite : ${error}`
         : 'Désolé, aucune réponse n\'a été reçue de l\'assistant IA.';
       setMessages(prev => [...prev, {
@@ -52,7 +50,13 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed right-6 bottom-6 z-50 p-4 bg-neon-cyan/20 hover:bg-neon-cyan/40 border border-neon-cyan/50 rounded-full text-neon-cyan shadow-[0_0_20px_rgba(0,243,255,0.3)] transition-all hover:scale-110 group"
+          className="fixed right-6 bottom-6 z-50 p-4 rounded-full transition-all hover:scale-110 group"
+          style={{
+            background: 'rgba(0,85,255,0.15)',
+            border: '1.5px solid rgba(0,85,255,0.35)',
+            color: 'var(--accent-blue)',
+            boxShadow: '0 0 20px rgba(0,85,255,0.2)'
+          }}
           aria-label="Ouvrir le chat"
         >
           <MessageSquare className="w-6 h-6 animate-pulse group-hover:animate-none" />
@@ -61,26 +65,53 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
 
       {/* Chatbot Panel */}
       <div
-        className={`fixed top-0 right-0 h-full bg-black/95 border-l border-white/10 shadow-2xl transition-transform duration-300 ease-out z-50 flex flex-col
+        className={`fixed top-0 right-0 h-full shadow-2xl transition-transform duration-300 ease-out z-50 flex flex-col
           ${isOpen ? 'translate-x-0 w-full md:w-[400px]' : 'translate-x-full w-full md:w-[400px] pointer-events-none'}`}
+        style={{
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(20px)',
+          borderLeft: '1px solid var(--glass-border)',
+          boxShadow: '-8px 0 32px rgba(0,0,0,0.06)'
+        }}
       >
         {/* Header */}
-        <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+        <div
+          className="p-4 flex items-center justify-between"
+          style={{
+            borderBottom: '1px solid var(--glass-border)',
+            background: 'rgba(255,255,255,0.7)'
+          }}
+        >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neon-cyan/10 rounded-lg border border-neon-cyan/30">
-              <Bot className="w-5 h-5 text-neon-cyan" />
+            <div
+              className="p-2 rounded-lg"
+              style={{
+                background: 'rgba(0,85,255,0.1)',
+                border: '1.5px solid rgba(0,85,255,0.3)'
+              }}
+            >
+              <Bot className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
             </div>
             <div>
-              <h3 className="font-bold text-white">Assistant IA</h3>
+              <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Assistant IA</h3>
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${loading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></span>
-                <span className="text-xs text-slate-400">{loading ? 'En cours...' : 'En ligne'}</span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{loading ? 'En cours...' : 'En ligne'}</span>
               </div>
             </div>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -94,11 +125,24 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
               className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${
+                className={`max-w-[85%] p-3 text-sm leading-relaxed ${
                   msg.type === 'user'
-                    ? 'bg-neon-cyan/20 border border-neon-cyan/30 text-white rounded-tr-none'
-                    : 'bg-white/10 border border-white/5 text-slate-200 rounded-tl-none'
+                    ? 'rounded-2xl rounded-tr-none'
+                    : 'rounded-2xl rounded-tl-none'
                 }`}
+                style={
+                  msg.type === 'user'
+                    ? {
+                        background: 'rgba(0,85,255,0.08)',
+                        border: '1px solid rgba(0,85,255,0.2)',
+                        color: 'var(--text-primary)'
+                      }
+                    : {
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)'
+                      }
+                }
               >
                 {msg.text}
               </div>
@@ -106,27 +150,65 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
           ))}
           {loading && (
             <div className="flex justify-start">
-              <div className="max-w-[85%] p-3 rounded-2xl bg-white/10 border border-white/5 text-slate-200 rounded-tl-none">
-                <Loader2 className="w-4 h-4 animate-spin text-neon-cyan" />
+              <div
+                className="max-w-[85%] p-3 rounded-2xl rounded-tl-none"
+                style={{
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--accent-blue)' }} />
               </div>
             </div>
           )}
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-white/10 bg-white/5">
+        <div
+          className="p-4"
+          style={{
+            borderTop: '1px solid var(--glass-border)',
+            background: 'rgba(255,255,255,0.7)'
+          }}
+        >
           <form onSubmit={handleSubmit} className="relative">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Posez une question..."
-              className="w-full bg-black/50 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/50 transition-all"
+              className="w-full rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(0,0,0,0.1)',
+                color: 'var(--text-primary)'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(0,85,255,0.5)';
+                e.currentTarget.style.boxShadow = '0 0 0 1px rgba(0,85,255,0.5)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--glass-border)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
             <button
               type="submit"
               disabled={!inputValue.trim() || loading || !user?.id}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-neon-cyan/20 hover:bg-neon-cyan/40 text-neon-cyan rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: 'rgba(0,85,255,0.15)',
+                color: 'var(--accent-blue)'
+              }}
+              onMouseEnter={(e) => {
+                if (!e.currentTarget.disabled) {
+                  e.currentTarget.style.background = 'rgba(0,85,255,0.3)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0,85,255,0.15)';
+              }}
             >
               <Send className={`w-4 h-4 ${loading ? 'animate-pulse' : ''}`} />
             </button>
@@ -138,4 +220,3 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
 };
 
 export default Chatbot;
-

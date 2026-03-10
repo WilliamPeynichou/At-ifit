@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Info, TrendingUp, TrendingDown, Target, Activity, Heart, Flame, Calendar, Scale, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Info, TrendingUp, TrendingDown, Target, Activity, Heart, Flame, Calendar, Scale, AlertTriangle, ExternalLink, ChevronLeft, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const StatsExplanation = () => {
@@ -35,10 +35,10 @@ const StatsExplanation = () => {
       possibleValues: t('stats.bmi.possibleValues'),
       possibleValuesDesc: t('stats.bmi.possibleValuesDesc'),
       categories: [
-        { range: '< 18.5', label: t('stats.bmi.underweight'), color: 'text-blue-400', consequences: t('stats.bmi.underweightConsequences') },
-        { range: '18.5 - 24.9', label: t('stats.bmi.normal'), color: 'text-green-400', consequences: t('stats.bmi.normalConsequences') },
-        { range: '25 - 29.9', label: t('stats.bmi.overweight'), color: 'text-amber-400', consequences: t('stats.bmi.overweightConsequences') },
-        { range: '≥ 30', label: t('stats.bmi.obese'), color: 'text-rose-400', consequences: t('stats.bmi.obeseConsequences') }
+        { range: '< 18.5', label: t('stats.bmi.underweight'), color: 'text-blue-600', consequences: t('stats.bmi.underweightConsequences') },
+        { range: '18.5 - 24.9', label: t('stats.bmi.normal'), color: 'text-green-600', consequences: t('stats.bmi.normalConsequences') },
+        { range: '25 - 29.9', label: t('stats.bmi.overweight'), color: 'text-amber-600', consequences: t('stats.bmi.overweightConsequences') },
+        { range: '≥ 30', label: t('stats.bmi.obese'), color: 'text-rose-600', consequences: t('stats.bmi.obeseConsequences') }
       ]
     },
     {
@@ -116,49 +116,109 @@ const StatsExplanation = () => {
     }
   ];
 
+  const quickNavLinks = [
+    { anchor: '#bmi', label: 'IMC', icon: Scale },
+    { anchor: '#relative-effort', label: 'Effort Relatif', icon: Activity },
+    { anchor: '#calories', label: 'Calories', icon: Flame },
+    { anchor: '#daily-fuel', label: 'Carburant', icon: Heart },
+  ];
+
+  const scrollTo = (anchor) => {
+    const el = document.querySelector(anchor);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       {/* Header */}
-      <div className="mb-12 text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="p-3 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30">
-            <Info className="w-8 h-8 text-neon-cyan" />
+      <div className="mb-8 sm:mb-10">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm font-medium mb-6 transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-blue)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Retour au dashboard
+        </Link>
+
+        <div className="flex items-start gap-4 mb-4">
+          <div className="p-3 flex-shrink-0" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)', borderRadius: '12px' }}>
+            <BookOpen className="w-6 h-6" style={{ color: 'var(--accent-blue)' }} />
           </div>
-          <h1 className="text-4xl font-black tracking-widest">
-            <span className="text-white">{t('stats.pageTitle')}</span>
-          </h1>
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}>
+              {t('stats.pageTitle')}
+            </h1>
+            <p className="mt-1 text-base" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>
+              {t('stats.pageSubtitle')}
+            </p>
+          </div>
         </div>
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          {t('stats.pageSubtitle')}
-        </p>
+
+        {/* Quick navigation buttons */}
+        <div className="flex flex-wrap gap-2 mt-6">
+          {quickNavLinks.map(({ anchor, label, icon: NavIcon }) => (
+            <button
+              key={anchor}
+              onClick={() => scrollTo(anchor)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-all duration-200"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                color: 'var(--text-secondary)',
+                backdropFilter: 'blur(8px)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--accent-blue-light)';
+                e.currentTarget.style.borderColor = 'rgba(0,85,255,0.3)';
+                e.currentTarget.style.color = 'var(--accent-blue)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                e.currentTarget.style.borderColor = 'var(--glass-border)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <NavIcon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* TCA Warning Section - First thing visible */}
-      <div className="mb-12 glass-panel rounded-2xl p-6 border-2 border-red-500/50 bg-red-950/20 hover:border-red-500/70 transition-all">
+      <div
+        className="mb-12 glass-panel p-6 transition-all"
+        style={{ border: '2px solid rgba(220,38,38,0.4)', background: 'rgba(220,38,38,0.08)' }}
+      >
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/50 flex-shrink-0">
-            <AlertTriangle className="w-8 h-8 text-red-400" />
+          <div className="p-3 rounded-lg flex-shrink-0" style={{ background: 'rgba(220,38,38,0.12)', border: '1.5px solid rgba(220,38,38,0.35)' }}>
+            <AlertTriangle className="w-8 h-8" style={{ color: '#dc2626' }} />
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-red-400 mb-3 tracking-wider">
+            <h2 className="text-2xl font-bold mb-3 tracking-wider" style={{ color: '#dc2626' }}>
               {t('stats.tcaWarning.title')}
             </h2>
-            <div className="space-y-3 text-slate-200 leading-relaxed">
+            <div className="space-y-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               <p className="text-lg">
                 {t('stats.tcaWarning.intro')}
               </p>
               <p>
                 {t('stats.tcaWarning.definition')}
               </p>
-              <p className="font-semibold text-red-300">
+              <p className="font-semibold" style={{ color: '#b91c1c' }}>
                 {t('stats.tcaWarning.danger')}
               </p>
-              <div className="mt-4 pt-4 border-t border-red-500/30">
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(220,38,38,0.25)' }}>
                 <a
                   href="https://www.inicea.fr/articles/nos-articles/les-troubles-du-comportement-alimentaire-TCA"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-lg text-red-300 font-bold transition-all group"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all group"
+                  style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.35)', color: '#dc2626' }}
                 >
                   <span>{t('stats.tcaWarning.learnMore')}</span>
                   <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -188,36 +248,36 @@ const StatsExplanation = () => {
             <div
               key={index}
               id={sectionId}
-              className="glass-panel rounded-2xl p-6 border border-white/5 bg-black/40 hover:border-neon-cyan/30 transition-all"
+              className="glass-panel p-6 transition-all"
             >
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30 flex-shrink-0">
+                <div className="p-3 rounded-lg flex-shrink-0" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>
                   <Icon className="w-6 h-6 text-neon-cyan" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold text-white mb-2 tracking-wider">
+                  <h2 className="text-xl font-bold mb-2 tracking-wider" style={{ color: 'var(--text-primary)' }}>
                     {stat.title}
                   </h2>
-                  <p className="text-slate-300 mb-3 leading-relaxed">
+                  <p className="mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                     {stat.description}
                   </p>
                   {stat.whatIs && (
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-white mb-2">{stat.whatIs}</h3>
-                      <p className="text-slate-300 leading-relaxed">
+                      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{stat.whatIs}</h3>
+                      <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                         {stat.whatIsDesc}
                       </p>
                     </div>
                   )}
                   {stat.calculation && (
                     <div className="mb-4">
-                      <div className="bg-black/30 rounded-lg p-3 mb-2 border border-white/5">
-                      <p className="text-sm text-slate-400 font-mono">
-                        {stat.calculation}
+                      <div className="rounded-lg p-3 mb-2" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)' }}>
+                        <p className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>
+                          {stat.calculation}
                         </p>
                       </div>
                       {stat.calculationDesc && (
-                        <p className="text-sm text-slate-300 leading-relaxed">
+                        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                           {stat.calculationDesc}
                         </p>
                       )}
@@ -225,55 +285,55 @@ const StatsExplanation = () => {
                   )}
                   {stat.genderDifferences && (
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-white mb-2">{stat.genderDifferences}</h3>
-                      <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{stat.genderDifferences}</h3>
+                      <p className="leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>
                         {stat.genderDifferencesDesc}
                       </p>
                     </div>
                   )}
                   {stat.transgenderConsiderations && (
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-white mb-2">{stat.transgenderConsiderations}</h3>
-                      <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{stat.transgenderConsiderations}</h3>
+                      <p className="leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>
                         {stat.transgenderConsiderationsDesc}
                       </p>
                     </div>
                   )}
                   {stat.possibleValues && (
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-white mb-2">{stat.possibleValues}</h3>
-                      <p className="text-slate-300 leading-relaxed">
+                      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{stat.possibleValues}</h3>
+                      <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                         {stat.possibleValuesDesc}
                       </p>
                     </div>
                   )}
                   {stat.howToRead && (
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-white mb-2">{stat.howToRead}</h3>
-                      <p className="text-slate-300 leading-relaxed">
+                      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{stat.howToRead}</h3>
+                      <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                         {stat.howToReadDesc}
                       </p>
                     </div>
                   )}
                   {stat.ranges && (
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-white mb-2">{stat.ranges}</h3>
-                      <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{stat.ranges}</h3>
+                      <p className="leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>
                         {stat.rangesDesc}
                       </p>
                     </div>
                   )}
                   {stat.categories && (
                     <div className="mt-4 space-y-4">
-                      <h3 className="text-lg font-semibold text-white mb-2">{t('stats.bmi.categoriesTitle')}</h3>
+                      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{t('stats.bmi.categoriesTitle')}</h3>
                       {stat.categories.map((cat, idx) => (
-                        <div key={idx} className="bg-black/30 rounded-lg p-4 border border-white/5">
+                        <div key={idx} className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)' }}>
                           <div className="flex items-center gap-3 mb-2">
-                            <span className="font-mono text-slate-300 w-32 font-bold">{cat.range}</span>
+                            <span className="font-mono w-32 font-bold" style={{ color: 'var(--text-secondary)' }}>{cat.range}</span>
                             <span className={`font-bold text-lg ${cat.color}`}>{cat.label}</span>
                           </div>
                           {cat.consequences && (
-                            <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+                            <p className="text-sm mt-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                               {cat.consequences}
                             </p>
                           )}
@@ -282,16 +342,16 @@ const StatsExplanation = () => {
                     </div>
                   )}
                   {stat.consequences && (
-                    <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                      <h3 className="text-sm font-bold text-blue-300 mb-2">{t('stats.consequences')}</h3>
-                      <p className="text-sm text-slate-300 leading-relaxed">
+                    <div className="mt-4 p-4 rounded-lg" style={{ background: 'rgba(0,85,255,0.08)', border: '1px solid rgba(0,85,255,0.2)' }}>
+                      <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--accent-blue)' }}>{t('stats.consequences')}</h3>
+                      <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                         {stat.consequences}
                       </p>
                     </div>
                   )}
                   {stat.note && (
-                    <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                      <p className="text-sm text-amber-300">
+                    <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                      <p className="text-sm" style={{ color: '#b45309' }}>
                         <strong>{t('stats.note')}:</strong> {stat.note}
                       </p>
                     </div>
@@ -304,17 +364,26 @@ const StatsExplanation = () => {
       </div>
 
       {/* Footer */}
-      <div className="mt-12 text-center">
+      <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/30 rounded-lg text-neon-cyan font-bold transition-all"
+          className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm"
         >
-          ← {t('stats.backToDashboard')}
+          <ChevronLeft className="w-4 h-4" />
+          {t('stats.backToDashboard')}
         </Link>
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="text-sm font-medium transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-blue)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          Remonter en haut ↑
+        </button>
       </div>
     </div>
   );
 };
 
 export default StatsExplanation;
-

@@ -106,9 +106,19 @@ router.post('/login',
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
+    const MAX_FAILED_ATTEMPTS = 5;
+    const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+
     // Find user
     const user = await User.findOne({ where: { email } });
-    
+
+    // Vérifie le verrouillage avant toute comparaison de mot de passe
+    if (user?.lockedUntil && new Date() < user.lockedUntil) {
+      const minutesLeft = Math.ceil((user.lockedUntil - Date.now()) / 60000);
+      logger.warn('Login attempt on locked account', { email, ip: req.ip });
+      return sendError(res, `Account temporarily locked. Try again in ${minutesLeft} minute(s).`, 429);
+    }
+
     // Always perform password check to prevent timing attacks
     let isMatch = false;
     if (user) {
@@ -116,13 +126,28 @@ router.post('/login',
     }
 
     if (!user || !isMatch) {
-      logger.warn('Failed login attempt', { 
-        email, 
+      // Incrémente le compteur d'échecs
+      if (user) {
+        const newCount = (user.failedLoginAttempts || 0) + 1;
+        const updates = { failedLoginAttempts: newCount };
+        if (newCount >= MAX_FAILED_ATTEMPTS) {
+          updates.lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+          logger.warn('Account locked after repeated failures', { email, ip: req.ip, attempts: newCount });
+        }
+        await user.update(updates);
+      }
+      logger.warn('Failed login attempt', {
+        email,
         ip: req.ip,
         userAgent: req.get('user-agent'),
         userExists: !!user
       });
       return sendError(res, 'Invalid credentials', 401);
+    }
+
+    // Succès : réinitialise le compteur d'échecs
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await user.update({ failedLoginAttempts: 0, lockedUntil: null });
     }
 
     // Generate tokens
@@ -136,7 +161,7 @@ router.post('/login',
       expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) // 5 days
     });
 
-    logger.info('User logged in', { 
+    logger.info('User logged in', {
       userId: user.id,
       email: user.email,
       ip: req.ip
@@ -199,17 +224,27 @@ router.post('/refresh',
 
       // Check if token is expired
       if (new Date() > storedToken.expiresAt) {
-        await storedToken.update({ revoked: true });
+        await storedToken.update({ revoked: true, revokedAt: new Date() });
         return sendError(res, 'Refresh token expired', 401);
       }
 
-      // Generate new access token
-      const accessToken = generateAccessToken(decoded.id);
+      // Rotation : révoque l'ancien token et émet un nouveau
+      await storedToken.update({ revoked: true, revokedAt: new Date() });
 
-      logger.info('Access token refreshed', { userId: decoded.id });
+      const accessToken = generateAccessToken(decoded.id);
+      const newRefreshToken = generateRefreshToken(decoded.id);
+
+      await RefreshToken.create({
+        token: newRefreshToken,
+        userId: decoded.id,
+        expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) // 5 jours
+      });
+
+      logger.info('Tokens rotated', { userId: decoded.id });
 
       sendSuccess(res, {
-        accessToken
+        accessToken,
+        refreshToken: newRefreshToken
       }, 'Token refreshed successfully');
     } catch (error) {
       if (error.name === 'TokenExpiredError') {

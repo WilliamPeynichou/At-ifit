@@ -48,14 +48,14 @@ const WeightForm = ({ onUpdate }) => {
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-6 relative overflow-hidden border border-white/5 bg-black/40 h-full flex flex-col">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-neon-cyan/20 blur-3xl rounded-full"></div>
-      
+    <div className="glass-panel p-6 relative  h-full flex flex-col">
+      <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(0,85,255,0.15)' }}></div>
+
       <div className="flex items-center gap-3 mb-6 relative z-10">
-        <div className="p-2 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
-          <Plus className="w-5 h-5 text-neon-cyan" />
+        <div className="p-2 rounded-lg" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>
+          <Plus className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
         </div>
-        <h2 className="text-lg font-bold text-white tracking-wider">{t('weightForm.logNewData')}</h2>
+        <h2 className="text-lg font-bold tracking-wider" style={{ color: 'var(--text-primary)' }}>{t('weightForm.logNewData')}</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 items-end relative z-10 flex-1">

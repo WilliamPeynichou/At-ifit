@@ -4,62 +4,55 @@ import api from '../api';
 export const useAICoach = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Historique au format Mistral [{role: 'user'|'assistant', content: string}]
+  const [conversationHistory, setConversationHistory] = useState([]);
 
-  const sendMessage = async (userId, message) => {
+  const sendMessage = async (message) => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log('[Frontend] Envoi du message:', { userId, message });
-      
       const response = await api.post('/ai-coach/message', {
-        userId,
-        message
+        message,
+        history: conversationHistory
       });
 
-      console.log('[Frontend] Réponse reçue:', response.data);
-      
       const aiResponse = response.data?.response;
-      
+
       if (!aiResponse) {
-        console.error('[Frontend] Réponse vide ou invalide:', response.data);
-        setError('Réponse vide de l\'AI');
+        setError('Réponse vide de l\'IA');
         setLoading(false);
         return null;
       }
-      
+
+      // Ajouter l'échange à l'historique de conversation
+      setConversationHistory(prev => [
+        ...prev,
+        { role: 'user', content: message },
+        { role: 'assistant', content: aiResponse }
+      ]);
+
       setLoading(false);
       return aiResponse;
-      
+
     } catch (err) {
-      console.error('[Frontend] Erreur complète:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        url: err.config?.url,
-        fullError: err
-      });
-      
-      let errorMessage = 'Erreur lors de l\'envoi du message';
-      
+      let erroouirMessage = 'Erreur lors de l\'envoi du message';
+
       if (err.response) {
-        // Erreur HTTP avec réponse
-        errorMessage = err.response.data?.error || `Erreur ${err.response.status}: ${err.response.statusText}`;
+        errorMessage = err.response.data?.error || `Erreur ${err.response.status}`;
       } else if (err.request) {
-        // Requête envoyée mais pas de réponse
         errorMessage = 'Le serveur ne répond pas. Vérifiez que le backend est démarré.';
       } else {
-        // Erreur lors de la configuration de la requête
         errorMessage = err.message || errorMessage;
       }
-      
+
       setError(errorMessage);
       setLoading(false);
       return null;
     }
   };
 
-  return { sendMessage, loading, error };
-};
+  const resetHistory = () => setConversationHistory([]);
 
+  return { sendMessage, loading, error, resetHistory };
+};

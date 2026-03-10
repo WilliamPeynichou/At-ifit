@@ -1,6 +1,71 @@
 const axios = require('axios');
 const logger = require('./logger');
 
+/**
+ * Helper centralisé pour tous les appels API Strava
+ * Gère : 401 zombie token, 429 rate limit (backoff), 5xx (retry)
+ */
+const stravaFetch = async (url, options = {}, { userId } = {}) => {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [2000, 4000, 8000];
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await axios({ url, ...options });
+      return response.data;
+    } catch (error) {
+      const status = error.response?.status;
+
+      // 401 — token révoqué externalement (zombie token)
+      if (status === 401) {
+        logger.warn('[StravaFetch] Token révoqué (401)', { userId, url });
+        if (userId) {
+          try {
+            const User = require('../models/User');
+            await User.update(
+              { stravaAccessToken: null, stravaRefreshToken: null, stravaExpiresAt: null },
+              { where: { id: userId } }
+            );
+            logger.info('[StravaFetch] Tokens Strava effacés en DB', { userId });
+          } catch (dbErr) {
+            logger.error('[StravaFetch] Erreur effacement tokens', { userId, error: dbErr.message });
+          }
+        }
+        const err = new Error('STRAVA_TOKEN_REVOKED');
+        err.code = 'STRAVA_TOKEN_REVOKED';
+        err.status = 401;
+        throw err;
+      }
+
+      // 429 — rate limit Strava (15 req/15min ou 600/jour)
+      if (status === 429) {
+        const retryAfter = parseInt(error.response?.headers['x-ratelimit-reset'] || '900', 10);
+        const waitMs = Math.min(retryAfter * 1000, 15 * 60 * 1000); // max 15min
+        logger.warn('[StravaFetch] Rate limit 429 — pause', { userId, url, waitMs });
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+
+      // 5xx — erreur Strava, retry avec backoff
+      if (status >= 500 && attempt < MAX_RETRIES) {
+        logger.warn('[StravaFetch] Erreur 5xx, retry', { userId, url, status, attempt });
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+        continue;
+      }
+
+      // Réseau ou autre erreur, retry si pas le dernier essai
+      if (!status && attempt < MAX_RETRIES) {
+        logger.warn('[StravaFetch] Erreur réseau, retry', { userId, url, attempt, error: error.message });
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+        continue;
+      }
+
+      logger.error('[StravaFetch] Échec définitif', { userId, url, status, error: error.message });
+      throw error;
+    }
+  }
+};
+
 const getStravaCredentials = (userId) => {
   return {
     clientId: process.env.STRAVA_CLIENT_ID,
@@ -48,130 +113,68 @@ const getValidStravaToken = async (user) => {
   }
 };
 
-const fetchStravaActivities = async (accessToken, params = {}) => {
-  try {
-    const response = await axios.get('https://www.strava.com/api/v3/athlete/activities', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      params: { per_page: 50, ...params }
-    });
-    
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch Strava activities', error);
-    throw error;
-  }
-};
+const fetchStravaActivities = (accessToken, params = {}) =>
+  stravaFetch('https://www.strava.com/api/v3/athlete/activities', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: { per_page: 100, ...params },
+  });
 
-const getAthlete = async (accessToken) => {
-  try {
-    const response = await axios.get('https://www.strava.com/api/v3/athlete', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch athlete', error);
-    throw error;
-  }
-};
+const getAthlete = (accessToken) =>
+  stravaFetch('https://www.strava.com/api/v3/athlete', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
-const getAthleteStats = async (accessToken, athleteId) => {
-  try {
-    const response = await axios.get(`https://www.strava.com/api/v3/athletes/${athleteId}/stats`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch athlete stats', error);
-    throw error;
-  }
-};
+const getAthleteStats = (accessToken, athleteId) =>
+  stravaFetch(`https://www.strava.com/api/v3/athletes/${athleteId}/stats`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
-const getAthleteZones = async (accessToken) => {
-  try {
-    const response = await axios.get('https://www.strava.com/api/v3/athlete/zones', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch athlete zones', error);
-    throw error;
-  }
-};
+const getAthleteZones = (accessToken) =>
+  stravaFetch('https://www.strava.com/api/v3/athlete/zones', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
-const getAthleteClubs = async (accessToken) => {
-  try {
-    const response = await axios.get('https://www.strava.com/api/v3/athlete/clubs', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch athlete clubs', error);
-    throw error;
-  }
-};
+const getAthleteClubs = (accessToken) =>
+  stravaFetch('https://www.strava.com/api/v3/athlete/clubs', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
-const getActivity = async (accessToken, activityId) => {
-  try {
-    const response = await axios.get(`https://www.strava.com/api/v3/activities/${activityId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch activity', error);
-    throw error;
-  }
-};
+const getActivity = (accessToken, activityId) =>
+  stravaFetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
-const getActivityStreams = async (accessToken, activityId, types = ['time', 'distance', 'latlng', 'altitude']) => {
-  try {
-    const response = await axios.get(`https://www.strava.com/api/v3/activities/${activityId}/streams`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      params: { keys: types.join(','), key_by_type: true }
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch activity streams', error);
-    throw error;
-  }
-};
+const getActivityStreams = (accessToken, activityId, types = ['time', 'distance', 'latlng', 'altitude']) =>
+  stravaFetch(`https://www.strava.com/api/v3/activities/${activityId}/streams`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: { keys: types.join(','), key_by_type: true },
+  });
 
-const getAthleteRoutes = async (accessToken, params = {}) => {
-  try {
-    const response = await axios.get('https://www.strava.com/api/v3/athletes/self/routes', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      params: { per_page: 30, ...params }
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch athlete routes', error);
-    throw error;
-  }
-};
+const getAthleteRoutes = (accessToken, params = {}) =>
+  stravaFetch('https://www.strava.com/api/v3/athletes/self/routes', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: { per_page: 30, ...params },
+  });
 
 const getAthleteGear = async (accessToken) => {
-  try {
-    const athlete = await getAthlete(accessToken);
-    const bikes = athlete.bikes || [];
-    const shoes = athlete.shoes || [];
-    return { bikes, shoes };
-  } catch (error) {
-    logger.error('Failed to fetch athlete gear', error);
-    throw error;
-  }
+  const athlete = await getAthlete(accessToken);
+  return { bikes: athlete.bikes || [], shoes: athlete.shoes || [] };
 };
 
-const getStarredSegments = async (accessToken, params = {}) => {
-  try {
-    const response = await axios.get('https://www.strava.com/api/v3/segments/starred', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      params: { per_page: 30, ...params }
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch starred segments', error);
-    throw error;
-  }
-};
+const getStarredSegments = (accessToken, params = {}) =>
+  stravaFetch('https://www.strava.com/api/v3/segments/starred', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: { per_page: 30, ...params },
+  });
 
 const revokeStravaToken = async (accessToken) => {
   try {
@@ -191,6 +194,7 @@ const revokeStravaToken = async (accessToken) => {
 };
 
 module.exports = {
+  stravaFetch,
   getStravaCredentials,
   getValidStravaToken,
   fetchStravaActivities,

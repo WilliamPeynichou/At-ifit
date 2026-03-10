@@ -1,132 +1,300 @@
+/*
+ * Chromatic Silence — Palette extraite du CyclistLoader pixel-art
+ *   #131014  corps / fond sombre
+ *   #0055ff  bleu électrique / accent unique
+ *   #e8e8e8  blanc cassé / texte
+ *
+ * Typographie :
+ *   Titres / métriques → Bebas Neue — condensé, impact
+ *   Corps / UI         → Outfit 400/500/600 — géométrique, distinctif
+ *   Données / labels   → GeistMono — précision technique
+ */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600&family=Geist+Mono:wght@300;400&display=swap');
+
 @import "tailwindcss";
 
 :root {
-  --neon-cyan: #00f3ff;
-  --neon-purple: #d946ef;
-  --neon-lime: #ccff00;
-  --bg-deep: #000000;
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-bg: rgba(255, 255, 255, 0.05);
+  --font-display: 'Bebas Neue', system-ui, sans-serif;
+  --font-body:    'Outfit', system-ui, sans-serif;
+  --font-mono:    'Geist Mono', 'GeistMono', monospace;
+
+  /* ── Fonds sombres ── */
+  --bg-primary:   #0b0a0d;
+  --bg-secondary: #131014;
+
+  /* ── Glass sombre ── */
+  --glass-white:       rgba(255, 255, 255, 0.90);
+  --glass-white-hover: rgba(255, 255, 255, 0.97);
+  --glass-border:       rgba(0, 85, 255, 0.12);
+  --glass-border-hover: rgba(0, 85, 255, 0.42);
+
+  /* ── Accent bleu — identique au loader ── */
+  --accent-blue:       #0055ff;
+  --accent-blue-light: rgba(0, 85, 255, 0.1);
+
+  /* ── Texte ── */
+  --text-primary:   #e8e8e8;
+  --text-secondary: rgba(232, 232, 232, 0.72);
+  --text-muted:     rgba(232, 232, 232, 0.48);
+
+  /* ── Ombres ── */
+  --shadow-sm:   0 2px 12px rgba(0, 0, 0, 0.5);
+  --shadow-md:   0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-blue: 0 8px 24px rgba(0, 85, 255, 0.22);
+
+  /* ── Clip-paths diagonaux ── */
+  --clip-card:  polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  --clip-panel: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
 }
 
 @layer base {
   body {
-    @apply bg-black text-slate-200 antialiased overflow-x-hidden;
-    background-image: 
-      radial-gradient(circle at 50% 0%, rgba(188, 19, 254, 0.15), transparent 40%),
-      radial-gradient(circle at 0% 100%, rgba(0, 243, 255, 0.1), transparent 30%);
+    @apply antialiased overflow-x-hidden;
+    background-color: var(--bg-primary);
+    /* Grille pixel 4px — écho du cyclist loader + radial bleu aux coins */
+    background-image:
+      radial-gradient(ellipse at 12% 8%,   rgba(0, 85, 255, 0.07), transparent 45%),
+      radial-gradient(ellipse at 88% 92%,  rgba(0, 85, 255, 0.05), transparent 45%),
+      linear-gradient(rgba(0, 85, 255, 0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 85, 255, 0.022) 1px, transparent 1px);
+    background-size: cover, cover, 4px 4px, 4px 4px;
     background-attachment: fixed;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    font-feature-settings: 'tnum' 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: 0.06em;
+    color: var(--text-primary);
   }
 }
 
 @layer components {
-  /* Glassmorphism */
+  /* ── Polices utilitaires ── */
+  .font-display { font-family: var(--font-display); letter-spacing: 0.06em; }
+  .font-body    { font-family: var(--font-body); }
+  .font-mono    { font-family: var(--font-mono); }
+
+  /* ── Glassmorphism Panel ── */
   .glass-panel {
-    @apply backdrop-blur-xl bg-white/5 border border-white/10 shadow-2xl;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    @apply backdrop-blur-xl;
+    background: var(--glass-white);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    clip-path: var(--clip-panel);
+    /* Texte sombre à l'intérieur — fond blanc */
+    --text-primary:   #131014;
+    --text-secondary: rgba(19, 16, 20, 0.65);
+    --text-muted:     rgba(19, 16, 20, 0.42);
+    color: #131014;
   }
 
+  /* ── Glassmorphism Card ── */
   .glass-card {
-    @apply backdrop-blur-md bg-white/5 border border-white/5 transition-all duration-500;
+    @apply backdrop-blur-md transition-all duration-300;
+    background: var(--glass-white);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-sm);
+    clip-path: var(--clip-card);
+    position: relative;
+    /* Texte sombre à l'intérieur — fond blanc */
+    --text-primary:   #131014;
+    --text-secondary: rgba(19, 16, 20, 0.65);
+    --text-muted:     rgba(19, 16, 20, 0.42);
+    color: #131014;
+  }
+
+  /* Accent diagonal bleu en haut-droite */
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 14px;
+    height: 14px;
+    background: var(--accent-blue);
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+    opacity: 0.35;
+    transition: opacity 0.3s;
+    pointer-events: none;
   }
 
   .glass-card:hover {
-    @apply bg-white/10 border-white/20 transform -translate-y-1;
-    box-shadow: 0 0 20px rgba(188, 19, 254, 0.2);
+    background: var(--glass-white-hover);
+    border-color: var(--glass-border-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-blue);
   }
 
-  /* Neon Text */
-  .text-neon-cyan {
-    color: var(--neon-cyan);
-    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+  .glass-card:hover::before {
+    opacity: 0.75;
   }
 
-  .text-neon-purple {
-    color: var(--neon-purple);
-    text-shadow: 0 0 10px rgba(188, 19, 254, 0.5);
+  /* ── Nav glass sombre ── */
+  .glass-nav {
+    @apply backdrop-blur-md;
+    background: rgba(11, 10, 13, 0.92);
+    border-bottom: 1px solid rgba(0, 85, 255, 0.1);
   }
 
-  /* Buttons */
+  /* ── Accent texts ── */
+  .text-accent      { color: var(--accent-blue); }
+  .text-neon-cyan   { color: var(--accent-blue); }
+  .text-neon-purple { color: var(--accent-blue); }
+
+  /* ── Bouton principal bleu ── */
+  .btn-primary {
+    @apply relative px-6 py-3 font-semibold text-white transition-all duration-200;
+    font-family: var(--font-display);
+    letter-spacing: 0.1em;
+    background: var(--accent-blue);
+    box-shadow: var(--shadow-blue);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #0044cc;
+    box-shadow: 0 12px 32px rgba(0, 85, 255, 0.35);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Backward compat */
   .btn-cyber {
-    @apply relative px-6 py-3 font-bold text-white transition-all duration-300 overflow-hidden rounded-lg;
-    background: linear-gradient(45deg, transparent 5%, var(--neon-purple) 5%);
-    box-shadow: 6px 0px 0px #00f3ff;
+    @apply relative px-6 py-3 font-semibold text-white transition-all duration-200 overflow-hidden;
+    font-family: var(--font-display);
+    letter-spacing: 0.1em;
+    background: var(--accent-blue);
+    box-shadow: var(--shadow-blue);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
   }
 
-  .btn-cyber:hover {
-    box-shadow: 6px 0px 0px #ccff00;
-    text-shadow: 0 0 8px rgba(255,255,255,0.8);
+  .btn-cyber:hover:not(:disabled) {
+    background: #0044cc;
+    box-shadow: 0 12px 32px rgba(0, 85, 255, 0.35);
+    transform: translateY(-1px);
   }
 
-  .btn-cyber::after {
-    content: '';
-    @apply absolute top-0 left-0 w-full h-full;
-    background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
-    transform: skewX(-20deg) translateX(-150%);
-    transition: 0.5s;
+  .btn-cyber:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
-  .btn-cyber:hover::after {
-    transform: skewX(-20deg) translateX(150%);
+  .btn-ghost {
+    @apply px-6 py-3 font-medium transition-all duration-200;
+    font-family: var(--font-body);
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   }
 
-  /* Inputs */
+  .btn-ghost:hover {
+    background: rgba(0, 85, 255, 0.06);
+    border-color: var(--glass-border-hover);
+    color: var(--text-primary);
+  }
+
+  /* ── Inputs sombres ── */
+  .input-clean {
+    @apply w-full px-4 py-3 outline-none transition-all duration-200;
+    background: rgba(19, 16, 20, 0.04);
+    border: 1px solid rgba(0, 85, 255, 0.14);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+
+  .input-clean::placeholder { color: rgba(19, 16, 20, 0.32); }
+
+  .input-clean:focus {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.12);
+    outline: none;
+  }
+
+  /* Backward compat */
   .input-cyber {
-    @apply w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white outline-none transition-all duration-300;
+    @apply w-full px-4 py-3 outline-none transition-all duration-200;
+    background: rgba(19, 16, 20, 0.04);
+    border: 1px solid rgba(0, 85, 255, 0.14);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   }
+
+  .input-cyber::placeholder { color: rgba(19, 16, 20, 0.32); }
 
   .input-cyber:focus {
-    @apply border-transparent bg-white/10;
-    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 0 1px var(--neon-cyan);
+    background: rgba(255, 255, 255, 0.95);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.12);
+    outline: none;
   }
 
-  /* Animations */
+  /* ── Select dark ── */
+  select.input-clean,
+  select.input-cyber {
+    color-scheme: dark;
+  }
+
+  /* ── Animations ── */
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+    50%       { transform: translateY(-8px); }
+  }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+
+  /* Goutte d'eau — bottom nav */
+  @keyframes dropFall {
+    0%   { transform: translateX(-50%) scaleY(0); opacity: 0; }
+    60%  { transform: translateX(-50%) scaleY(1.2); opacity: 1; }
+    100% { transform: translateX(-50%) scaleY(1); opacity: 1; }
+  }
+  @keyframes rippleOut {
+    0%   { transform: translateX(-50%) scaleX(0); opacity: 0.6; }
+    100% { transform: translateX(-50%) scaleX(1); opacity: 0; }
   }
 
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
+  .nav-drop { position: relative; }
+
+  .nav-drop::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    width: 6px;
+    height: 9px;
+    background: var(--accent-blue);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    transform: translateX(-50%) scaleY(0);
+    transform-origin: top center;
+    animation: dropFall 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
-  @keyframes pulse-glow {
-    0%, 100% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.05); }
+  .nav-drop::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    width: 28px;
+    height: 4px;
+    background: rgba(0, 85, 255, 0.3);
+    border-radius: 50%;
+    transform: translateX(-50%) scaleX(0);
+    animation: rippleOut 0.5s 0.15s ease-out forwards;
   }
 
-  .animate-pulse-glow {
-    animation: pulse-glow 3s ease-in-out infinite;
-  }
-  
   /* Custom Scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #050011; 
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #333; 
-    border-radius: 4px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--neon-purple); 
-  }
-}
-
-/* Particle Background Utilities */
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  background: white;
-  opacity: 0.3;
-  animation: float-particle 20s infinite linear;
-}
-
-@keyframes float-particle {
-  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-  50% { opacity: 0.5; }
-  100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0, 85, 255, 0.2); border-radius: 0; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 85, 255, 0.5); }
 }

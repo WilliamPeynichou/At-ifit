@@ -1,62 +1,138 @@
 import React from 'react';
-import { Activity, LogOut } from 'lucide-react';
+import { Activity, LogOut, Home, Flame, User, BarChart2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import Footer from './Footer';
+
+const NAV_ITEMS = [
+  { path: '/', label: 'Dashboard', icon: Home },
+  { path: '/strava-stats', label: 'Strava', icon: BarChart2 },
+  { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
+];
 
 const Layout = ({ children }) => {
   const { logout, user } = useAuth();
+  const location = useLocation();
+
+  const isActive = (path) => location.pathname === path;
 
   return (
     <div className="min-h-screen relative">
-
-      <header className="glass-panel sticky top-0 z-50 border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.location.href = '/'}>
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#00f3ff] blur-lg opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative bg-black/50 rounded-xl p-2 border border-[#00f3ff]/30">
-                <Activity className="w-6 h-6 text-[#00f3ff]" />
-              </div>
+      {/* Desktop header — hidden on mobile */}
+      <header className="glass-nav sticky top-0 z-50 hidden md:block">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="rounded-xl p-2" style={{ background: 'var(--accent-blue-light)', border: '1px solid rgba(0,85,255,0.15)' }}>
+              <Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
             </div>
-            <h1 className="text-2xl font-bold tracking-wider">
-              <span className="text-white">At</span>
-              <span className="text-neon-cyan"> ifit</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link to="/strava-stats" className="text-sm font-bold text-slate-300 hover:text-[#fc4c02] transition-colors flex items-center gap-2">
-              <Activity size={16} />
-              STRAVA
-            </Link>
-            <Link to="/kcal-calculator" className="text-sm font-bold text-slate-300 hover:text-blue-400 transition-colors flex items-center gap-2">
-              <Activity size={16} className="text-blue-400" />
-              KCAL
-            </Link>
-            <Link to="/stats-explanation" className="text-sm font-bold text-slate-300 hover:text-neon-cyan transition-colors flex items-center gap-2">
-              <Activity size={16} className="text-neon-cyan" />
-              HELP
-            </Link>
+            <span className="font-display text-xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}>
+              AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
+            </span>
+          </Link>
+
+          {/* Nav links */}
+          <nav className="flex items-center gap-1">
+            {NAV_ITEMS.map(({ path, label, icon: Icon }) => (
+              <Link
+                key={path}
+                to={path}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                style={{
+                  color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                  background: isActive(path) ? 'var(--accent-blue-light)' : 'transparent',
+                }}
+              >
+                <Icon size={15} />
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right side */}
+          <div className="flex items-center gap-3">
             {user && (
-              <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-                <div className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse"></div>
-                <span className="text-sm font-medium text-slate-300 tracking-wide">
-                  {user.pseudo || user.email}
-                </span>
+              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                {user.pseudo || user.email}
               </div>
             )}
             <button
               onClick={logout}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white hover:text-[#bc13fe] transition-colors duration-300"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
             >
               <LogOut className="w-4 h-4" />
-              LOGOUT
+              Déconnexion
             </button>
           </div>
         </div>
       </header>
-      <main className="w-full relative z-10">
+
+      {/* Mobile top bar */}
+      <div className="glass-nav sticky top-0 z-50 md:hidden">
+        <div className="px-4 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
+            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em', fontSize: '1rem' }}>
+              AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
+            </span>
+          </Link>
+          <button
+            onClick={logout}
+            className="p-2 rounded-lg"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main content — padding bottom on mobile for bottom nav */}
+      <main className="w-full relative z-10 pb-20 md:pb-0">
         {children}
       </main>
+
+      {/* Footer — desktop only (mobile uses bottom nav) */}
+      <div className="hidden md:block">
+        <Footer />
+      </div>
+
+      {/* Bottom nav — mobile only */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 flex items-center"
+        style={{
+          background: 'rgba(11, 10, 13, 0.94)',
+          backdropFilter: 'blur(12px)',
+          borderTop: '1px solid rgba(0, 85, 255, 0.1)',
+        }}
+      >
+        {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
+          const active = isActive(path);
+          return (
+            <Link
+              key={path}
+              to={path}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 relative ${active ? 'nav-drop' : ''}`}
+              style={{ color: active ? 'var(--accent-blue)' : 'var(--text-muted)' }}
+            >
+              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+              <span className="text-[10px] font-medium">{label}</span>
+            </Link>
+          );
+        })}
+        {/* Profile tab */}
+        <Link
+          to="/new-user-profile"
+          className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 relative ${isActive('/new-user-profile') ? 'nav-drop' : ''}`}
+          style={{ color: isActive('/new-user-profile') ? 'var(--accent-blue)' : 'var(--text-muted)' }}
+        >
+          <User size={20} strokeWidth={isActive('/new-user-profile') ? 2.5 : 1.8} />
+          <span className="text-[10px] font-medium">Profil</span>
+        </Link>
+      </nav>
     </div>
   );
 };

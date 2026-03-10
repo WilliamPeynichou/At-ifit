@@ -1,14 +1,20 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const sequelize = require('./database');
 const User = require('./models/User');
 const Weight = require('./models/Weight');
 const RefreshToken = require('./models/RefreshToken');
+const Activity = require('./models/Activity');
+const Goal = require('./models/Goal');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const stravaRoutes = require('./routes/strava');
 const aiCoachRoutes = require('./routes/aiCoach');
+const statsRoutes = require('./routes/stats');
+const stravaWebhookRoutes = require('./routes/stravaWebhook');
+const goalsRoutes = require('./routes/goals');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
 const { errorHandler, notFoundHandler, asyncHandler, sendSuccess, sendError } = require('./middleware/errorHandler');
@@ -16,7 +22,13 @@ const { updateUserIMCAndCalories } = require('./utils/userCalculations');
 const logger = require('./utils/logger');
 
 // Validate required environment variables
-const requiredEnvVars = ['JWT_SECRET', 'STRAVA_CLIENT_ID', 'STRAVA_CLIENT_SECRET', 'STRAVA_REDIRECT_URI'];
+const requiredEnvVars = [
+  'JWT_SECRET',
+  'STRAVA_CLIENT_ID',
+  'STRAVA_CLIENT_SECRET',
+  'STRAVA_REDIRECT_URI',
+  ...(process.env.NODE_ENV === 'production' ? ['ENCRYPTION_KEY'] : [])
+];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
@@ -43,9 +55,27 @@ if (missingEnvVars.length > 0) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Géré par le frontend Vite
+  crossOriginEmbedderPolicy: false
+}));
+
+// CORS — origines autorisées explicitement
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5174').split(',').map(o => o.trim());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Autoriser les requêtes sans origin (ex: curl, Postman en dev) ou origins connues
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin non autorisée — ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Limite la taille des payloads JSON
+app.use(express.json({ limit: '10kb' }));
 
 // Database Associations
 User.hasMany(Weight, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -53,6 +83,12 @@ Weight.belongsTo(User, { foreignKey: 'userId' });
 
 User.hasMany(RefreshToken, { foreignKey: 'userId', onDelete: 'CASCADE' });
 RefreshToken.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(Activity, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Activity.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(Goal, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Goal.belongsTo(User, { foreignKey: 'userId' });
 
 // Test Database Connection and Sync
 sequelize.authenticate()
@@ -82,6 +118,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/ai-coach', aiCoachRoutes);
+app.use('/api/stats', statsRoutes);
+// Webhook Strava — route publique (pas d'auth JWT, Strava appelle directement)
+app.use('/api/webhook', stravaWebhookRoutes);
+app.use('/api/goals', goalsRoutes);
 
 // Weight Routes
 app.get('/api/weight', 
@@ -166,6 +206,58 @@ app.delete('/api/weight/:id',
     sendSuccess(res, null, 'Weight deleted successfully');
   })
 );
+
+// ── GET /api/health — état du système ───────────────────────────────────────
+// En production : infos minimales (pas de détails internes)
+app.get('/api/health', asyncHandler(async (req, res) => {
+  const isProd = process.env.NODE_ENV === 'production';
+
+  if (isProd) {
+    // Vérification silencieuse DB uniquement
+    try {
+      await sequelize.authenticate();
+      return res.status(200).json({ status: 'ok' });
+    } catch {
+      return res.status(503).json({ status: 'degraded' });
+    }
+  }
+
+  // Dev/staging : détails complets
+  const status = { status: 'ok', timestamp: new Date().toISOString(), checks: {} };
+
+  try {
+    await sequelize.authenticate();
+    status.checks.database = 'ok';
+  } catch {
+    status.checks.database = 'error';
+    status.status = 'degraded';
+  }
+
+  const ollamaUrl = process.env.MISTRAL_API_URL || '';
+  if (ollamaUrl.includes('localhost') || ollamaUrl.includes('127.0.0.1')) {
+    try {
+      const base = ollamaUrl.replace('/v1/chat/completions', '');
+      const resp = await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3000) });
+      status.checks.ollama = resp.ok ? 'ok' : 'error';
+    } catch {
+      status.checks.ollama = 'unavailable';
+    }
+  } else {
+    status.checks.ollama = 'cloud';
+  }
+
+  try {
+    const [row] = await sequelize.query(
+      'SELECT MAX(lastSyncAt) AS lastSync FROM Users WHERE lastSyncAt IS NOT NULL',
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    status.checks.lastStravaSync = row?.lastSync || null;
+  } catch {
+    status.checks.lastStravaSync = null;
+  }
+
+  res.status(status.status === 'ok' ? 200 : 503).json(status);
+}));
 
 // 404 Handler
 app.use(notFoundHandler);
