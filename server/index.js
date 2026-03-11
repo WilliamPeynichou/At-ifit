@@ -96,7 +96,7 @@ sequelize.authenticate()
     logger.info('✅ Connexion à MySQL établie avec succès');
     // Sync tables without alter to avoid "too many keys" error
     // Use { force: false, alter: false } to only create tables if they don't exist
-    return sequelize.sync({ force: false, alter: false });
+    return sequelize.sync({ force: false, alter: true });
   })
   .then(() => {
     logger.info('✅ Base de données synchronisée avec succès');
