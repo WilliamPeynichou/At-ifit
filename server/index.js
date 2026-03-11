@@ -93,27 +93,23 @@ Activity.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(Goal, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Goal.belongsTo(User, { foreignKey: 'userId' });
 
-// Test Database Connection and Sync
+// Test Database Connection, Sync and Migrate
+const { runMigrations } = require('./scripts/migrate');
 sequelize.authenticate()
   .then(() => {
     logger.info('✅ Connexion à MySQL établie avec succès');
-    // Sync tables without alter to avoid "too many keys" error
-    // Use { force: false, alter: false } to only create tables if they don't exist
-    return sequelize.sync({ force: false, alter: true });
+    return sequelize.sync({ force: false, alter: false });
   })
   .then(() => {
-    logger.info('✅ Base de données synchronisée avec succès');
+    logger.info('✅ Tables synchronisées');
+    return runMigrations();
+  })
+  .then(() => {
+    logger.info('✅ Migrations appliquées');
   })
   .catch((error) => {
-    // Log full error for debugging
-    if (error.message.includes('Too many keys')) {
-      logger.warn('⚠️  Erreur "Too many keys" détectée - cela peut être ignoré si les tables existent déjà');
-      logger.warn('💡 Les tables existantes seront utilisées sans modification');
-    } else {
-      logger.error('❌ Erreur de connexion/synchronisation MySQL:', error.message);
-      logger.warn('⚠️  Le serveur continuera malgré l\'erreur de base de données');
-      logger.warn('💡 Vérifiez que MySQL est démarré et que la base de données existe');
-    }
+    logger.error('❌ Erreur de connexion/synchronisation MySQL:', error.message);
+    logger.warn('⚠️  Le serveur continuera malgré l\'erreur de base de données');
   });
 
 // Routes
