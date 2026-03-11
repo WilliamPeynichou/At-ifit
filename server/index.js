@@ -55,6 +55,9 @@ if (missingEnvVars.length > 0) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Railway (et tout reverse proxy) — fait confiance au X-Forwarded-For
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: false, // Géré par le frontend Vite
