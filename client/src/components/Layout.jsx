@@ -102,7 +102,7 @@ const Layout = ({ children }) => {
 
       {/* Bottom nav — mobile only */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 flex items-center"
+        className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 flex items-center dark-surface"
         style={{
           background: 'rgba(11, 10, 13, 0.94)',
           backdropFilter: 'blur(12px)',

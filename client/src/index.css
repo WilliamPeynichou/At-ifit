@@ -32,10 +32,15 @@
   --accent-blue:       #0055ff;
   --accent-blue-light: rgba(0, 85, 255, 0.1);
 
-  /* ── Texte ── */
-  --text-primary:   #e8e8e8;
-  --text-secondary: rgba(232, 232, 232, 0.72);
-  --text-muted:     rgba(232, 232, 232, 0.48);
+  /* ── Texte — dark par défaut (fond blanc/clair partout sauf nav) ── */
+  --text-primary:   #131014;
+  --text-secondary: rgba(19, 16, 20, 0.65);
+  --text-muted:     rgba(19, 16, 20, 0.42);
+
+  /* ── Texte clair — réservé aux surfaces sombres (glass-nav, bottom nav) ── */
+  --text-light-primary:   #e8e8e8;
+  --text-light-secondary: rgba(232, 232, 232, 0.72);
+  --text-light-muted:     rgba(232, 232, 232, 0.48);
 
   /* ── Ombres ── */
   --shadow-sm:   0 2px 12px rgba(0, 0, 0, 0.5);
@@ -71,6 +76,16 @@
   }
 }
 
+/* ── Surfaces sombres : réactivent le texte clair ── */
+@layer utilities {
+  .dark-surface {
+    --text-primary:   #e8e8e8;
+    --text-secondary: rgba(232, 232, 232, 0.72);
+    --text-muted:     rgba(232, 232, 232, 0.48);
+    color: #e8e8e8;
+  }
+}
+
 @layer components {
   /* ── Polices utilitaires ── */
   .font-display { font-family: var(--font-display); letter-spacing: 0.06em; }
@@ -84,11 +99,7 @@
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     clip-path: var(--clip-panel);
-    /* Texte sombre à l'intérieur — fond blanc */
-    --text-primary:   #131014;
-    --text-secondary: rgba(19, 16, 20, 0.65);
-    --text-muted:     rgba(19, 16, 20, 0.42);
-    color: #131014;
+    color: var(--text-primary);
   }
 
   /* ── Glassmorphism Card ── */
@@ -99,11 +110,7 @@
     box-shadow: var(--shadow-sm);
     clip-path: var(--clip-card);
     position: relative;
-    /* Texte sombre à l'intérieur — fond blanc */
-    --text-primary:   #131014;
-    --text-secondary: rgba(19, 16, 20, 0.65);
-    --text-muted:     rgba(19, 16, 20, 0.42);
-    color: #131014;
+    color: var(--text-primary);
   }
 
   /* Accent diagonal bleu en haut-droite */
@@ -132,11 +139,15 @@
     opacity: 0.75;
   }
 
-  /* ── Nav glass sombre ── */
+  /* ── Nav glass sombre — texte clair ── */
   .glass-nav {
     @apply backdrop-blur-md;
     background: rgba(11, 10, 13, 0.92);
     border-bottom: 1px solid rgba(0, 85, 255, 0.1);
+    --text-primary:   #e8e8e8;
+    --text-secondary: rgba(232, 232, 232, 0.72);
+    --text-muted:     rgba(232, 232, 232, 0.48);
+    color: #e8e8e8;
   }
 
   /* ── Accent texts ── */
@@ -239,10 +250,10 @@
     outline: none;
   }
 
-  /* ── Select dark ── */
+  /* ── Select — light scheme par défaut (fond blanc) ── */
   select.input-clean,
   select.input-cyber {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   /* ── Animations ── */
