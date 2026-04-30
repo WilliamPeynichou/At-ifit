@@ -92,6 +92,24 @@ const NewUserStrava = () => {
   };
 
   const initiateAuth = async () => {
+    // Ouvrir la fenêtre SYNCHRONIQUEMENT pendant le user gesture (clic)
+    // sinon les navigateurs bloquent la popup. L'URL est mise à jour après l'appel API.
+    const width = 600;
+    const height = 700;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+
+    stravaWindowRef.current = window.open(
+      'about:blank',
+      'stravaAuth',
+      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+    );
+
+    if (!stravaWindowRef.current) {
+      setError('Veuillez autoriser les popups pour cette page');
+      return;
+    }
+
     try {
       setError('');
       setCheckingConnection(true);
@@ -100,23 +118,8 @@ const NewUserStrava = () => {
       const response = await api.get('/strava/auth');
       const stravaOAuthUrl = response.data.url;
 
-      // Ouvrir dans un nouvel onglet
-      const width = 600;
-      const height = 700;
-      const left = (window.screen.width - width) / 2;
-      const top = (window.screen.height - height) / 2;
-
-      stravaWindowRef.current = window.open(
-        stravaOAuthUrl,
-        'stravaAuth',
-        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-      );
-
-      if (!stravaWindowRef.current) {
-        setError('Veuillez autoriser les popups pour cette page');
-        setCheckingConnection(false);
-        return;
-      }
+      // Rediriger la popup déjà ouverte vers l'URL OAuth Strava
+      stravaWindowRef.current.location.href = stravaOAuthUrl;
 
       // Le callback Strava enverra un message via postMessage
       // Le polling sert de backup si le message n'est pas reçu
@@ -173,6 +176,9 @@ const NewUserStrava = () => {
       console.error('Failed to initiate Strava auth:', err);
       setError(t('common.error') || 'Échec de l\'initialisation de la connexion Strava. Veuillez réessayer.');
       setCheckingConnection(false);
+      if (stravaWindowRef.current && !stravaWindowRef.current.closed) {
+        stravaWindowRef.current.close();
+      }
     }
   };
 
