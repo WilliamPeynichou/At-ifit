@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Bike, Zap, TrendingUp } from 'lucide-react';
 import api from '../../../api';
+import { useTemporal } from '../../../context/TemporalContext';
 
 const RIDE_TYPES = ['Ride', 'VirtualRide', 'EBikeRide', 'GravelRide'];
 
@@ -12,15 +13,17 @@ const formatDuration = (s) => {
 };
 
 const CyclingPerf = ({ activities }) => {
+  const { queryParams, fromISO, toISO } = useTemporal();
   const [powerCurve, setPowerCurve] = useState([]);
   const [loadingCurve, setLoadingCurve] = useState(true);
 
   useEffect(() => {
-    api.get('/strava/analytics/power-curve')
+    setLoadingCurve(true);
+    api.get(`/strava/analytics/power-curve${queryParams}`)
       .then(res => setPowerCurve(res.data || []))
       .catch(() => setPowerCurve([]))
       .finally(() => setLoadingCurve(false));
-  }, []);
+  }, [fromISO, toISO]);
 
   const data = useMemo(() => {
     if (!activities?.length) return null;

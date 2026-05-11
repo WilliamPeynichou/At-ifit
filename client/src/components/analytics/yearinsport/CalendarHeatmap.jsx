@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import HeatmapLib from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';
+import { useTemporal } from '../../../context/TemporalContext';
 
 const ACCENT = '#fc4c02';
 
@@ -15,10 +16,9 @@ const colorScale = (intensity) => {
 };
 
 const CalendarHeatmap = () => {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
+  const { from, to } = useTemporal();
   const [metric, setMetric] = useState('count'); // count | duration | distance | load
-  const { data, loading } = useAnalyticsSummary(year);
+  const { data, loading } = useAnalyticsSummary();
 
   const heatmapData = useMemo(() => {
     if (!data?.calendar) return [];
@@ -36,8 +36,9 @@ const CalendarHeatmap = () => {
     return Math.max(...heatmapData.map(d => d[metric] || 0));
   }, [heatmapData, metric]);
 
-  const startDate = new Date(`${year}-01-01`);
-  const endDate = new Date(`${year}-12-31`);
+  // Bornes : période sélectionnée OU déduites des données si "ALL"
+  const startDate = from || (heatmapData[0]?.date ? new Date(heatmapData[0].date) : new Date(new Date().getFullYear(), 0, 1));
+  const endDate = to || new Date();
 
   if (loading) {
     return (
@@ -58,41 +59,25 @@ const CalendarHeatmap = () => {
         .heatmap-wrap .react-calendar-heatmap .react-calendar-heatmap-small-text { font-size: 6px; }
       `}</style>
 
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {[currentYear, currentYear - 1, currentYear - 2].map(y => (
-            <button
-              key={y}
-              onClick={() => setYear(y)}
-              className="px-4 py-2 rounded-lg text-sm font-bold transition-all"
-              style={year === y ? {
-                background: ACCENT, color: '#fff', boxShadow: `0 0 20px ${ACCENT}50`,
-              } : {
-                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)',
-              }}
-            >{y}</button>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          {[
-            { id: 'count', label: 'Nombre' },
-            { id: 'duration', label: 'Durée' },
-            { id: 'distance', label: 'Distance' },
-            { id: 'load', label: 'Charge' },
-          ].map(m => (
-            <button
-              key={m.id}
-              onClick={() => setMetric(m.id)}
-              className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
-              style={metric === m.id ? {
-                background: 'rgba(252,76,2,0.2)', color: ACCENT, border: `1px solid ${ACCENT}60`,
-              } : {
-                background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--glass-border)',
-              }}
-            >{m.label}</button>
-          ))}
-        </div>
+      {/* Metric selector */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {[
+          { id: 'count', label: 'Nombre' },
+          { id: 'duration', label: 'Durée' },
+          { id: 'distance', label: 'Distance' },
+          { id: 'load', label: 'Charge' },
+        ].map(m => (
+          <button
+            key={m.id}
+            onClick={() => setMetric(m.id)}
+            className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+            style={metric === m.id ? {
+              background: 'rgba(252,76,2,0.2)', color: ACCENT, border: `1px solid ${ACCENT}60`,
+            } : {
+              background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--glass-border)',
+            }}
+          >{m.label}</button>
+        ))}
       </div>
 
       {/* Summary */}

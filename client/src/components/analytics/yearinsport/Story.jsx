@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import CountUp from 'react-countup';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';
+import { useTemporal } from '../../../context/TemporalContext';
 
 const StoryCard = ({ headline, value, unit, sub, gradient, footer }) => (
   <div
@@ -27,10 +28,11 @@ const StoryCard = ({ headline, value, unit, sub, gradient, footer }) => (
   </div>
 );
 
+const PRESET_LABELS = { '3M': 'derniers 3 mois', '6M': 'derniers 6 mois', '12M': 'derniers 12 mois', ALL: 'tout votre historique', CUSTOM: 'votre période' };
+
 const Story = () => {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
-  const { data, loading } = useAnalyticsSummary(year);
+  const { preset } = useTemporal();
+  const { data, loading } = useAnalyticsSummary();
 
   if (loading || !data?.totals) {
     return (
@@ -57,7 +59,7 @@ const Story = () => {
 
   const slides = [
     {
-      headline: `Votre année ${year}`,
+      headline: `Vos ${PRESET_LABELS[preset] || 'données'}`,
       value: t.count,
       unit: 'activités',
       sub: `${data.bySport.length} disciplines explorées`,
@@ -124,21 +126,6 @@ const Story = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
-        {[currentYear, currentYear - 1].map(y => (
-          <button
-            key={y}
-            onClick={() => setYear(y)}
-            className="px-4 py-2 rounded-lg text-sm font-bold transition-all"
-            style={year === y ? {
-              background: '#fc4c02', color: '#fff',
-            } : {
-              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)',
-            }}
-          >{y}</button>
-        ))}
-      </div>
-
       <div className="space-y-8 max-w-3xl mx-auto">
         {slides.map((s, i) => (
           <StoryCard key={i} {...s} />

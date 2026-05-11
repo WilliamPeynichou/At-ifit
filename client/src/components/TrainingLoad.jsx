@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import api from '../api';
 import { Zap } from 'lucide-react';
+import { useTemporal } from '../context/TemporalContext';
 
 const STATUS = {
   fresh:    { label: 'Frais', color: '#16a34a', bg: 'rgba(34,197,94,0.1)',  border: 'rgba(34,197,94,0.3)' },
@@ -37,15 +38,27 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const TrainingLoad = () => {
+  const { from, to, fromISO, toISO } = useTemporal();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/stats/training-load?weeks=10')
+    // Si plage temporelle définie, dérive weeks ; sinon défaut 10 semaines
+    let weeks = 10;
+    if (from && to) {
+      const diffMs = new Date(to) - new Date(from);
+      weeks = Math.max(2, Math.min(20, Math.round(diffMs / (7 * 24 * 3600 * 1000))));
+    }
+    setLoading(true);
+    const params = [];
+    params.push(`weeks=${weeks}`);
+    if (fromISO) params.push(`from=${encodeURIComponent(fromISO)}`);
+    if (toISO) params.push(`to=${encodeURIComponent(toISO)}`);
+    api.get(`/stats/training-load?${params.join('&')}`)
       .then(res => setData(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [fromISO, toISO]);
 
   const latest = data[data.length - 1];
   const currentStatus = latest ? STATUS[latest.status] : null;

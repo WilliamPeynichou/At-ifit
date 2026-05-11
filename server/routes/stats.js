@@ -17,7 +17,10 @@ router.get('/weight-performance', auth, asyncHandler(async (req, res) => {
 
 router.get('/training-load', auth, asyncHandler(async (req, res) => {
   const weeks = Math.min(parseInt(req.query.weeks || '10'), 20);
-  const data = await getTrainingLoad(req.userId, weeks);
+  const data = await getTrainingLoad(req.userId, weeks, {
+    from: req.query.from || null,
+    to: req.query.to || null,
+  });
   sendSuccess(res, data);
 }));
 
@@ -27,9 +30,15 @@ router.get('/gear-usage', auth, asyncHandler(async (req, res) => {
     return sendSuccess(res, []);
   }
 
-  // Agrège km par gearId depuis Activity table
+  // Agrège km par gearId depuis Activity table (filtré par période si fournie)
+  const whereGear = { userId: req.userId, gearId: { [Op.not]: null } };
+  if (req.query.from || req.query.to) {
+    whereGear.startDate = {};
+    if (req.query.from) whereGear.startDate[Op.gte] = new Date(req.query.from);
+    if (req.query.to) whereGear.startDate[Op.lte] = new Date(req.query.to);
+  }
   const usageRows = await Activity.findAll({
-    where: { userId: req.userId, gearId: { [Op.not]: null } },
+    where: whereGear,
     attributes: [
       'gearId',
       [fn('SUM', col('distance')), 'totalDistance'],

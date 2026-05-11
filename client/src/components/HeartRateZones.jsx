@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../api';
 import { Heart } from 'lucide-react';
+import { useTemporal } from '../context/TemporalContext';
 
 // Couleurs zones FC : Z1 bleu → Z5 rouge
 const ZONE_COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f97316', '#ef4444'];
@@ -18,14 +19,16 @@ const tooltipStyle = {
 };
 
 const HeartRateZones = () => {
+  const { queryParams, fromISO, toISO } = useTemporal();
   const [zones, setZones] = useState(null);
   const [distribution, setDistribution] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const sep = queryParams ? '&' : '?';
     Promise.all([
       api.get('/strava/athlete/zones').catch(() => null),
-      api.get('/strava/activities?limit=500').catch(() => null),
+      api.get(`/strava/activities${queryParams}${sep}limit=500`).catch(() => null),
     ]).then(([zonesRes, actsRes]) => {
       const hrZones = zonesRes?.data?.heart_rate?.zones;
       if (!hrZones || hrZones.length === 0) return;
@@ -59,7 +62,7 @@ const HeartRateZones = () => {
         })).filter(d => d.value > 0)
       );
     }).finally(() => setLoading(false));
-  }, []);
+  }, [fromISO, toISO]);
 
   const hasData = distribution.length > 0;
 

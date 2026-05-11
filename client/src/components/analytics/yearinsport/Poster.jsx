@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import { Download, Activity, Mountain, Flame, Clock } from 'lucide-react';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';
+import { useTemporal } from '../../../context/TemporalContext';
 
 const formatDuration = (s) => {
   if (!s) return '0h';
@@ -10,10 +11,11 @@ const formatDuration = (s) => {
   return `${h}h${String(m).padStart(2, '0')}`;
 };
 
+const PRESET_LABELS = { '3M': '3M', '6M': '6M', '12M': '12M', ALL: 'AllTime', CUSTOM: 'Custom' };
+
 const Poster = () => {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
-  const { data, loading } = useAnalyticsSummary(year);
+  const { preset, from, to } = useTemporal();
+  const { data, loading } = useAnalyticsSummary();
   const posterRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -28,7 +30,7 @@ const Poster = () => {
       });
       const url = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `atifit-yearinsport-${year}.png`;
+      link.download = `atifit-yearinsport-${PRESET_LABELS[preset] || 'period'}.png`;
       link.href = url;
       link.click();
     } catch (e) {
@@ -36,6 +38,16 @@ const Poster = () => {
     } finally {
       setDownloading(false);
     }
+  };
+
+  const periodLabel = () => {
+    if (preset === 'ALL') return 'ALL TIME';
+    if (preset === 'CUSTOM' && from && to) {
+      return `${from.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })} → ${to.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}`;
+    }
+    if (preset === '3M') return '3 MOIS';
+    if (preset === '6M') return '6 MOIS';
+    return '12 MOIS';
   };
 
   if (loading || !data?.totals) {
@@ -51,21 +63,7 @@ const Poster = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {[currentYear, currentYear - 1].map(y => (
-            <button
-              key={y}
-              onClick={() => setYear(y)}
-              className="px-4 py-2 rounded-lg text-sm font-bold transition-all"
-              style={year === y ? {
-                background: '#fc4c02', color: '#fff',
-              } : {
-                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)',
-              }}
-            >{y}</button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <button
           onClick={handleDownload}
           disabled={downloading}
@@ -102,8 +100,8 @@ const Poster = () => {
             <h1 className="text-white text-5xl font-black tracking-tighter mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               YEAR IN
             </h1>
-            <h1 className="text-white text-5xl font-black tracking-tighter mb-8" style={{ fontFamily: 'var(--font-display)' }}>
-              SPORT <span className="text-white/60">{year}</span>
+            <h1 className="text-white text-4xl font-black tracking-tighter mb-8" style={{ fontFamily: 'var(--font-display)' }}>
+              SPORT <span className="text-white/60 text-2xl">· {periodLabel()}</span>
             </h1>
 
             <div className="space-y-5 flex-1">

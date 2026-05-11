@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
+import { useTemporal } from '../context/TemporalContext';
 
-export default function useAnalyticsSummary(year = null) {
+export default function useAnalyticsSummary() {
+  const { queryParams, fromISO, toISO } = useTemporal();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,8 +13,7 @@ export default function useAnalyticsSummary(year = null) {
     setLoading(true);
     setError(null);
 
-    const params = year ? `?year=${year}` : '';
-    api.get(`/strava/analytics/summary${params}`)
+    api.get(`/strava/analytics/summary${queryParams}`)
       .then(res => {
         if (cancelled) return;
         setData(res.data);
@@ -26,7 +27,7 @@ export default function useAnalyticsSummary(year = null) {
       });
 
     return () => { cancelled = true; };
-  }, [year]);
+  }, [fromISO, toISO]);
 
   return { data, loading, error };
 }

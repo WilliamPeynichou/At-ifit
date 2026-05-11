@@ -262,16 +262,23 @@ function computeStreaks(activities) {
 }
 
 /**
+ * Construit le clause `where.startDate` à partir d'un range { from, to }
+ */
+function buildDateWhere(from, to) {
+  if (!from && !to) return null;
+  const clause = {};
+  if (from) clause[Op.gte] = new Date(from);
+  if (to) clause[Op.lte] = new Date(to);
+  return clause;
+}
+
+/**
  * Summary global pour la modale Year in Sport / KPIs
  */
-async function getAnalyticsSummary(userId, year = null) {
+async function getAnalyticsSummary(userId, { from = null, to = null } = {}) {
   const where = { userId };
-  if (year) {
-    where.startDate = {
-      [Op.gte]: new Date(`${year}-01-01`),
-      [Op.lt]: new Date(`${parseInt(year) + 1}-01-01`),
-    };
-  }
+  const dateClause = buildDateWhere(from, to);
+  if (dateClause) where.startDate = dateClause;
 
   const activities = await Activity.findAll({
     where,
@@ -281,7 +288,7 @@ async function getAnalyticsSummary(userId, year = null) {
 
   if (!activities.length) {
     return {
-      year,
+      from, to,
       totals: null,
       bySport: [],
       records: {},
@@ -338,12 +345,22 @@ async function getAnalyticsSummary(userId, year = null) {
 
   const records = computeRecords(activities);
   const streaks = computeStreaks(activities);
-  const calendar = buildCalendarHeatmap(activities, 365);
-  const formCurve = computeFormCurve(activities, 90);
+
+  // Calendar/FormCurve : si une plage temporelle est définie, on adapte la fenêtre
+  let calendarDays = 365;
+  let formDays = 90;
+  if (from && to) {
+    const diffDays = Math.round((new Date(to) - new Date(from)) / (86400 * 1000));
+    calendarDays = Math.max(30, diffDays);
+    formDays = Math.max(30, Math.min(diffDays, 180));
+  }
+
+  const calendar = buildCalendarHeatmap(activities, calendarDays);
+  const formCurve = computeFormCurve(activities, formDays);
   const bestEfforts = computeBestEfforts(activities);
 
   return {
-    year,
+    from, to,
     totals,
     bySport,
     records,
@@ -357,9 +374,13 @@ async function getAnalyticsSummary(userId, year = null) {
 /**
  * Time in zones cumulé (semaine ou mois) à partir de tous les streams
  */
-async function getTimeInZones(userId, { hrMax = 190, hrRest = 60 } = {}) {
+async function getTimeInZones(userId, { hrMax = 190, hrRest = 60, from = null, to = null } = {}) {
+  const where = { userId };
+  const dateClause = buildDateWhere(from, to);
+  if (dateClause) where.startDate = dateClause;
+
   const activities = await Activity.findAll({
-    where: { userId },
+    where,
     attributes: ['id', 'stravaId', 'startDate', 'type'],
     include: [{ model: ActivityStream, required: true }],
   });
@@ -403,11 +424,15 @@ function isoWeek(d) {
 /**
  * Mean-max power curve à partir des streams (vélo seulement)
  */
-async function getPowerCurve(userId) {
+async function getPowerCurve(userId, { from = null, to = null } = {}) {
+  const activityWhere = { userId, type: { [Op.in]: ['Ride', 'VirtualRide', 'EBikeRide'] } };
+  const dateClause = buildDateWhere(from, to);
+  if (dateClause) activityWhere.startDate = dateClause;
+
   const streams = await ActivityStream.findAll({
     include: [{
       model: Activity,
-      where: { userId, type: { [Op.in]: ['Ride', 'VirtualRide', 'EBikeRide'] } },
+      where: activityWhere,
       attributes: ['type', 'startDate'],
     }],
     attributes: ['watts', 'time'],
@@ -419,12 +444,16 @@ async function getPowerCurve(userId) {
 /**
  * Heatmap GPS : retourne toutes les polylines (encodées) du user
  */
-async function getGpsHeatmap(userId) {
+async function getGpsHeatmap(userId, { from = null, to = null } = {}) {
+  const where = {
+    userId,
+    summaryPolyline: { [Op.ne]: null }
+  };
+  const dateClause = buildDateWhere(from, to);
+  if (dateClause) where.startDate = dateClause;
+
   const activities = await Activity.findAll({
-    where: {
-      userId,
-      summaryPolyline: { [Op.ne]: null }
-    },
+    where,
     attributes: ['stravaId', 'type', 'startDate', 'summaryPolyline', 'distance', 'totalElevationGain'],
     order: [['startDate', 'DESC']],
   });

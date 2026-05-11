@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import CountUp from 'react-countup';
 import { MapPin, Clock, Mountain, Flame, Calendar, Flame as Streak, Heart, Trophy } from 'lucide-react';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';
@@ -37,16 +37,7 @@ const Tile = ({ icon, label, value, suffix = '', accent = '#fc4c02', sub = '', d
 );
 
 const HeroRecap = () => {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
-  const { data, loading, error } = useAnalyticsSummary(year);
-
-  const years = useMemo(() => {
-    const list = [];
-    for (let y = currentYear; y >= currentYear - 4; y--) list.push(y);
-    list.push('all');
-    return list;
-  }, [currentYear]);
+  const { data, loading, error } = useAnalyticsSummary();
 
   if (loading) {
     return (
@@ -60,7 +51,7 @@ const HeroRecap = () => {
   if (error || !data || !data.totals) {
     return (
       <div className="text-center py-20">
-        <p style={{ color: 'var(--text-muted)' }}>Pas de données pour {year === 'all' ? 'toutes les années' : year}.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Pas de données sur la période sélectionnée.</p>
       </div>
     );
   }
@@ -72,28 +63,6 @@ const HeroRecap = () => {
 
   return (
     <div className="space-y-6">
-      {/* Year selector */}
-      <div className="flex flex-wrap gap-2">
-        {years.map(y => (
-          <button
-            key={y}
-            onClick={() => setYear(y === 'all' ? null : y)}
-            className="px-4 py-2 rounded-lg text-sm font-bold tracking-wider transition-all"
-            style={(year === y || (y === 'all' && year === null)) ? {
-              background: '#fc4c02',
-              color: '#fff',
-              boxShadow: '0 0 20px #fc4c0250',
-            } : {
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--glass-border)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            {y === 'all' ? 'TOUT' : y}
-          </button>
-        ))}
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Tile
           icon={<MapPin size={18} />}

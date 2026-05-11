@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { AlertTriangle } from 'lucide-react';
+import { useTemporal } from '../context/TemporalContext';
 
 const CATEGORY_ICON = { bike: '🚴', shoe: '👟' };
 const CATEGORY_LABEL = { bike: 'Vélo', shoe: 'Chaussures' };
 
 const GearTracker = () => {
+  const { queryParams, fromISO, toISO } = useTemporal();
   const [gear, setGear] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/stats/gear-usage')
+    setLoading(true);
+    api.get(`/stats/gear-usage${queryParams}`)
       .then(res => setGear(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [fromISO, toISO]);
 
   if (loading) {
     return (

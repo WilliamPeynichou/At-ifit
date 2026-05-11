@@ -9,14 +9,23 @@ const Activity = require('../models/Activity');
  *
  * Retourne les 10 dernières semaines avec ces métriques
  */
-async function getTrainingLoad(userId, weeks = 10) {
-  const since = new Date();
-  since.setDate(since.getDate() - (weeks + 6) * 7); // 6 semaines de plus pour calculer CTL initial
+async function getTrainingLoad(userId, weeks = 10, { from = null, to = null } = {}) {
+  let since;
+  let until = new Date();
+  if (from) {
+    since = new Date(from);
+    // 6 semaines avant pour bootstrap CTL
+    since = new Date(since.getTime() - 6 * 7 * 86400 * 1000);
+  } else {
+    since = new Date();
+    since.setDate(since.getDate() - (weeks + 6) * 7);
+  }
+  if (to) until = new Date(to);
 
   const activities = await Activity.findAll({
     where: {
       userId,
-      startDate: { [Op.gte]: since },
+      startDate: { [Op.gte]: since, [Op.lte]: until },
     },
     attributes: ['startDate', 'sufferScore', 'movingTime', 'distance', 'type'],
     order: [['startDate', 'ASC']],
@@ -41,10 +50,10 @@ async function getTrainingLoad(userId, weeks = 10) {
   let atl = 0;
   let ctl = 0;
 
-  // Parcourt tous les jours depuis `since` jusqu'à aujourd'hui
+  // Parcourt tous les jours depuis `since` jusqu'à `until`
   const allDays = [];
   const cursor = new Date(since);
-  const today = new Date();
+  const today = new Date(until);
   today.setHours(23, 59, 59);
 
   while (cursor <= today) {

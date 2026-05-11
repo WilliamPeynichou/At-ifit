@@ -166,7 +166,7 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
     return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
   }
 
-  const { type, limit = 200, page = 1 } = req.query;
+  const { type, limit = 200, page = 1, from, to } = req.query;
 
   // Vérifie si la DB est vide pour cet utilisateur → sync initiale
   const count = await Activity.count({ where: { userId: req.userId } });
@@ -180,6 +180,11 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
   // Construit la requête Sequelize
   const where = { userId: req.userId };
   if (type) where.type = type;
+  if (from || to) {
+    where.startDate = {};
+    if (from) where.startDate[Op.gte] = new Date(from);
+    if (to) where.startDate[Op.lte] = new Date(to);
+  }
 
   const activities = await Activity.findAll({
     where,
@@ -426,9 +431,13 @@ router.post('/sync/enrich', auth, asyncHandler(async (req, res) => {
 }));
 
 // === Analytics endpoints (Phase 0.6) ===
+const parseRange = (req) => ({
+  from: req.query.from || null,
+  to: req.query.to || null,
+});
+
 router.get('/analytics/summary', auth, asyncHandler(async (req, res) => {
-  const { year } = req.query;
-  const summary = await getAnalyticsSummary(req.userId, year ? parseInt(year) : null);
+  const summary = await getAnalyticsSummary(req.userId, parseRange(req));
   sendSuccess(res, summary);
 }));
 
@@ -437,17 +446,18 @@ router.get('/analytics/zones', auth, asyncHandler(async (req, res) => {
   const data = await getTimeInZones(req.userId, {
     hrMax: hrMax ? parseInt(hrMax) : 190,
     hrRest: hrRest ? parseInt(hrRest) : 60,
+    ...parseRange(req),
   });
   sendSuccess(res, data);
 }));
 
 router.get('/analytics/power-curve', auth, asyncHandler(async (req, res) => {
-  const data = await getPowerCurve(req.userId);
+  const data = await getPowerCurve(req.userId, parseRange(req));
   sendSuccess(res, data);
 }));
 
 router.get('/analytics/gps-heatmap', auth, asyncHandler(async (req, res) => {
-  const data = await getGpsHeatmap(req.userId);
+  const data = await getGpsHeatmap(req.userId, parseRange(req));
   sendSuccess(res, data);
 }));
 

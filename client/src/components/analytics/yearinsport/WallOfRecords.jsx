@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Trophy, MapPin, Clock, Mountain, Gauge, Heart, Zap, ThumbsUp } from 'lucide-react';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';
 
@@ -41,9 +41,7 @@ const RecordCard = ({ icon, title, value, unit, activity, accent }) => (
 );
 
 const WallOfRecords = () => {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
-  const { data, loading } = useAnalyticsSummary(year);
+  const { data, loading } = useAnalyticsSummary();
 
   if (loading) {
     return (
@@ -57,21 +55,6 @@ const WallOfRecords = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
-        {[currentYear, currentYear - 1, null].map((y, i) => (
-          <button
-            key={i}
-            onClick={() => setYear(y)}
-            className="px-4 py-2 rounded-lg text-sm font-bold transition-all"
-            style={year === y ? {
-              background: '#fc4c02', color: '#fff',
-            } : {
-              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)',
-            }}
-          >{y || 'TOUT'}</button>
-        ))}
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <RecordCard
           icon={<MapPin size={18} />}

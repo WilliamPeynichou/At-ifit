@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api';
 import { Calendar } from 'lucide-react';
+import { useTemporal } from '../context/TemporalContext';
 
 const MONTHS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
@@ -31,6 +32,7 @@ const FilterBtn = ({ active, onClick, children }) => (
 );
 
 const YearlyProgress = () => {
+  const { queryParams, fromISO, toISO } = useTemporal();
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,14 +41,15 @@ const YearlyProgress = () => {
 
   useEffect(() => {
     setLoading(true);
+    const sep = queryParams ? '&' : '?';
     Promise.all([
       api.get('/strava/athlete/stats').catch(() => null),
-      api.get('/strava/activities?limit=500').catch(() => null),
+      api.get(`/strava/activities${queryParams}${sep}limit=500`).catch(() => null),
     ]).then(([statsRes, actRes]) => {
       if (statsRes?.data) setStats(statsRes.data);
       setActivities(Array.isArray(actRes?.data) ? actRes.data : []);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [fromISO, toISO]);
 
   // Années disponibles dans les données
   const availableYears = useMemo(() => {

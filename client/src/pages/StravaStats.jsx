@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { TemporalProvider, useTemporal } from '../context/TemporalContext';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend
 } from 'recharts';
@@ -13,11 +14,13 @@ import TrainingLoad from '../components/TrainingLoad';
 import GearTracker from '../components/GearTracker';
 import SportGoals from '../components/SportGoals';
 import DataAnalysisHub from '../components/analytics/DataAnalysisHub';
+import TemporalSelector from '../components/analytics/TemporalSelector';
 
-const StravaStats = () => {
+const StravaStatsContent = () => {
   const { loadUser } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { queryParams, fromISO, toISO } = useTemporal();
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState([]);
   const [globalProgression, setGlobalProgression] = useState([]);
@@ -29,13 +32,14 @@ const StravaStats = () => {
 
   useEffect(() => {
     fetchActivities();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromISO, toISO]);
 
   const fetchActivities = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get('/strava/activities');
+      const response = await api.get(`/strava/activities${queryParams}`);
 
       const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
 
@@ -314,6 +318,9 @@ const StravaStats = () => {
         </button>
       </div>
 
+      {/* Sélecteur temporel global */}
+      <TemporalSelector />
+
       {/* Filtres par type de sport */}
       {sportsList.length > 1 && (
         <div className="flex flex-wrap gap-2">
@@ -513,5 +520,11 @@ const StravaStats = () => {
     </div>
   );
 };
+
+const StravaStats = () => (
+  <TemporalProvider defaultPreset="12M">
+    <StravaStatsContent />
+  </TemporalProvider>
+);
 
 export default StravaStats;

@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import polyline from '@mapbox/polyline';
 import 'leaflet/dist/leaflet.css';
 import api from '../../../api';
+import { useTemporal } from '../../../context/TemporalContext';
 
 const TYPE_COLORS = {
   Run: '#fc4c02',
@@ -29,16 +30,18 @@ const FitBounds = ({ paths }) => {
 };
 
 const GPSHeatmap = () => {
+  const { queryParams, fromISO, toISO } = useTemporal();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    api.get('/strava/analytics/gps-heatmap')
+    setLoading(true);
+    api.get(`/strava/analytics/gps-heatmap${queryParams}`)
       .then(res => setActivities(res.data || []))
       .catch(() => setActivities([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [fromISO, toISO]);
 
   const paths = useMemo(() => {
     return activities
