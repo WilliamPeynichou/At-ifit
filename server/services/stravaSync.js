@@ -1,10 +1,28 @@
 const Activity = require('../models/Activity');
+const ActivityStream = require('../models/ActivityStream');
 const User = require('../models/User');
-const { getValidStravaToken, fetchStravaActivities } = require('../utils/stravaHelpers');
+const {
+  getValidStravaToken,
+  fetchStravaActivities,
+  getActivity,
+  getActivityStreams,
+} = require('../utils/stravaHelpers');
 const logger = require('../utils/logger');
 
+// Types de streams demandés à Strava (séries temporelles utiles pour l'analyse)
+const STREAM_TYPES = [
+  'time', 'distance', 'heartrate', 'watts', 'cadence',
+  'velocity_smooth', 'altitude', 'latlng', 'grade_smooth', 'temp', 'moving'
+];
+
+// Throttling : Strava limite à 100 req/15min et 1000/jour par token.
+// On laisse une marge en limitant à ~5 req/seconde max, soit < 100/15min après 1 sync complète.
+const REQ_DELAY_MS = 250;
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 /**
- * Mappe un objet activité Strava brut vers les colonnes de la table Activity
+ * Mappe un objet activité Strava (résumé) vers les colonnes de la table Activity
  */
 function mapStravaActivity(raw, userId) {
   return {
@@ -14,23 +32,82 @@ function mapStravaActivity(raw, userId) {
     name: raw.name || null,
     distance: raw.distance || 0,
     movingTime: raw.moving_time || 0,
+    elapsedTime: raw.elapsed_time || null,
     totalElevationGain: raw.total_elevation_gain || 0,
     averageSpeed: raw.average_speed || null,
+    maxSpeed: raw.max_speed || null,
     averageHeartrate: raw.average_heartrate || null,
     maxHeartrate: raw.max_heartrate || null,
+    hasHeartrate: raw.has_heartrate ?? null,
     calories: raw.calories || null,
+    kilojoules: raw.kilojoules || null,
     sufferScore: raw.suffer_score || null,
     averageWatts: raw.average_watts || null,
+    maxWatts: raw.max_watts || null,
+    weightedAverageWatts: raw.weighted_average_watts || null,
+    deviceWatts: raw.device_watts ?? null,
+    averageCadence: raw.average_cadence || null,
+    averageTemp: raw.average_temp ?? null,
     startDate: new Date(raw.start_date),
     commute: raw.commute || false,
     trainer: raw.trainer || false,
     gearId: raw.gear_id || null,
+    workoutType: raw.workout_type ?? null,
+    athleteCount: raw.athlete_count || null,
+    kudosCount: raw.kudos_count || null,
+    prCount: raw.pr_count || null,
+    achievementCount: raw.achievement_count || null,
+    summaryPolyline: raw.map?.summary_polyline || null,
+    startLatlng: Array.isArray(raw.start_latlng) && raw.start_latlng.length === 2 ? raw.start_latlng : null,
+    endLatlng: Array.isArray(raw.end_latlng) && raw.end_latlng.length === 2 ? raw.end_latlng : null,
+    locationCity: raw.location_city || null,
+    locationCountry: raw.location_country || null,
     raw: raw,
   };
 }
 
 /**
- * Upsert un tableau d'activités Strava en base locale
+ * Mappe le détail d'une activité (endpoint /activities/{id}) vers les colonnes enrichies
+ */
+function mapStravaActivityDetail(detail) {
+  return {
+    bestEfforts: detail.best_efforts || null,
+    splitsMetric: detail.splits_metric || null,
+    laps: detail.laps || null,
+    deviceName: detail.device_name || null,
+    detailFetchedAt: new Date(),
+  };
+}
+
+/**
+ * Mappe le résultat de /streams vers les colonnes de ActivityStream
+ * Strava retourne un objet { type: { data, original_size, resolution } } quand key_by_type=true
+ */
+function mapStravaStreams(streams, activityId, stravaId) {
+  const pick = (key) => streams?.[key]?.data || null;
+  const firstResolution = Object.values(streams || {})[0]?.resolution || null;
+
+  return {
+    activityId,
+    stravaId,
+    time: pick('time'),
+    distance: pick('distance'),
+    heartrate: pick('heartrate'),
+    watts: pick('watts'),
+    cadence: pick('cadence'),
+    velocitySmooth: pick('velocity_smooth'),
+    altitude: pick('altitude'),
+    latlng: pick('latlng'),
+    gradeSmooth: pick('grade_smooth'),
+    temp: pick('temp'),
+    moving: pick('moving'),
+    resolution: firstResolution,
+    fetchedAt: new Date(),
+  };
+}
+
+/**
+ * Upsert un tableau d'activités Strava (résumé seulement) en base locale
  */
 async function upsertActivities(activities, userId) {
   if (!activities || activities.length === 0) return 0;
@@ -49,10 +126,96 @@ async function upsertActivities(activities, userId) {
 }
 
 /**
- * Synchronise TOUTES les activités Strava d'un utilisateur (pagination complète)
- * Utilisé lors de la première connexion ou d'une re-sync manuelle
+ * Enrichit une activité avec son détail + streams (1 ou 2 appels API selon ce qui manque).
+ * Idempotent : ne refait pas l'appel si déjà fait.
  */
-async function syncUserActivities(userId) {
+async function enrichActivity(activity, accessToken, { force = false } = {}) {
+  let detailCalled = false;
+  let streamCalled = false;
+
+  // 1. Détail activité (best_efforts, splits, laps)
+  if (force || !activity.detailFetchedAt) {
+    try {
+      const detail = await getActivity(accessToken, activity.stravaId);
+      const updates = mapStravaActivityDetail(detail);
+      await Activity.update(updates, { where: { id: activity.id } });
+      detailCalled = true;
+      await sleep(REQ_DELAY_MS);
+    } catch (err) {
+      logger.warn('[StravaSync] Échec fetch détail', { stravaId: activity.stravaId, error: err.message });
+    }
+  }
+
+  // 2. Streams (séries temporelles)
+  if (force || !activity.streamFetchedAt) {
+    try {
+      const streams = await getActivityStreams(accessToken, activity.stravaId, STREAM_TYPES);
+      if (streams && Object.keys(streams).length > 0) {
+        const streamData = mapStravaStreams(streams, activity.id, activity.stravaId);
+        await ActivityStream.upsert(streamData, { conflictFields: ['activityId'] });
+        await Activity.update({ streamFetchedAt: new Date() }, { where: { id: activity.id } });
+      } else {
+        // Activité sans stream (manuelle ?) — on marque comme fetched pour ne pas retenter
+        await Activity.update({ streamFetchedAt: new Date() }, { where: { id: activity.id } });
+      }
+      streamCalled = true;
+      await sleep(REQ_DELAY_MS);
+    } catch (err) {
+      logger.warn('[StravaSync] Échec fetch streams', { stravaId: activity.stravaId, error: err.message });
+    }
+  }
+
+  return { detailCalled, streamCalled };
+}
+
+/**
+ * Enrichit en masse les activités d'un user qui n'ont pas encore de détail/stream.
+ * À appeler après la sync initiale OU pour rattraper le passif.
+ */
+async function enrichUserActivities(userId, { maxCount = 500, force = false } = {}) {
+  const user = await User.findByPk(userId);
+  if (!user || !user.stravaAccessToken) {
+    return { success: false, error: 'Strava non connecté' };
+  }
+
+  const accessToken = await getValidStravaToken(user);
+  if (!accessToken) return { success: false, error: 'Token Strava invalide' };
+
+  const where = { userId };
+  if (!force) {
+    // On enrichit en priorité ce qui n'a aucune des deux infos
+    const { Op } = require('sequelize');
+    where[Op.or] = [
+      { detailFetchedAt: null },
+      { streamFetchedAt: null }
+    ];
+  }
+
+  const activities = await Activity.findAll({
+    where,
+    order: [['startDate', 'DESC']],
+    limit: maxCount,
+  });
+
+  logger.info('[StravaSync] Début enrichissement', { userId, count: activities.length });
+
+  let totalDetail = 0;
+  let totalStream = 0;
+  for (const activity of activities) {
+    const { detailCalled, streamCalled } = await enrichActivity(activity, accessToken, { force });
+    if (detailCalled) totalDetail++;
+    if (streamCalled) totalStream++;
+  }
+
+  logger.info('[StravaSync] Enrichissement terminé', { userId, totalDetail, totalStream });
+  return { success: true, totalDetail, totalStream };
+}
+
+/**
+ * Synchronise TOUTES les activités Strava d'un utilisateur (pagination complète)
+ * Puis lance l'enrichissement détail + streams en background.
+ */
+async function syncUserActivities(userId, { enrich = true } = {}) {
   const user = await User.findByPk(userId);
   if (!user || !user.stravaAccessToken) {
     logger.warn('[StravaSync] User sans token Strava', { userId });
@@ -92,6 +255,14 @@ async function syncUserActivities(userId) {
 
   await User.update({ lastSyncAt: new Date() }, { where: { id: userId } });
   logger.info('[StravaSync] Sync complète terminée', { userId, totalSynced });
+
+  // Enrichissement détail + streams en background
+  if (enrich) {
+    enrichUserActivities(userId).catch(err =>
+      logger.error('[StravaSync] Erreur enrichissement post-sync', { userId, error: err.message })
+    );
+  }
+
   return { success: true, totalSynced };
 }
 
@@ -118,6 +289,11 @@ async function syncSince(userId, afterTimestamp) {
     const synced = await upsertActivities(activities || [], userId);
     if (synced > 0) {
       await User.update({ lastSyncAt: new Date() }, { where: { id: userId } });
+
+      // Enrichit immédiatement les nouvelles activités
+      enrichUserActivities(userId, { maxCount: synced }).catch(err =>
+        logger.error('[StravaSync] Erreur enrichissement post-syncSince', { userId, error: err.message })
+      );
     }
     logger.info('[StravaSync] Sync partielle terminée', { userId, afterTimestamp, synced });
     return { success: true, synced };
@@ -128,4 +304,13 @@ async function syncSince(userId, afterTimestamp) {
   }
 }
 
-module.exports = { syncUserActivities, syncSince, upsertActivities, mapStravaActivity };
+module.exports = {
+  syncUserActivities,
+  syncSince,
+  upsertActivities,
+  enrichActivity,
+  enrichUserActivities,
+  mapStravaActivity,
+  mapStravaActivityDetail,
+  mapStravaStreams,
+};

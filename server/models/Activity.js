@@ -26,12 +26,20 @@ const Activity = sequelize.define('Activity', {
     allowNull: true,
     defaultValue: 0,
   },
+  elapsedTime: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   totalElevationGain: {
     type: DataTypes.FLOAT,
     allowNull: true,
     defaultValue: 0,
   },
   averageSpeed: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  maxSpeed: {
     type: DataTypes.FLOAT,
     allowNull: true,
   },
@@ -43,8 +51,16 @@ const Activity = sequelize.define('Activity', {
     type: DataTypes.FLOAT,
     allowNull: true,
   },
+  hasHeartrate: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+  },
   calories: {
     type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  kilojoules: {
+    type: DataTypes.FLOAT,
     allowNull: true,
   },
   sufferScore: {
@@ -52,6 +68,26 @@ const Activity = sequelize.define('Activity', {
     allowNull: true,
   },
   averageWatts: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  maxWatts: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  weightedAverageWatts: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  deviceWatts: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+  },
+  averageCadence: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  averageTemp: {
     type: DataTypes.FLOAT,
     allowNull: true,
   },
@@ -71,6 +107,70 @@ const Activity = sequelize.define('Activity', {
   },
   gearId: {
     type: DataTypes.STRING,
+    allowNull: true,
+  },
+  workoutType: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  athleteCount: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  kudosCount: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  prCount: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  achievementCount: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  summaryPolyline: {
+    type: DataTypes.TEXT('long'),
+    allowNull: true,
+  },
+  startLatlng: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  endLatlng: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  locationCity: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  locationCountry: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  deviceName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  bestEfforts: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  splitsMetric: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  laps: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  detailFetchedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  streamFetchedAt: {
+    type: DataTypes.DATE,
     allowNull: true,
   },
   raw: {

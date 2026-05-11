@@ -7,6 +7,7 @@ const User = require('./models/User');
 const Weight = require('./models/Weight');
 const RefreshToken = require('./models/RefreshToken');
 const Activity = require('./models/Activity');
+const ActivityStream = require('./models/ActivityStream');
 const Goal = require('./models/Goal');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
@@ -89,6 +90,9 @@ RefreshToken.belongsTo(User, { foreignKey: 'userId' });
 
 User.hasMany(Activity, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Activity.belongsTo(User, { foreignKey: 'userId' });
+
+Activity.hasOne(ActivityStream, { foreignKey: 'activityId', onDelete: 'CASCADE' });
+ActivityStream.belongsTo(Activity, { foreignKey: 'activityId' });
 
 User.hasMany(Goal, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Goal.belongsTo(User, { foreignKey: 'userId' });
