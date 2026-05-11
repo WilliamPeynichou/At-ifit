@@ -12,6 +12,7 @@ import HeartRateZones from '../components/HeartRateZones';
 import TrainingLoad from '../components/TrainingLoad';
 import GearTracker from '../components/GearTracker';
 import SportGoals from '../components/SportGoals';
+import DataAnalysisHub from '../components/analytics/DataAnalysisHub';
 
 const StravaStats = () => {
   const { loadUser } = useAuth();
@@ -504,6 +505,9 @@ const StravaStats = () => {
 
       {/* Objectifs sportifs */}
       <SportGoals />
+
+      {/* Hub Data Analyse - 4 modales */}
+      <DataAnalysisHub activities={activities} />
 
       </div>
     </div>
