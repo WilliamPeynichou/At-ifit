@@ -120,6 +120,24 @@ async function runMigrations() {
     console.log('  ✓ Table ActivityStreams existe déjà');
   }
 
+  // ── Index pour l'enrichissement (B.3) ──────────────────────────────────────
+  // Requêtes typiques : WHERE userId = ? AND (detailFetchedAt IS NULL OR streamFetchedAt IS NULL)
+  for (const [name, def] of [
+    ['Activities_userId_detailFetched', '(`userId`, `detailFetchedAt`)'],
+    ['Activities_userId_streamFetched', '(`userId`, `streamFetchedAt`)'],
+  ]) {
+    if (!(await indexExists('Activities', name))) {
+      try {
+        await sequelize.query(`ALTER TABLE \`Activities\` ADD INDEX \`${name}\` ${def}`);
+        console.log(`  ✅ Index ${name} ajouté`);
+      } catch (e) {
+        console.warn(`  ⚠️  Index ${name}:`, e.message);
+      }
+    } else {
+      console.log(`  ✓ Index ${name} existe déjà`);
+    }
+  }
+
   console.log('✅ Migration terminée');
 }
 

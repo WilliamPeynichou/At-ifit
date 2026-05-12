@@ -1,8 +1,9 @@
 const Activity = require('../models/Activity');
 const User = require('../models/User');
-const { upsertActivities } = require('./stravaSync');
+const { upsertActivities, enrichActivityByStravaId } = require('./stravaSync');
 const { getValidStravaToken, getActivity } = require('../utils/stravaHelpers');
 const logger = require('../utils/logger');
+const cache = require('../utils/memoryCache');
 
 /**
  * Traite un événement Strava webhook
@@ -37,6 +38,24 @@ async function handleStravaEvent(event) {
       if (raw) {
         await upsertActivities([raw], userId);
         logger.info('[Webhook] Activité upsertée', { userId, activityId: object_id, aspect_type });
+
+        // Auto-enrichissement (détail + streams) en background
+        // — pour les `create`, l'upsert ci-dessus utilise déjà le détail, mais il manque les streams.
+        // — pour les `update`, on re-fetch détail + streams au cas où.
+        enrichActivityByStravaId(object_id, userId)
+          .then((result) => {
+            if (result) {
+              logger.info('[Webhook] Auto-enrichissement OK', {
+                userId, activityId: object_id, detail: result.detailCalled, stream: result.streamCalled,
+              });
+            }
+          })
+          .catch(err =>
+            logger.error('[Webhook] Erreur auto-enrichissement', { userId, object_id, error: err.message })
+          );
+
+        // Invalide le cache des stats athlète : nouvelle activité = totaux à recalculer
+        cache.delete(`athlete-stats:${userId}`);
       }
     } catch (err) {
       logger.error('[Webhook] Erreur sync activité', { userId, object_id, error: err.message });
@@ -45,6 +64,7 @@ async function handleStravaEvent(event) {
 
   if (aspect_type === 'delete') {
     const deleted = await Activity.destroy({ where: { stravaId: object_id, userId } });
+    cache.delete(`athlete-stats:${userId}`);
     logger.info('[Webhook] Activité supprimée', { userId, object_id, deleted });
   }
 }

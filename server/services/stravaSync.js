@@ -15,9 +15,14 @@ const STREAM_TYPES = [
   'velocity_smooth', 'altitude', 'latlng', 'grade_smooth', 'temp', 'moving'
 ];
 
-// Throttling : Strava limite à 100 req/15min et 1000/jour par token.
-// On laisse une marge en limitant à ~5 req/seconde max, soit < 100/15min après 1 sync complète.
-const REQ_DELAY_MS = 250;
+// Parallélisation contrôlée : batchs de N requêtes en parallèle avec pause entre batchs.
+// Strava limite à 100 req/15min. Batch de 5 + pause 1s = max 5 req/s = 300/min — on dépasserait
+// le rate limit. Avec pause 4s entre batchs : 5 req/4s = 75/min = OK pour 15min cumulés.
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 4000;
+
+// Mutex de sync : empêche les syncs parallèles pour un même user
+const syncInFlight = new Map(); // userId -> Promise
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -128,6 +133,7 @@ async function upsertActivities(activities, userId) {
 /**
  * Enrichit une activité avec son détail + streams (1 ou 2 appels API selon ce qui manque).
  * Idempotent : ne refait pas l'appel si déjà fait.
+ * Pas de sleep interne — c'est le caller (enrichUserActivities) qui gère le throttling par batchs.
  */
 async function enrichActivity(activity, accessToken, { force = false } = {}) {
   let detailCalled = false;
@@ -140,7 +146,6 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
       const updates = mapStravaActivityDetail(detail);
       await Activity.update(updates, { where: { id: activity.id } });
       detailCalled = true;
-      await sleep(REQ_DELAY_MS);
     } catch (err) {
       logger.warn('[StravaSync] Échec fetch détail', { stravaId: activity.stravaId, error: err.message });
     }
@@ -159,13 +164,32 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
         await Activity.update({ streamFetchedAt: new Date() }, { where: { id: activity.id } });
       }
       streamCalled = true;
-      await sleep(REQ_DELAY_MS);
     } catch (err) {
       logger.warn('[StravaSync] Échec fetch streams', { stravaId: activity.stravaId, error: err.message });
     }
   }
 
   return { detailCalled, streamCalled };
+}
+
+/**
+ * Enrichit une activité par son stravaId (utilisé par le webhook).
+ * Récupère le token + l'Activity row en DB, puis appelle enrichActivity.
+ */
+async function enrichActivityByStravaId(stravaId, userId) {
+  const activity = await Activity.findOne({ where: { stravaId, userId } });
+  if (!activity) {
+    logger.warn('[StravaSync] enrichActivityByStravaId : activité introuvable', { stravaId, userId });
+    return null;
+  }
+
+  const user = await User.findByPk(userId);
+  if (!user || !user.stravaAccessToken) return null;
+
+  const accessToken = await getValidStravaToken(user);
+  if (!accessToken) return null;
+
+  return enrichActivity(activity, accessToken);
 }
 
 /**
@@ -197,14 +221,29 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
     limit: maxCount,
   });
 
-  logger.info('[StravaSync] Début enrichissement', { userId, count: activities.length });
+  logger.info('[StravaSync] Début enrichissement', { userId, count: activities.length, batchSize: BATCH_SIZE });
 
   let totalDetail = 0;
   let totalStream = 0;
-  for (const activity of activities) {
-    const { detailCalled, streamCalled } = await enrichActivity(activity, accessToken, { force });
-    if (detailCalled) totalDetail++;
-    if (streamCalled) totalStream++;
+
+  // Découpe en batchs et traite chaque batch en parallèle
+  for (let i = 0; i < activities.length; i += BATCH_SIZE) {
+    const batch = activities.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(activity => enrichActivity(activity, accessToken, { force }))
+    );
+
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        if (r.value.detailCalled) totalDetail++;
+        if (r.value.streamCalled) totalStream++;
+      }
+    }
+
+    // Pause entre batchs pour respecter rate limit (sauf après le dernier)
+    if (i + BATCH_SIZE < activities.length) {
+      await sleep(BATCH_DELAY_MS);
+    }
   }
 
   logger.info('[StravaSync] Enrichissement terminé', { userId, totalDetail, totalStream });
@@ -214,8 +253,27 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
 /**
  * Synchronise TOUTES les activités Strava d'un utilisateur (pagination complète)
  * Puis lance l'enrichissement détail + streams en background.
+ *
+ * Mutex : si une sync est déjà en cours pour ce user, retourne la promise existante
+ * au lieu d'en lancer une seconde. Évite les doubles appels Strava en cas de double-clic
+ * ou de navigation rapide.
  */
 async function syncUserActivities(userId, { enrich = true } = {}) {
+  // Mutex : si déjà en cours, retourne la promise existante
+  if (syncInFlight.has(userId)) {
+    logger.info('[StravaSync] Sync déjà en cours, retour de la promise existante', { userId });
+    return syncInFlight.get(userId);
+  }
+
+  const promise = _doSync(userId, { enrich }).finally(() => {
+    syncInFlight.delete(userId);
+  });
+
+  syncInFlight.set(userId, promise);
+  return promise;
+}
+
+async function _doSync(userId, { enrich = true } = {}) {
   const user = await User.findByPk(userId);
   if (!user || !user.stravaAccessToken) {
     logger.warn('[StravaSync] User sans token Strava', { userId });
@@ -309,6 +367,7 @@ module.exports = {
   syncSince,
   upsertActivities,
   enrichActivity,
+  enrichActivityByStravaId,
   enrichUserActivities,
   mapStravaActivity,
   mapStravaActivityDetail,

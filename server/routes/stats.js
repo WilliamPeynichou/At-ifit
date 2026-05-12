@@ -8,6 +8,7 @@ const { Op, fn, col, literal } = require('sequelize');
 const Activity = require('../models/Activity');
 const { getValidStravaToken, getAthleteGear } = require('../utils/stravaHelpers');
 const User = require('../models/User');
+const cache = require('../utils/memoryCache');
 
 router.get('/weight-performance', auth, asyncHandler(async (req, res) => {
   const weeks = Math.min(parseInt(req.query.weeks || '12'), 52);
@@ -50,12 +51,19 @@ router.get('/gear-usage', auth, asyncHandler(async (req, res) => {
 
   if (usageRows.length === 0) return sendSuccess(res, []);
 
-  // Récupère les noms d'équipement depuis Strava
+  // Récupère les noms d'équipement depuis Strava (avec cache 1h)
   let gearDetails = {};
   try {
-    const accessToken = await getValidStravaToken(user);
-    if (accessToken) {
-      const gear = await getAthleteGear(accessToken);
+    const gear = await cache.getOrSet(
+      `athlete-gear:${req.userId}`,
+      async () => {
+        const accessToken = await getValidStravaToken(user);
+        if (!accessToken) throw new Error('No token');
+        return getAthleteGear(accessToken);
+      },
+      3600
+    );
+    if (gear) {
       [...(gear.bikes || []), ...(gear.shoes || [])].forEach(g => {
         gearDetails[g.id] = { name: g.name, brand: g.brand_name, category: g.bikes ? 'bike' : 'shoe' };
       });
