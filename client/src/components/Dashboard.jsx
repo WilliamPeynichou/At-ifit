@@ -15,7 +15,6 @@ import { Link } from 'react-router-dom';
 const Dashboard = () => {
   const { t } = useLanguage();
   const [weights, setWeights] = useState([]);
-  const [stravaActivities, setStravaActivities] = useState([]);
   const [combinedData, setCombinedData] = useState([]);
   const [intensityData, setIntensityData] = useState([]);
   const [metric, setMetric] = useState('distance');
@@ -47,7 +46,6 @@ const Dashboard = () => {
       let activities = [];
       if (stravaRes.status === 'fulfilled') {
         activities = stravaRes.value.data;
-        setStravaActivities(activities);
       }
 
       if (weightsRes.status === 'fulfilled') {

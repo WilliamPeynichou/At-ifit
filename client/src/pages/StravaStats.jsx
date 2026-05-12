@@ -169,14 +169,6 @@ const StravaStatsContent = () => {
     setSportProgression(sportProg);
   };
 
-  const formatDuration = (seconds) => {
-    if (!seconds) return '0s';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`;
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -200,6 +192,7 @@ const StravaStatsContent = () => {
       }
       navigate('/strava-connect');
     } catch (err) {
+      console.error('Strava disconnect error:', err);
       setError(t('stravaStats.disconnectError'));
     } finally {
       setDisconnecting(false);
@@ -216,7 +209,7 @@ const StravaStatsContent = () => {
       const point = { date: entry.date, fullDate: entry.fullDate };
 
       const sport = entry.type;
-      if (sportCurrentDist.hasOwnProperty(sport)) {
+      if (Object.prototype.hasOwnProperty.call(sportCurrentDist, sport)) {
         sportCurrentDist[sport] = parseFloat(sportCurrentDist[sport]) + parseFloat(entry.distance);
       }
 
@@ -232,11 +225,6 @@ const StravaStatsContent = () => {
   const sportChartData = getSportChartData();
   const sportsList = Object.keys(sportProgression);
   const colors = ['#0055ff', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
-
-  // Activités filtrées selon le sport sélectionné
-  const filteredActivities = selectedSport === 'All'
-    ? activities
-    : activities.filter(a => a.type === selectedSport);
 
   const filteredGlobalProgression = selectedSport === 'All'
     ? globalProgression
@@ -317,6 +305,9 @@ const StravaStatsContent = () => {
           {disconnecting ? t('stravaStats.disconnecting') : t('stravaStats.disconnect')}
         </button>
       </div>
+
+      {/* Hub Data Analyse - 4 modales */}
+      <DataAnalysisHub activities={activities} />
 
       {/* Sélecteur temporel global */}
       <TemporalSelector />
@@ -512,9 +503,6 @@ const StravaStatsContent = () => {
 
       {/* Objectifs sportifs */}
       <SportGoals />
-
-      {/* Hub Data Analyse - 4 modales */}
-      <DataAnalysisHub activities={activities} />
 
       </div>
     </div>

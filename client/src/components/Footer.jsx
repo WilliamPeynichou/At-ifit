@@ -7,6 +7,7 @@ const Footer = () => {
 
   return (
     <footer
+      className="dark-surface"
       style={{
         background: 'rgba(11,10,13,0.94)',
         backdropFilter: 'blur(12px)',
@@ -37,6 +38,7 @@ const Footer = () => {
             {[
               { to: '/', label: 'Dashboard' },
               { to: '/strava-stats', label: 'Strava' },
+              { to: '/cyclisme', label: 'Cyclisme' },
               { to: '/kcal-calculator', label: 'Calories' },
               { to: '/stats-explanation', label: 'Guide' },
             ].map(({ to, label }) => (

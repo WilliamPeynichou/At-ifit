@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { countryNames, countryToLanguage } from '../i18n/translations';
 import api from '../api';
-import { User, Target, ArrowRight } from 'lucide-react';
+import { Bike, User, Target, ArrowRight } from 'lucide-react';
 
 const NewUserProfile = () => {
   const { user, loadUser } = useAuth();
@@ -17,6 +17,9 @@ const NewUserProfile = () => {
     gender: 'male',
     targetWeight: '',
     country: user?.country || 'FR',
+    restHeartrate: '',
+    bikeType: '',
+    cyclingGoal: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +30,9 @@ const NewUserProfile = () => {
         ...prev,
         pseudo: user.pseudo || '',
         country: user.country || 'FR',
+        restHeartrate: user.restHeartrate || '',
+        bikeType: user.bikeType || '',
+        cyclingGoal: user.cyclingGoal || '',
       }));
     }
   }, [user]);
@@ -170,6 +176,77 @@ const NewUserProfile = () => {
                 <option value="TR" style={{ background: 'var(--bg-secondary)' }}>{countryNames.TR[language] || countryNames.TR.EN}</option>
                 <option value="IT" style={{ background: 'var(--bg-secondary)' }}>{countryNames.IT[language] || countryNames.IT.EN}</option>
               </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="rounded-xl p-6 relative overflow-hidden" style={{ background: 'rgba(0,85,255,0.06)', border: '2px solid var(--glass-border)' }}>
+                <div className="absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full" style={{ background: 'rgba(0,85,255,0.12)' }}></div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg" style={{ background: 'rgba(0,85,255,0.1)', border: '1px solid var(--glass-border)' }}>
+                      <Bike className="w-6 h-6" style={{ color: 'var(--accent-blue)' }} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-neon-cyan mb-1 uppercase tracking-widest">
+                        Profil cycliste
+                      </label>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        Optionnel au départ. Ces données pourront être mises à jour automatiquement quand Strava aura assez d'historique.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">FC repos</label>
+                      <input
+                        type="number"
+                        name="restHeartrate"
+                        value={formData.restHeartrate}
+                        onChange={handleChange}
+                        className="input-cyber w-full"
+                        min="25"
+                        max="120"
+                        placeholder="55"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Pratique</label>
+                      <select
+                        name="bikeType"
+                        value={formData.bikeType}
+                        onChange={handleChange}
+                        className="input-cyber w-full"
+                      >
+                        <option value="" style={{ background: 'var(--bg-secondary)' }}>A préciser plus tard</option>
+                        <option value="road" style={{ background: 'var(--bg-secondary)' }}>Route</option>
+                        <option value="gravel" style={{ background: 'var(--bg-secondary)' }}>Gravel</option>
+                        <option value="indoor" style={{ background: 'var(--bg-secondary)' }}>Home trainer</option>
+                        <option value="commute" style={{ background: 'var(--bg-secondary)' }}>Velotaf</option>
+                        <option value="mixed" style={{ background: 'var(--bg-secondary)' }}>Mixte</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Objectif</label>
+                      <select
+                        name="cyclingGoal"
+                        value={formData.cyclingGoal}
+                        onChange={handleChange}
+                        className="input-cyber w-full"
+                      >
+                        <option value="" style={{ background: 'var(--bg-secondary)' }}>A préciser plus tard</option>
+                        <option value="endurance" style={{ background: 'var(--bg-secondary)' }}>Endurance</option>
+                        <option value="ftp" style={{ background: 'var(--bg-secondary)' }}>Augmenter la FTP</option>
+                        <option value="climb" style={{ background: 'var(--bg-secondary)' }}>Grimpe</option>
+                        <option value="race" style={{ background: 'var(--bg-secondary)' }}>Course</option>
+                        <option value="health" style={{ background: 'var(--bg-secondary)' }}>Santé</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Target Weight - Highlighted */}

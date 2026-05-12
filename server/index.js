@@ -16,6 +16,7 @@ const aiCoachRoutes = require('./routes/aiCoach');
 const statsRoutes = require('./routes/stats');
 const stravaWebhookRoutes = require('./routes/stravaWebhook');
 const goalsRoutes = require('./routes/goals');
+const cyclingRoutes = require('./routes/cycling');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
 const { errorHandler, notFoundHandler, asyncHandler, sendSuccess, sendError } = require('./middleware/errorHandler');
@@ -74,7 +75,7 @@ app.use(cors({
     callback(new Error(`CORS: origin non autorisée — ${origin}`));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -122,6 +123,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/ai-coach', aiCoachRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/cycling', cyclingRoutes);
 // Webhook Strava — route publique (pas d'auth JWT, Strava appelle directement)
 app.use('/api/webhook', stravaWebhookRoutes);
 app.use('/api/goals', goalsRoutes);
@@ -279,4 +281,3 @@ process.on('SIGTERM', async () => {
   await sequelize.close();
   process.exit(0);
 });
-

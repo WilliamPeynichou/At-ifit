@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import CountUp from 'react-countup';
 import { MapPin, Clock, Mountain, Flame, Calendar, Flame as Streak, Heart, Trophy } from 'lucide-react';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';

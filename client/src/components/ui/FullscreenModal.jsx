@@ -17,7 +17,7 @@ const FullscreenModal = ({ isOpen, onClose, title, accent = '#0055ff', children 
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col"
+      className="dark-surface fixed inset-0 z-[9999] flex flex-col"
       style={{
         background: 'rgba(8, 6, 12, 0.85)',
         backdropFilter: 'blur(20px)',

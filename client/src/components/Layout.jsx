@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, LogOut, Home, Flame, User, BarChart2 } from 'lucide-react';
+import { Activity, Bike, LogOut, Home, Flame, User, BarChart2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import Footer from './Footer';
@@ -7,6 +7,7 @@ import Footer from './Footer';
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: Home },
   { path: '/strava-stats', label: 'Strava', icon: BarChart2 },
+  { path: '/cyclisme', label: 'Cyclisme', icon: Bike },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
 ];
 
@@ -33,7 +34,7 @@ const Layout = ({ children }) => {
 
           {/* Nav links */}
           <nav className="flex items-center gap-1">
-            {NAV_ITEMS.map(({ path, label, icon: Icon }) => (
+            {NAV_ITEMS.map(({ path, label, icon }) => (
               <Link
                 key={path}
                 to={path}
@@ -43,7 +44,7 @@ const Layout = ({ children }) => {
                   background: isActive(path) ? 'var(--accent-blue-light)' : 'transparent',
                 }}
               >
-                <Icon size={15} />
+                {React.createElement(icon, { size: 15 })}
                 {label}
               </Link>
             ))}
@@ -109,7 +110,7 @@ const Layout = ({ children }) => {
           borderTop: '1px solid rgba(0, 85, 255, 0.1)',
         }}
       >
-        {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ path, label, icon }) => {
           const active = isActive(path);
           return (
             <Link
@@ -118,7 +119,7 @@ const Layout = ({ children }) => {
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 relative ${active ? 'nav-drop' : ''}`}
               style={{ color: active ? 'var(--accent-blue)' : 'var(--text-muted)' }}
             >
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+              {React.createElement(icon, { size: 20, strokeWidth: active ? 2.5 : 1.8 })}
               <span className="text-[10px] font-medium">{label}</span>
             </Link>
           );

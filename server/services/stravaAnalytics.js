@@ -2,6 +2,7 @@ const Activity = require('../models/Activity');
 const ActivityStream = require('../models/ActivityStream');
 const User = require('../models/User');
 const { Op } = require('sequelize');
+const { resolveHrLimits } = require('./userMetricsService');
 
 const SEC_PER_DAY = 86400;
 
@@ -32,7 +33,7 @@ function activityLoad(act, hrMax = 190, hrRest = 60) {
 /**
  * CTL/ATL/TSB sur 90 jours : moyenne mobile exponentielle 42j / 7j
  */
-function computeFormCurve(activities, days = 90) {
+function computeFormCurve(activities, days = 90, hrMax = 190, hrRest = 60) {
   const today = startOfDay(new Date());
   const startDate = new Date(today.getTime() - days * SEC_PER_DAY * 1000);
 
@@ -41,7 +42,7 @@ function computeFormCurve(activities, days = 90) {
   for (const a of activities) {
     if (!a.startDate) continue;
     const d = isoDate(a.startDate);
-    const load = activityLoad(a) || 0;
+    const load = activityLoad(a, hrMax, hrRest) || 0;
     dailyLoad.set(d, (dailyLoad.get(d) || 0) + load);
   }
 
@@ -200,7 +201,7 @@ function computeRecords(activities) {
 /**
  * Heatmap calendrier : 365 jours, chaque jour = somme charge ou minutes
  */
-function buildCalendarHeatmap(activities, days = 365) {
+function buildCalendarHeatmap(activities, days = 365, hrMax = 190, hrRest = 60) {
   const today = startOfDay(new Date());
   const start = new Date(today.getTime() - days * SEC_PER_DAY * 1000);
 
@@ -214,7 +215,7 @@ function buildCalendarHeatmap(activities, days = 365) {
     existing.count += 1;
     existing.distance += a.distance || 0;
     existing.duration += a.movingTime || 0;
-    existing.load += activityLoad(a) || 0;
+    existing.load += activityLoad(a, hrMax, hrRest) || 0;
     map.set(key, existing);
   }
 
@@ -280,11 +281,14 @@ async function getAnalyticsSummary(userId, { from = null, to = null } = {}) {
   const dateClause = buildDateWhere(from, to);
   if (dateClause) where.startDate = dateClause;
 
-  const activities = await Activity.findAll({
-    where,
-    attributes: { exclude: ['raw'] },
-    order: [['startDate', 'ASC']],
-  });
+  const [activities, hrLimits] = await Promise.all([
+    Activity.findAll({
+      where,
+      attributes: { exclude: ['raw'] },
+      order: [['startDate', 'ASC']],
+    }),
+    resolveHrLimits(userId),
+  ]);
 
   if (!activities.length) {
     return {
@@ -296,6 +300,7 @@ async function getAnalyticsSummary(userId, { from = null, to = null } = {}) {
       calendar: [],
       formCurve: [],
       bestEfforts: [],
+      hrLimits,
     };
   }
 
@@ -355,8 +360,8 @@ async function getAnalyticsSummary(userId, { from = null, to = null } = {}) {
     formDays = Math.max(30, Math.min(diffDays, 180));
   }
 
-  const calendar = buildCalendarHeatmap(activities, calendarDays);
-  const formCurve = computeFormCurve(activities, formDays);
+  const calendar = buildCalendarHeatmap(activities, calendarDays, hrLimits.hrMax, hrLimits.hrRest);
+  const formCurve = computeFormCurve(activities, formDays, hrLimits.hrMax, hrLimits.hrRest);
   const bestEfforts = computeBestEfforts(activities);
 
   return {
@@ -368,29 +373,36 @@ async function getAnalyticsSummary(userId, { from = null, to = null } = {}) {
     calendar,
     formCurve,
     bestEfforts,
+    hrLimits,
   };
 }
 
 /**
  * Time in zones cumulé (semaine ou mois) à partir de tous les streams
  */
-async function getTimeInZones(userId, { hrMax = 190, hrRest = 60, from = null, to = null } = {}) {
+async function getTimeInZones(userId, { hrMax = null, hrRest = null, from = null, to = null } = {}) {
   const where = { userId };
   const dateClause = buildDateWhere(from, to);
   if (dateClause) where.startDate = dateClause;
 
-  const activities = await Activity.findAll({
-    where,
-    attributes: ['id', 'stravaId', 'startDate', 'type'],
-    include: [{ model: ActivityStream, required: true }],
-  });
+  const [activities, hrLimits] = await Promise.all([
+    Activity.findAll({
+      where,
+      attributes: ['id', 'stravaId', 'startDate', 'type'],
+      include: [{ model: ActivityStream, required: true }],
+    }),
+    resolveHrLimits(userId, { hrMax, hrRest }),
+  ]);
+
+  const effectiveHrMax = hrLimits.hrMax;
+  const effectiveHrRest = hrLimits.hrRest;
 
   const byWeek = new Map();
   const byActivity = [];
 
   for (const a of activities) {
     const stream = a.ActivityStream;
-    const zones = timeInHrZones(stream, hrMax, hrRest);
+    const zones = timeInHrZones(stream, effectiveHrMax, effectiveHrRest);
     if (!zones) continue;
 
     byActivity.push({
@@ -409,6 +421,7 @@ async function getTimeInZones(userId, { hrMax = 190, hrRest = 60, from = null, t
   return {
     byActivity,
     byWeek: Array.from(byWeek.entries()).map(([week, zones]) => ({ week, zones })),
+    hrLimits,
   };
 }
 

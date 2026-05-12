@@ -80,6 +80,9 @@ function mapStravaActivityDetail(detail) {
     splitsMetric: detail.splits_metric || null,
     laps: detail.laps || null,
     deviceName: detail.device_name || null,
+    sufferScore: detail.suffer_score ?? null,
+    calories: detail.calories ?? null,
+    kilojoules: detail.kilojoules ?? null,
     detailFetchedAt: new Date(),
   };
 }

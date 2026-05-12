@@ -101,13 +101,14 @@ const validations = {
   },
   
   updateProfile: {
-    height: { required: false, type: 'number', min: 50, max: 300 },
-    age: { required: false, type: 'number', min: 1, max: 150 },
-    targetWeight: { required: false, type: 'number', min: 20, max: 500 }
+    height: { required: false, type: 'number', min: 100, max: 250 },
+    age: { required: false, type: 'number', min: 10, max: 110 },
+    targetWeight: { required: false, type: 'number', min: 30, max: 250 },
+    restHeartrate: { required: false, type: 'number', min: 30, max: 100 }
   },
-  
+
   addWeight: {
-    weight: { required: true, type: 'number', min: 20, max: 500 },
+    weight: { required: true, type: 'number', min: 30, max: 250 },
     date: { required: true }
   }
 };

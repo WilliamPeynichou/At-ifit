@@ -14,7 +14,6 @@ const Onboarding = () => {
   const [profileComplete, setProfileComplete] = useState(false);
   const [stravaConnected, setStravaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     checkStatus();
@@ -30,7 +29,6 @@ const Onboarding = () => {
       // Get fresh user data
       const res = await api.get('/user');
       const freshUser = res.data;
-      setUserData(freshUser);
 
       // Check if profile is complete
       const hasProfile = freshUser && freshUser.height && freshUser.age && freshUser.gender;

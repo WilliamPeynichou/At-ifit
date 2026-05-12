@@ -2,6 +2,10 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../database');
 
 const Activity = sequelize.define('Activity', {
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
   stravaId: {
     type: DataTypes.BIGINT,
     allowNull: false,
