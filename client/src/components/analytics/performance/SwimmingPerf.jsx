@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Waves } from 'lucide-react';
+import { darkTooltipProps } from '../../ui/chartStyles';
 
 const SWIM_TYPES = ['Swim'];
 
@@ -89,10 +90,7 @@ const SwimmingPerf = ({ activities }) => {
                 const sec = Math.round(v % 60);
                 return `${min}:${String(sec).padStart(2, '0')}`;
               }} />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(6,182,212,0.2)', color: '#fff' }}
-                formatter={(v, name, p) => name === 'secPer100' ? p.payload.pace100 : v}
-              />
+              <Tooltip {...darkTooltipProps} formatter={(v, name, p) => name === 'secPer100' ? p.payload.pace100 : v} />
               <Line type="monotone" dataKey="secPer100" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} name="Allure /100m" />
             </LineChart>
           </ResponsiveContainer>

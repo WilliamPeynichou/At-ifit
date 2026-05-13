@@ -1,6 +1,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, ComposedChart } from 'recharts';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';
+import { darkTooltipProps } from '../../ui/chartStyles';
 
 const formatDateShort = (iso) => {
   const d = new Date(iso);
@@ -64,9 +65,7 @@ const FormCurve = () => {
               <XAxis dataKey="date" stroke="#a8a29e" interval="preserveStartEnd" />
               <YAxis yAxisId="left" stroke="#a8a29e" />
               <YAxis yAxisId="right" orientation="right" stroke="#22c55e" />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(0,85,255,0.2)', color: '#fff' }}
-              />
+              <Tooltip {...darkTooltipProps} />
               <ReferenceLine y={0} yAxisId="right" stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
               <Line yAxisId="left" type="monotone" dataKey="ctl" stroke="#0055ff" strokeWidth={3} dot={false} name="CTL (fitness)" />
               <Line yAxisId="left" type="monotone" dataKey="atl" stroke="#ef4444" strokeWidth={2} dot={false} name="ATL (fatigue)" />
@@ -92,7 +91,7 @@ const FormCurve = () => {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" interval="preserveStartEnd" />
               <YAxis stroke="#a8a29e" />
-              <Tooltip contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(252,76,2,0.2)', color: '#fff' }} />
+              <Tooltip {...darkTooltipProps} />
               <Area type="monotone" dataKey="load" stroke="#fc4c02" strokeWidth={1.5} fill="#fc4c02" fillOpacity={0.3} name="Charge" />
             </AreaChart>
           </ResponsiveContainer>

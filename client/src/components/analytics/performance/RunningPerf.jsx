@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Footprints, Trophy, Zap } from 'lucide-react';
+import { darkTooltipProps } from '../../ui/chartStyles';
 
 const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
 
@@ -151,10 +152,7 @@ const RunningPerf = ({ activities }) => {
                 const sec = Math.round(v % 60);
                 return `${min}:${String(sec).padStart(2, '0')}`;
               }} />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(168,85,247,0.2)', color: '#fff' }}
-                formatter={(v, name, p) => name === 'secPerKm' ? p.payload.pace : v}
-              />
+              <Tooltip {...darkTooltipProps} formatter={(v, name, p) => name === 'secPerKm' ? p.payload.pace : v} />
               <Line type="monotone" dataKey="secPerKm" stroke="#a855f7" strokeWidth={2} dot={{ r: 3 }} name="Allure" />
             </LineChart>
           </ResponsiveContainer>

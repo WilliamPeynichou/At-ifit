@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis, BarChart, Bar } from 'recharts';
 import { Mountain } from 'lucide-react';
+import { darkTooltipProps } from '../../ui/chartStyles';
 
 const TYPE_COLOR = {
   Run: '#fc4c02',
@@ -98,10 +99,7 @@ const ClimbingProfile = ({ activities }) => {
                 <XAxis type="number" dataKey="distance" name="Distance" unit="km" stroke="#a8a29e" />
                 <YAxis type="number" dataKey="elevation" name="D+" unit="m" stroke="#22c55e" />
                 <ZAxis dataKey="ratio" range={[40, 200]} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(34,197,94,0.2)', color: '#fff' }}
-                  cursor={{ strokeDasharray: '3 3' }}
-                />
+                <Tooltip {...darkTooltipProps} cursor={{ strokeDasharray: '3 3' }} />
                 <Scatter data={data.scatter} fill="#22c55e" fillOpacity={0.6} />
               </ScatterChart>
             </ResponsiveContainer>
@@ -119,7 +117,7 @@ const ClimbingProfile = ({ activities }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="range" stroke="#a8a29e" />
                 <YAxis stroke="#a8a29e" />
-                <Tooltip contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(34,197,94,0.2)', color: '#fff' }} />
+                <Tooltip {...darkTooltipProps} />
                 <Bar dataKey="count" name="Sorties">
                   {data.buckets.map((b, i) => <Bar key={i} fill={b.color} />)}
                 </Bar>

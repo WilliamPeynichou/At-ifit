@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Compass, Home, Sun, Cloud } from 'lucide-react';
+import { darkTooltipProps } from '../../ui/chartStyles';
 
 const ContextStats = ({ activities }) => {
   const data = useMemo(() => {
@@ -118,7 +119,7 @@ const ContextStats = ({ activities }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="name" stroke="#a8a29e" tick={{ fontSize: 10 }} />
                 <YAxis stroke="#a8a29e" />
-                <Tooltip contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+                <Tooltip {...darkTooltipProps} />
                 <Bar dataKey="count" fill="#fc4c02" />
               </BarChart>
             </ResponsiveContainer>
@@ -134,7 +135,7 @@ const ContextStats = ({ activities }) => {
                 <XAxis dataKey="day" stroke="#a8a29e" />
                 <YAxis yAxisId="left" stroke="#a855f7" />
                 <YAxis yAxisId="right" orientation="right" stroke="#0055ff" />
-                <Tooltip contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+                <Tooltip {...darkTooltipProps} />
                 <Legend />
                 <Bar yAxisId="left" dataKey="count" fill="#a855f7" name="Sorties" />
                 <Bar yAxisId="right" dataKey="distance" fill="#0055ff" name="Distance (km)" />
@@ -153,7 +154,7 @@ const ContextStats = ({ activities }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="range" stroke="#a8a29e" />
                 <YAxis stroke="#a8a29e" />
-                <Tooltip contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+                <Tooltip {...darkTooltipProps} />
                 <Bar dataKey="count">
                   {data.tempBuckets.map((b, i) => <Cell key={i} fill={b.color} />)}
                 </Bar>

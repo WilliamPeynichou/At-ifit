@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, ReferenceLine, Legend,
 } from 'recharts';
 import { Bike, HeartPulse, RefreshCw, TrendingUp, Zap, Gauge, Activity, ListChecks, Save } from 'lucide-react';
 import api from '../api';
@@ -26,7 +26,7 @@ const CYCLING_GOAL_LABELS = {
 const FTP_SOURCE_LABELS = {
   power_curve_20min: 'Best 20 min',
   best_ride_average_watts: 'Watts moyens sortie',
-  median_recent_5_average_watts: 'Médiane des 5 dernières sorties',
+  max_recent_average_watts: 'Max watts moyens (10 dernières sorties)',
   missing_power_data: 'Données puissance manquantes',
 };
 
@@ -153,6 +153,25 @@ const Cycling = () => {
     }))
   ), [data.progress]);
 
+  const wattsChart = useMemo(() => {
+    const ordered = [...(data.rides || [])]
+      .filter(r => r.averageWatts)
+      .reverse();
+    const ROLLING = 4;
+    return ordered.map((ride, i) => {
+      const window = ordered.slice(Math.max(0, i - ROLLING + 1), i + 1);
+      const rollingMax = Math.max(...window.map(r => r.averageWatts));
+      return {
+        date: ride.date,
+        dateLabel: formatDate(ride.date),
+        averageWatts: ride.averageWatts,
+        weighted: ride.weightedAverageWatts || null,
+        rollingMax,
+        name: ride.name,
+      };
+    });
+  }, [data.rides]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -198,9 +217,9 @@ const Cycling = () => {
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {metric('Poids', profile?.weight, 'kg', <Gauge className="w-4 h-4" />)}
-        {metric('FTP', profile?.ftp, 'W', <Zap className="w-4 h-4" />)}
-        {metric('FTP relatif', profile?.ftpRelative, 'W/kg', <TrendingUp className="w-4 h-4" />)}
-        {metric('Niveau', profile?.level, '', <Activity className="w-4 h-4" />)}
+        {metric('FTP plaine', profile?.ftp, 'W', <Zap className="w-4 h-4" />)}
+        {metric('FTP col', profile?.ftpRelative, 'W/kg', <TrendingUp className="w-4 h-4" />)}
+        {metric('FTP sprint', profile?.sprintPower, 'W', <Activity className="w-4 h-4" />)}
         {metric('FC max', profile?.maxHeartrate, 'bpm', <HeartPulse className="w-4 h-4" />)}
         {metric('FC repos', profile?.restHeartrate, 'bpm', <HeartPulse className="w-4 h-4" />)}
         {metric('VO2max', profile?.vo2max, '', <Gauge className="w-4 h-4" />)}
@@ -214,7 +233,7 @@ const Cycling = () => {
               <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Source FTP</p>
               <p className="font-bold" style={{ color: 'var(--text-primary)' }}>
                 {FTP_SOURCE_LABELS[profile.ftpSource] || profile.ftpSource}
-                {profile.medianAverageWatts && <span> · {profile.medianAverageWatts} W médians</span>}
+                {profile.peakAverageWatts && <span> · pic {profile.peakAverageWatts} W</span>}
                 {profile.ftpConfidence === 'low' && <span style={{ color: '#f97316' }}> · estimation basse confiance</span>}
                 {profile.ftpConfidence === 'medium' && <span style={{ color: '#0055ff' }}> · estimation stable</span>}
               </p>
@@ -350,6 +369,43 @@ const Cycling = () => {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pas encore assez de données de puissance pour tracer la progression.</p>
           )}
         </div>
+      </section>
+
+      <section className="glass-panel p-6 mb-8">
+        <div className="flex items-baseline justify-between mb-5">
+          <h2 className="text-xl font-bold">Watts moyens par sortie</h2>
+          {profile?.ftp && (
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Ligne pointillée : FTP estimée ({profile.ftp} W)
+            </p>
+          )}
+        </div>
+        {wattsChart.length > 1 ? (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={wattsChart}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="dateLabel" stroke="rgba(232,232,232,0.45)" tick={{ fontSize: 11 }} />
+                <YAxis stroke="rgba(232,232,232,0.45)" tick={{ fontSize: 11 }} unit=" W" />
+                <Tooltip
+                  contentStyle={{ background: 'rgba(19,16,20,0.97)', border: '1px solid rgba(0,85,255,0.2)', color: '#e8e8e8' }}
+                  labelStyle={{ color: '#e8e8e8' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                {profile?.ftp && (
+                  <ReferenceLine y={profile.ftp} stroke="#0055ff" strokeDasharray="4 4" label={{ value: 'FTP', position: 'right', fill: '#0055ff', fontSize: 11 }} />
+                )}
+                <Line type="monotone" dataKey="averageWatts" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} name="Watts moyens" />
+                <Line type="monotone" dataKey="rollingMax" stroke="#f97316" strokeWidth={2} strokeDasharray="2 4" dot={false} name="Pic glissant (4 sorties)" />
+                {wattsChart.some(p => p.weighted) && (
+                  <Line type="monotone" dataKey="weighted" stroke="#a855f7" strokeWidth={1.5} dot={false} name="Watts pondérés (NP)" />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pas encore assez de sorties avec donnée de puissance pour tracer le graphique.</p>
+        )}
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

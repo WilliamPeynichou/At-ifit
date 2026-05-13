@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';
+import { darkTooltipProps } from '../../ui/chartStyles';
 
 const Distribution = () => {
   const { data, loading } = useAnalyticsSummary(null);
@@ -88,7 +89,7 @@ const Distribution = () => {
               <XAxis dataKey="date" stroke="#a8a29e" interval="preserveStartEnd" />
               <YAxis yAxisId="left" stroke="#fc4c02" />
               <YAxis yAxisId="right" orientation="right" stroke="#0055ff" />
-              <Tooltip contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+              <Tooltip {...darkTooltipProps} />
               <Bar yAxisId="right" dataKey="monotony" fill="#0055ff" name="Monotonie" />
               <Bar yAxisId="left" dataKey="strain" fill="#fc4c02" name="Strain" />
             </BarChart>

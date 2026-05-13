@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import api from '../../../api';
 import { useTemporal } from '../../../context/TemporalContext';
+import { darkTooltipProps } from '../../ui/chartStyles';
 
 const ZONE_COLORS = ['#22c55e', '#0055ff', '#eab308', '#f97316', '#ef4444'];
 const ZONE_LABELS = ['Z1 Récup', 'Z2 Endurance', 'Z3 Tempo', 'Z4 Seuil', 'Z5 VO2max'];
@@ -108,10 +109,7 @@ const TimeInZones = () => {
                 <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2}>
                   {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
-                  formatter={(v) => `${formatMin(v)} min`}
-                />
+                <Tooltip {...darkTooltipProps} formatter={(v) => `${formatMin(v)} min`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -192,7 +190,7 @@ const TimeInZones = () => {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="week" stroke="#a8a29e" />
               <YAxis stroke="#a8a29e" unit="min" />
-              <Tooltip contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+              <Tooltip {...darkTooltipProps} />
               <Legend />
               {ZONE_LABELS.map((label, i) => (
                 <Bar key={i} dataKey={`Z${i + 1}`} stackId="a" fill={ZONE_COLORS[i]} name={label} />

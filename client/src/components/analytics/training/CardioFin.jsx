@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis, LineChart, Line } from 'recharts';
+import { darkTooltipProps } from '../../ui/chartStyles';
 
 const CardioFin = ({ activities }) => {
   const data = useMemo(() => {
@@ -81,7 +82,7 @@ const CardioFin = ({ activities }) => {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" interval="preserveStartEnd" />
               <YAxis stroke="#ec4899" domain={['dataMin - 10', 'dataMax + 10']} />
-              <Tooltip contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+              <Tooltip {...darkTooltipProps} />
               <Line type="monotone" dataKey="avgHr" stroke="#ec4899" strokeWidth={2} dot={{ r: 2 }} name="HR moy" />
               <Line type="monotone" dataKey="maxHr" stroke="#ef4444" strokeWidth={1.5} dot={false} name="HR max" strokeDasharray="3 3" />
             </LineChart>
@@ -101,10 +102,7 @@ const CardioFin = ({ activities }) => {
               <XAxis dataKey="avgHr" name="HR moy" unit="bpm" stroke="#a8a29e" />
               <YAxis dataKey="sufferPerMin" name="Effort" stroke="#a8a29e" />
               <ZAxis dataKey="distance" range={[40, 300]} />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
-                cursor={{ strokeDasharray: '3 3' }}
-              />
+              <Tooltip {...darkTooltipProps} cursor={{ strokeDasharray: '3 3' }} />
               <Scatter data={data.efforts} fill="#fc4c02" fillOpacity={0.6} />
             </ScatterChart>
           </ResponsiveContainer>

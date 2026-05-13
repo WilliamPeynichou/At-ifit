@@ -21,7 +21,9 @@ const POWER_ZONE_DEFS = [
   { key: 'z7', zone: 'Z7', name: 'Neuromuscular',   minPct: 1.51, maxPct: null, label: '>150%' },
 ];
 
-const MEDIAN_RIDE_SAMPLE_SIZE = 5;
+const RECENT_RIDE_SAMPLE_SIZE = 10;
+const MIN_RIDE_DURATION_SEC = 20 * 60;
+const MAX_AVG_WATTS_FTP_COEFFICIENT = 1.05;
 const VO2MAX_MIN_WKG_VALIDITY = 2.0;
 
 function round(value, digits = 1) {
@@ -139,6 +141,14 @@ function serializeRide(activity, ftp, zones) {
     percent: 0,
   }));
 
+  // BPM min : extrait du stream HR (Strava ne stocke pas min_heartrate au niveau activité).
+  const hrStream = Array.isArray(stream?.heartrate) ? stream.heartrate.filter(v => Number(v) > 0) : null;
+  const minHeartrate = hrStream && hrStream.length ? Math.min(...hrStream.map(Number)) : null;
+
+  // Vitesse moyenne convertie de m/s vers km/h (Strava stocke en m/s).
+  const averageSpeedKmh = activity.averageSpeed ? round(activity.averageSpeed * 3.6, 1) : null;
+  const maxSpeedKmh = activity.maxSpeed ? round(activity.maxSpeed * 3.6, 1) : null;
+
   return {
     id: activity.id,
     stravaId: activity.stravaId,
@@ -148,6 +158,11 @@ function serializeRide(activity, ftp, zones) {
     distanceKm: round((activity.distance || 0) / 1000, 1),
     durationSeconds: activity.movingTime || 0,
     elevationMeters: Math.round(activity.totalElevationGain || 0),
+    averageSpeedKmh,
+    maxSpeedKmh,
+    averageHeartrate: activity.averageHeartrate ? Math.round(activity.averageHeartrate) : null,
+    maxHeartrate: activity.maxHeartrate ? Math.round(activity.maxHeartrate) : null,
+    minHeartrate: minHeartrate ? Math.round(minHeartrate) : null,
     averageWatts: activity.averageWatts ? Math.round(activity.averageWatts) : null,
     weightedAverageWatts: activity.weightedAverageWatts ? Math.round(activity.weightedAverageWatts) : null,
     watts: watts ? Math.round(watts) : null,
@@ -178,32 +193,48 @@ async function getEstimatedFtp(userId, range = {}) {
     };
   }
 
-  const recentAverageRides = await Activity.findAll({
+  const recentRides = await Activity.findAll({
     where: {
       userId,
       type: { [Op.in]: RIDE_TYPES },
       averageWatts: { [Op.not]: null },
-      movingTime: { [Op.gte]: 20 * 60 },
+      movingTime: { [Op.gte]: MIN_RIDE_DURATION_SEC },
     },
     attributes: ['id', 'stravaId', 'name', 'startDate', 'averageWatts', 'movingTime', 'distance'],
     order: [['startDate', 'DESC']],
-    limit: MEDIAN_RIDE_SAMPLE_SIZE,
+    limit: RECENT_RIDE_SAMPLE_SIZE,
   });
-  const medianAverageWatts = median(recentAverageRides.map(ride => ride.averageWatts));
 
-  const note = recentAverageRides.length
-    ? "FTP estimée à partir des watts moyens des dernières sorties. Cette méthode tend à sous-estimer votre FTP réelle (la moyenne d'une sortie endurance représente typiquement 65-75 % de la FTP). Pour une estimation précise, connectez un capteur de puissance et synchronisez les streams Strava."
+  const peakRide = recentRides.reduce((best, ride) =>
+    !best || Number(ride.averageWatts) > Number(best.averageWatts) ? ride : best
+  , null);
+  const peakAverageWatts = peakRide ? Number(peakRide.averageWatts) : null;
+  const estimatedFtp = peakAverageWatts
+    ? Math.round(peakAverageWatts * MAX_AVG_WATTS_FTP_COEFFICIENT)
+    : null;
+
+  const note = recentRides.length
+    ? `FTP estimée depuis la sortie la plus intense de tes ${recentRides.length} dernières sorties vélo (averageWatts max × ${MAX_AVG_WATTS_FTP_COEFFICIENT}). C'est une approximation : la précision dépend du fait qu'au moins une sortie récente s'approche d'un effort soutenu de ~1 h. Pour un calcul fiable, fais un test FTP 20 min avec capteur de puissance.`
     : null;
 
   return {
-    ftp: medianAverageWatts ? Math.round(medianAverageWatts) : null,
+    ftp: estimatedFtp,
     best20min: null,
     powerCurve: curve,
-    source: recentAverageRides.length ? 'median_recent_5_average_watts' : 'missing_power_data',
-    confidence: recentAverageRides.length >= MEDIAN_RIDE_SAMPLE_SIZE ? 'medium' : 'low',
+    source: recentRides.length ? 'max_recent_average_watts' : 'missing_power_data',
+    confidence: recentRides.length >= 5 ? 'medium' : 'low',
     note,
-    medianAverageWatts: medianAverageWatts ? round(medianAverageWatts, 1) : null,
-    sourceRides: recentAverageRides.map(ride => ({
+    peakAverageWatts: peakAverageWatts ? round(peakAverageWatts, 1) : null,
+    sourceRide: peakRide ? {
+      id: peakRide.id,
+      stravaId: peakRide.stravaId,
+      name: peakRide.name,
+      date: peakRide.startDate,
+      averageWatts: Math.round(peakRide.averageWatts),
+      durationSeconds: peakRide.movingTime,
+      distanceKm: round((peakRide.distance || 0) / 1000, 1),
+    } : null,
+    sourceRides: recentRides.map(ride => ({
       id: ride.id,
       stravaId: ride.stravaId,
       name: ride.name,
@@ -216,11 +247,16 @@ async function getEstimatedFtp(userId, range = {}) {
 }
 
 async function getCyclingProfile(userId) {
-  const [user, latestWeight, hrMaxResolved, ftpData] = await Promise.all([
+  const [user, latestWeight, hrMaxResolved, ftpData, maxWattsRow] = await Promise.all([
     User.findByPk(userId, { attributes: { exclude: ['password'] } }),
     getLatestWeight(userId),
     resolveMaxHeartrate(userId),
     getEstimatedFtp(userId),
+    Activity.findOne({
+      where: { userId, type: { [Op.in]: RIDE_TYPES }, maxWatts: { [Op.not]: null } },
+      attributes: ['maxWatts'],
+      order: [['maxWatts', 'DESC']],
+    }),
   ]);
 
   const weight = latestWeight?.weight || null;
@@ -229,13 +265,35 @@ async function getCyclingProfile(userId) {
 
   let vo2max = null;
   let vo2maxNote = null;
-  if (ftpRelative && ftpRelative >= VO2MAX_MIN_WKG_VALIDITY) {
+  let vo2maxConfidence = null;
+  if (ftpRelative) {
     vo2max = (10.8 * ftpRelative) + 7;
-  } else if (ftpRelative) {
-    vo2maxNote = `Estimation VO2max désactivée : la formule Hawley & Noakes (10.8 × W/kg + 7) est calibrée pour cyclistes entraînés (≥ ${VO2MAX_MIN_WKG_VALIDITY} W/kg). En dessous, l'extrapolation produit des valeurs physiologiquement implausibles.`;
+    if (ftpRelative >= 2.5) {
+      vo2maxConfidence = 'high';
+    } else if (ftpRelative >= VO2MAX_MIN_WKG_VALIDITY) {
+      vo2maxConfidence = 'medium';
+      vo2maxNote = `Estimation faible confiance : la formule Hawley & Noakes (10.8 × W/kg + 7) est calibrée pour les cyclistes entraînés (≥ 2.5 W/kg). Considère cette valeur comme indicative.`;
+    } else {
+      vo2maxConfidence = 'low';
+      vo2maxNote = `Valeur extrapolée hors plage de validité (< ${VO2MAX_MIN_WKG_VALIDITY} W/kg). La formule sous-estime fortement la VO2max physiologique réelle dans cette zone — utile uniquement comme repère relatif.`;
+    }
   }
 
   const powerZones = buildPowerZones(ftpData.ftp);
+
+  // FTP sprint : pic 30 s issu de la courbe mean-max (haute confiance), sinon le pic instantané
+  // (maxWatts) observé sur les sorties Strava (confiance moyenne, peut être un sprint < 5 s).
+  const peak30sFromCurve = ftpData.powerCurve?.find(p => p.duration === 30)?.power || 0;
+  let sprintPower = null;
+  let sprintPowerSource = null;
+  if (peak30sFromCurve > 0) {
+    sprintPower = Math.round(peak30sFromCurve);
+    sprintPowerSource = 'peak_30s_power_curve';
+  } else if (maxWattsRow?.maxWatts) {
+    sprintPower = Math.round(Number(maxWattsRow.maxWatts));
+    sprintPowerSource = 'observed_max_watts';
+  }
+  const sprintPowerRelative = sprintPower && weight ? round(sprintPower / weight, 1) : null;
 
   return {
     weight: weight ? round(weight, 1) : null,
@@ -247,7 +305,7 @@ async function getCyclingProfile(userId) {
     ftpNote: ftpData.note || null,
     ftpSourceRide: ftpData.sourceRide || null,
     ftpSourceRides: ftpData.sourceRides || [],
-    medianAverageWatts: ftpData.medianAverageWatts || null,
+    peakAverageWatts: ftpData.peakAverageWatts || null,
     ftpRelative: ftpRelative ? round(ftpRelative, 2) : null,
     level: classifyCyclist(ftpRelative),
     maxHeartrate,
@@ -258,6 +316,10 @@ async function getCyclingProfile(userId) {
     cyclingGoal: user?.cyclingGoal || null,
     vo2max: vo2max ? round(vo2max, 1) : null,
     vo2maxNote,
+    vo2maxConfidence,
+    sprintPower,
+    sprintPowerSource,
+    sprintPowerRelative,
     powerZones,
   };
 }
