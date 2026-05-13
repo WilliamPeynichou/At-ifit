@@ -26,7 +26,6 @@ const WeeklyReport = () => {
   const [generatedAt, setGeneratedAt] = useState(null);
   const [cached, setCached] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [autoLoaded, setAutoLoaded] = useState(false);
   const [error, setError] = useState('');
 
   // Chargement automatique si on est lundi
@@ -35,7 +34,6 @@ const WeeklyReport = () => {
     if (day === 1) {
       loadReport(false);
     }
-    setAutoLoaded(true);
   }, []);
 
   const loadReport = async (force = false) => {

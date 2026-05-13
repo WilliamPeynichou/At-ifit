@@ -1,58 +1,60 @@
 const { Op } = require('sequelize');
 const Activity = require('../models/Activity');
+const { activityLoad } = require('./stravaAnalytics');
+const { resolveHrLimits } = require('./userMetricsService');
 
-/**
- * Calcule ATL (7j), CTL (42j) et TSB (forme) par semaine
- * ATL = charge aiguë (fatigue court terme)
- * CTL = charge chronique (forme long terme)
- * TSB = CTL - ATL (positif = frais, négatif = fatigué)
- *
- * Retourne les 10 dernières semaines avec ces métriques
- */
-async function getTrainingLoad(userId, weeks = 10) {
-  const since = new Date();
-  since.setDate(since.getDate() - (weeks + 6) * 7); // 6 semaines de plus pour calculer CTL initial
+const ATL_DECAY = Math.exp(-1 / 7);
+const CTL_DECAY = Math.exp(-1 / 42);
+
+async function getTrainingLoad(userId, weeks = 10, { from = null, to = null } = {}) {
+  let since;
+  let until = new Date();
+  if (from) {
+    since = new Date(from);
+    since = new Date(since.getTime() - 6 * 7 * 86400 * 1000);
+  } else {
+    since = new Date();
+    since.setDate(since.getDate() - (weeks + 6) * 7);
+  }
+  if (to) until = new Date(to);
+
+  const { hrMax, hrRest } = await resolveHrLimits(userId);
 
   const activities = await Activity.findAll({
     where: {
       userId,
-      startDate: { [Op.gte]: since },
+      startDate: { [Op.gte]: since, [Op.lte]: until },
     },
-    attributes: ['startDate', 'sufferScore', 'movingTime', 'distance', 'type'],
+    attributes: ['startDate', 'sufferScore', 'movingTime', 'distance', 'type', 'averageHeartrate'],
     order: [['startDate', 'ASC']],
   });
 
   if (activities.length === 0) return [];
 
-  // Groupe par jour (timestamp → sufferScore du jour)
   const dayMap = {};
   activities.forEach(a => {
     const day = new Date(a.startDate).toISOString().slice(0, 10);
     if (!dayMap[day]) dayMap[day] = { sufferScore: 0, distance: 0, count: 0 };
-    dayMap[day].sufferScore += a.sufferScore || 0;
+    const load = activityLoad(a, hrMax, hrRest) ?? 0;
+    dayMap[day].sufferScore += load;
     dayMap[day].distance += (a.distance || 0) / 1000;
     dayMap[day].count += 1;
   });
 
-  // Calcul ATL (EWMA 7j) et CTL (EWMA 42j) jour par jour
-  const kATL = 2 / (7 + 1);
-  const kCTL = 2 / (42 + 1);
-
   let atl = 0;
   let ctl = 0;
 
-  // Parcourt tous les jours depuis `since` jusqu'à aujourd'hui
   const allDays = [];
   const cursor = new Date(since);
-  const today = new Date();
+  const today = new Date(until);
   today.setHours(23, 59, 59);
 
   while (cursor <= today) {
     const dayKey = cursor.toISOString().slice(0, 10);
     const load = dayMap[dayKey]?.sufferScore || 0;
 
-    atl = atl + kATL * (load - atl);
-    ctl = ctl + kCTL * (load - ctl);
+    atl = atl * ATL_DECAY + load * (1 - ATL_DECAY);
+    ctl = ctl * CTL_DECAY + load * (1 - CTL_DECAY);
 
     allDays.push({
       date: dayKey,
@@ -67,7 +69,6 @@ async function getTrainingLoad(userId, weeks = 10) {
     cursor.setDate(cursor.getDate() + 1);
   }
 
-  // Agrège par semaine (lundi → dimanche) pour l'affichage
   const weekMap = {};
   allDays.forEach(d => {
     const date = new Date(d.date);
@@ -83,7 +84,6 @@ async function getTrainingLoad(userId, weeks = 10) {
         totalLoad: 0,
         activityCount: 0,
         totalDistance: 0,
-        // On prend ATL/CTL/TSB du dernier jour de la semaine (dimanche)
         atl: d.atl,
         ctl: d.ctl,
         tsb: d.tsb,
@@ -92,7 +92,6 @@ async function getTrainingLoad(userId, weeks = 10) {
     weekMap[weekKey].totalLoad += d.load;
     weekMap[weekKey].activityCount += d.count;
     weekMap[weekKey].totalDistance += d.distance;
-    // Mettre à jour avec la dernière valeur du jour de la semaine
     weekMap[weekKey].atl = d.atl;
     weekMap[weekKey].ctl = d.ctl;
     weekMap[weekKey].tsb = d.tsb;
@@ -109,4 +108,4 @@ async function getTrainingLoad(userId, weeks = 10) {
     }));
 }
 
-module.exports = { getTrainingLoad };
+module.exports = { getTrainingLoad, ATL_DECAY, CTL_DECAY };

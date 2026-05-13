@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 import { Activity, CheckCircle, AlertCircle, LogOut, Mail, Lock, ArrowRight } from 'lucide-react';
 import api from '../api';
 
 const StravaConnect = () => {
-  const { t } = useLanguage();
   const { loadUser, user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -21,7 +19,6 @@ const StravaConnect = () => {
     checkStravaStatus();
     const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
-    const state = searchParams.get('state');
 
     if (errorParam) {
       setError('Strava authentication failed. Please try again.');
@@ -90,6 +87,7 @@ const StravaConnect = () => {
       }
       setSuccess(false);
     } catch (err) {
+      console.error('Strava disconnect error:', err);
       setError('Failed to disconnect Strava account.');
     } finally {
       setDisconnecting(false);

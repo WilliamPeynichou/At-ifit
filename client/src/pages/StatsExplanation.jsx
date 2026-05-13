@@ -159,7 +159,7 @@ const StatsExplanation = () => {
 
         {/* Quick navigation buttons */}
         <div className="flex flex-wrap gap-2 mt-6">
-          {quickNavLinks.map(({ anchor, label, icon: NavIcon }) => (
+          {quickNavLinks.map(({ anchor, label, icon }) => (
             <button
               key={anchor}
               onClick={() => scrollTo(anchor)}
@@ -182,7 +182,7 @@ const StatsExplanation = () => {
                 e.currentTarget.style.color = 'var(--text-secondary)';
               }}
             >
-              <NavIcon className="w-3.5 h-3.5" />
+              {React.createElement(icon, { className: 'w-3.5 h-3.5' })}
               {label}
             </button>
           ))}

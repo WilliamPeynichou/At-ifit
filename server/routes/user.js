@@ -84,40 +84,64 @@ router.get('/', auth, asyncHandler(async (req, res) => {
   sendSuccess(res, user);
 }));
 
+const pickProfilePayload = (body) => ({
+  height: body.height,
+  age: body.age,
+  pseudo: body.pseudo,
+  gender: body.gender,
+  targetWeight: body.targetWeight,
+  country: body.country,
+  restHeartrate: body.restHeartrate === '' ? null : body.restHeartrate,
+  bikeType: body.bikeType || null,
+  cyclingGoal: body.cyclingGoal || null
+});
+
+const serializeProfile = (user) => ({
+  id: user.id,
+  email: user.email,
+  pseudo: user.pseudo,
+  height: user.height,
+  age: user.age,
+  gender: user.gender,
+  targetWeight: user.targetWeight,
+  restHeartrate: user.restHeartrate,
+  bikeType: user.bikeType,
+  cyclingGoal: user.cyclingGoal,
+  consoKcal: user.consoKcal,
+  weeksToGoal: user.weeksToGoal,
+  country: user.country,
+  imc: user.imc
+});
+
+const updateProfileHandler = asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.userId);
+
+  if (!user) {
+    return sendError(res, 'User not found', 404);
+  }
+
+  await user.update(pickProfilePayload(req.body));
+
+  // Mettre à jour automatiquement l'IMC
+  await updateUserIMCAndCalories(user);
+
+  // Recharger l'utilisateur pour avoir les valeurs mises à jour
+  await user.reload();
+
+  sendSuccess(res, serializeProfile(user), 'Profile updated successfully');
+});
+
 // Update User Profile
-router.post('/', 
+router.post('/',
   auth,
   validateRequest(validations.updateProfile),
-  asyncHandler(async (req, res) => {
-    const { height, age, pseudo, gender, targetWeight, country } = req.body;
-    const user = await User.findByPk(req.userId);
-    
-    if (!user) {
-      return sendError(res, 'User not found', 404);
-    }
-    
-    await user.update({ height, age, pseudo, gender, targetWeight, country });
-    
-    // Mettre à jour automatiquement l'IMC
-    await updateUserIMCAndCalories(user);
-    
-    // Recharger l'utilisateur pour avoir les valeurs mises à jour
-    await user.reload();
-    
-    sendSuccess(res, {
-      id: user.id,
-      email: user.email,
-      pseudo: user.pseudo,
-      height: user.height,
-      age: user.age,
-      gender: user.gender,
-      targetWeight: user.targetWeight,
-      consoKcal: user.consoKcal,
-      weeksToGoal: user.weeksToGoal,
-      country: user.country,
-      imc: user.imc
-    }, 'Profile updated successfully');
-  })
+  updateProfileHandler
+);
+
+router.patch('/',
+  auth,
+  validateRequest(validations.updateProfile),
+  updateProfileHandler
 );
 
 // Calculate Calories
@@ -229,4 +253,3 @@ router.post('/calculate-calories',
 );
 
 module.exports = router;
-

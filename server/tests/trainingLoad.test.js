@@ -3,7 +3,7 @@
  * Vérifie les calculs ATL/CTL/TSB et la détermination du statut de forme.
  */
 
-jest.mock('../models/Activity', () => ({ findAll: jest.fn() }));
+jest.mock('../models/Activity', () => ({ findAll: jest.fn(), findOne: jest.fn().mockResolvedValue(null) }));
 jest.mock('../database', () => ({
   define: jest.fn(),
   authenticate: jest.fn().mockResolvedValue(true),
@@ -12,9 +12,15 @@ jest.mock('../database', () => ({
 jest.mock('../utils/logger', () => ({
   info: jest.fn(), warn: jest.fn(), error: jest.fn(),
 }));
+jest.mock('../services/userMetricsService', () => ({
+  resolveHrLimits: jest.fn().mockResolvedValue({ hrMax: 190, hrRest: 60 }),
+}));
+jest.mock('../services/stravaAnalytics', () => ({
+  activityLoad: jest.fn((act) => act.sufferScore || 0),
+}));
 
 const Activity = require('../models/Activity');
-const { getTrainingLoad } = require('../services/trainingLoadService');
+const { getTrainingLoad, ATL_DECAY, CTL_DECAY } = require('../services/trainingLoadService');
 
 function makeActivity(startDate, sufferScore, distance = 5000) {
   return { startDate, sufferScore, movingTime: 3600, distance, type: 'Run' };
@@ -91,11 +97,12 @@ describe('getTrainingLoad', () => {
     });
   });
 
-  test('ATL réagit plus vite que CTL (kATL > kCTL)', () => {
-    // Vérifie les constantes EWMA directement depuis les calculs attendus
-    const kATL = 2 / (7 + 1);  // 0.25
-    const kCTL = 2 / (42 + 1); // ~0.0465
-    expect(kATL).toBeGreaterThan(kCTL);
+  test('ATL réagit plus vite que CTL (decay ATL < decay CTL, formule continue)', () => {
+    // Formule TrainingPeaks PMC : ATL_today = ATL_yesterday × exp(-1/N) + load × (1 − exp(-1/N))
+    // Un decay plus petit signifie une réaction plus rapide (oubli plus vite).
+    expect(ATL_DECAY).toBeCloseTo(Math.exp(-1 / 7), 6);
+    expect(CTL_DECAY).toBeCloseTo(Math.exp(-1 / 42), 6);
+    expect(ATL_DECAY).toBeLessThan(CTL_DECAY);
   });
 
   test('totalLoad = somme des sufferScore de la semaine', async () => {

@@ -9,6 +9,7 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import StravaConnect from './pages/StravaConnect';
 import StravaStats from './pages/StravaStats';
+import Cycling from './pages/Cycling';
 import KcalCalculator from './components/KcalCalculator';
 import Onboarding from './components/Onboarding';
 import StatsExplanation from './pages/StatsExplanation';
@@ -57,6 +58,16 @@ function AppInner() {
               <ProtectedRoute>
                 <Layout>
                   <StravaStats />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cyclisme"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Cycling />
                 </Layout>
               </ProtectedRoute>
             }

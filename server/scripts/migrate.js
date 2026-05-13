@@ -54,9 +54,92 @@ async function runMigrations() {
   await addColumnIfMissing('Users', 'consoKcal',            'INT NULL');
   await addColumnIfMissing('Users', 'weeksToGoal',          'FLOAT NULL');
   await addColumnIfMissing('Users', 'targetWeight',         'FLOAT NULL');
+  await addColumnIfMissing('Users', 'restHeartrate',         "INT NULL COMMENT 'Fréquence cardiaque de repos'");
+  await addColumnIfMissing('Users', 'bikeType',              "VARCHAR(255) NULL COMMENT 'Type de pratique cycliste'");
+  await addColumnIfMissing('Users', 'cyclingGoal',           "VARCHAR(255) NULL COMMENT 'Objectif cycliste'");
   await addColumnIfMissing('Users', 'stravaAccessToken',    'VARCHAR(600) NULL');
   await addColumnIfMissing('Users', 'stravaRefreshToken',   'VARCHAR(600) NULL');
   await addColumnIfMissing('Users', 'stravaExpiresAt',      'INT NULL');
+
+  // ── Activities : colonnes enrichies (Phase 0 data analyse) ────────────────
+  await addColumnIfMissing('Activities', 'elapsedTime',           'INT NULL');
+  await addColumnIfMissing('Activities', 'maxSpeed',              'FLOAT NULL');
+  await addColumnIfMissing('Activities', 'hasHeartrate',          'TINYINT(1) NULL');
+  await addColumnIfMissing('Activities', 'kilojoules',            'FLOAT NULL');
+  await addColumnIfMissing('Activities', 'maxWatts',              'FLOAT NULL');
+  await addColumnIfMissing('Activities', 'weightedAverageWatts',  'FLOAT NULL');
+  await addColumnIfMissing('Activities', 'deviceWatts',           'TINYINT(1) NULL');
+  await addColumnIfMissing('Activities', 'averageCadence',        'FLOAT NULL');
+  await addColumnIfMissing('Activities', 'averageTemp',           'FLOAT NULL');
+  await addColumnIfMissing('Activities', 'workoutType',           'INT NULL');
+  await addColumnIfMissing('Activities', 'athleteCount',          'INT NULL');
+  await addColumnIfMissing('Activities', 'kudosCount',            'INT NULL');
+  await addColumnIfMissing('Activities', 'prCount',               'INT NULL');
+  await addColumnIfMissing('Activities', 'achievementCount',      'INT NULL');
+  await addColumnIfMissing('Activities', 'summaryPolyline',       'LONGTEXT NULL');
+  await addColumnIfMissing('Activities', 'startLatlng',           'JSON NULL');
+  await addColumnIfMissing('Activities', 'endLatlng',             'JSON NULL');
+  await addColumnIfMissing('Activities', 'locationCity',          'VARCHAR(255) NULL');
+  await addColumnIfMissing('Activities', 'locationCountry',       'VARCHAR(255) NULL');
+  await addColumnIfMissing('Activities', 'deviceName',            'VARCHAR(255) NULL');
+  await addColumnIfMissing('Activities', 'bestEfforts',           'JSON NULL');
+  await addColumnIfMissing('Activities', 'splitsMetric',          'JSON NULL');
+  await addColumnIfMissing('Activities', 'laps',                  'JSON NULL');
+  await addColumnIfMissing('Activities', 'detailFetchedAt',       'DATETIME NULL');
+  await addColumnIfMissing('Activities', 'streamFetchedAt',       'DATETIME NULL');
+
+  // ── ActivityStreams : table dédiée séries temporelles ─────────────────────
+  const [streamTable] = await sequelize.query(`
+    SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ActivityStreams'
+  `);
+  if (streamTable.length === 0) {
+    await sequelize.query(`
+      CREATE TABLE \`ActivityStreams\` (
+        \`id\` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        \`activityId\` INT NOT NULL UNIQUE,
+        \`stravaId\` BIGINT NOT NULL,
+        \`time\` JSON NULL,
+        \`distance\` JSON NULL,
+        \`heartrate\` JSON NULL,
+        \`watts\` JSON NULL,
+        \`cadence\` JSON NULL,
+        \`velocitySmooth\` JSON NULL,
+        \`altitude\` JSON NULL,
+        \`latlng\` JSON NULL,
+        \`gradeSmooth\` JSON NULL,
+        \`temp\` JSON NULL,
+        \`moving\` JSON NULL,
+        \`resolution\` VARCHAR(255) NULL,
+        \`fetchedAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        \`createdAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        \`updatedAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (\`activityId\`) REFERENCES \`Activities\`(\`id\`) ON DELETE CASCADE,
+        INDEX \`activity_streams_strava_id\` (\`stravaId\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log('  ✅ Table ActivityStreams créée');
+  } else {
+    console.log('  ✓ Table ActivityStreams existe déjà');
+  }
+
+  // ── Index pour l'enrichissement (B.3) ──────────────────────────────────────
+  // Requêtes typiques : WHERE userId = ? AND (detailFetchedAt IS NULL OR streamFetchedAt IS NULL)
+  for (const [name, def] of [
+    ['Activities_userId_detailFetched', '(`userId`, `detailFetchedAt`)'],
+    ['Activities_userId_streamFetched', '(`userId`, `streamFetchedAt`)'],
+  ]) {
+    if (!(await indexExists('Activities', name))) {
+      try {
+        await sequelize.query(`ALTER TABLE \`Activities\` ADD INDEX \`${name}\` ${def}`);
+        console.log(`  ✅ Index ${name} ajouté`);
+      } catch (e) {
+        console.warn(`  ⚠️  Index ${name}:`, e.message);
+      }
+    } else {
+      console.log(`  ✓ Index ${name} existe déjà`);
+    }
+  }
 
   console.log('✅ Migration terminée');
 }

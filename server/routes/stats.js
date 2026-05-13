@@ -8,6 +8,7 @@ const { Op, fn, col, literal } = require('sequelize');
 const Activity = require('../models/Activity');
 const { getValidStravaToken, getAthleteGear } = require('../utils/stravaHelpers');
 const User = require('../models/User');
+const cache = require('../utils/memoryCache');
 
 router.get('/weight-performance', auth, asyncHandler(async (req, res) => {
   const weeks = Math.min(parseInt(req.query.weeks || '12'), 52);
@@ -17,7 +18,10 @@ router.get('/weight-performance', auth, asyncHandler(async (req, res) => {
 
 router.get('/training-load', auth, asyncHandler(async (req, res) => {
   const weeks = Math.min(parseInt(req.query.weeks || '10'), 20);
-  const data = await getTrainingLoad(req.userId, weeks);
+  const data = await getTrainingLoad(req.userId, weeks, {
+    from: req.query.from || null,
+    to: req.query.to || null,
+  });
   sendSuccess(res, data);
 }));
 
@@ -27,9 +31,15 @@ router.get('/gear-usage', auth, asyncHandler(async (req, res) => {
     return sendSuccess(res, []);
   }
 
-  // Agrège km par gearId depuis Activity table
+  // Agrège km par gearId depuis Activity table (filtré par période si fournie)
+  const whereGear = { userId: req.userId, gearId: { [Op.not]: null } };
+  if (req.query.from || req.query.to) {
+    whereGear.startDate = {};
+    if (req.query.from) whereGear.startDate[Op.gte] = new Date(req.query.from);
+    if (req.query.to) whereGear.startDate[Op.lte] = new Date(req.query.to);
+  }
   const usageRows = await Activity.findAll({
-    where: { userId: req.userId, gearId: { [Op.not]: null } },
+    where: whereGear,
     attributes: [
       'gearId',
       [fn('SUM', col('distance')), 'totalDistance'],
@@ -41,12 +51,19 @@ router.get('/gear-usage', auth, asyncHandler(async (req, res) => {
 
   if (usageRows.length === 0) return sendSuccess(res, []);
 
-  // Récupère les noms d'équipement depuis Strava
+  // Récupère les noms d'équipement depuis Strava (avec cache 1h)
   let gearDetails = {};
   try {
-    const accessToken = await getValidStravaToken(user);
-    if (accessToken) {
-      const gear = await getAthleteGear(accessToken);
+    const gear = await cache.getOrSet(
+      `athlete-gear:${req.userId}`,
+      async () => {
+        const accessToken = await getValidStravaToken(user);
+        if (!accessToken) throw new Error('No token');
+        return getAthleteGear(accessToken);
+      },
+      3600
+    );
+    if (gear) {
       [...(gear.bikes || []), ...(gear.shoes || [])].forEach(g => {
         gearDetails[g.id] = { name: g.name, brand: g.brand_name, category: g.bikes ? 'bike' : 'shoe' };
       });

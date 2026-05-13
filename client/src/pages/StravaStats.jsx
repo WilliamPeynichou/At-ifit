@@ -2,21 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { TemporalProvider, useTemporal } from '../context/TemporalContext';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend,
+  AreaChart, Area, ReferenceDot,
 } from 'recharts';
 import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut } from 'lucide-react';
 import api from '../api';
+import { darkTooltipProps } from '../components/ui/chartStyles';
 import YearlyProgress from '../components/YearlyProgress';
 import HeartRateZones from '../components/HeartRateZones';
 import TrainingLoad from '../components/TrainingLoad';
 import GearTracker from '../components/GearTracker';
 import SportGoals from '../components/SportGoals';
+import DataAnalysisHub from '../components/analytics/DataAnalysisHub';
+import TemporalSelector from '../components/analytics/TemporalSelector';
 
-const StravaStats = () => {
+const StravaStatsContent = () => {
   const { loadUser } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { queryParams, fromISO, toISO } = useTemporal();
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState([]);
   const [globalProgression, setGlobalProgression] = useState([]);
@@ -28,13 +34,14 @@ const StravaStats = () => {
 
   useEffect(() => {
     fetchActivities();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromISO, toISO]);
 
   const fetchActivities = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get('/strava/activities');
+      const response = await api.get(`/strava/activities${queryParams}`);
 
       const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
 
@@ -94,9 +101,10 @@ const StravaStats = () => {
       globalProg.push({
         date: date,
         fullDate: activity.start_date,
+        timestamp: dateObj.getTime(),
         name: activity.name,
-        distance: ((activity.distance || 0) / 1000).toFixed(2),
-        cumulativeDistance: (totalDistance / 1000).toFixed(2),
+        distance: Number(((activity.distance || 0) / 1000).toFixed(2)),
+        cumulativeDistance: Number((totalDistance / 1000).toFixed(2)),
         type: type,
         bpm: activity.average_heartrate || 0
       });
@@ -164,14 +172,6 @@ const StravaStats = () => {
     setSportProgression(sportProg);
   };
 
-  const formatDuration = (seconds) => {
-    if (!seconds) return '0s';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`;
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -195,6 +195,7 @@ const StravaStats = () => {
       }
       navigate('/strava-connect');
     } catch (err) {
+      console.error('Strava disconnect error:', err);
       setError(t('stravaStats.disconnectError'));
     } finally {
       setDisconnecting(false);
@@ -211,7 +212,7 @@ const StravaStats = () => {
       const point = { date: entry.date, fullDate: entry.fullDate };
 
       const sport = entry.type;
-      if (sportCurrentDist.hasOwnProperty(sport)) {
+      if (Object.prototype.hasOwnProperty.call(sportCurrentDist, sport)) {
         sportCurrentDist[sport] = parseFloat(sportCurrentDist[sport]) + parseFloat(entry.distance);
       }
 
@@ -227,11 +228,6 @@ const StravaStats = () => {
   const sportChartData = getSportChartData();
   const sportsList = Object.keys(sportProgression);
   const colors = ['#0055ff', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
-
-  // Activités filtrées selon le sport sélectionné
-  const filteredActivities = selectedSport === 'All'
-    ? activities
-    : activities.filter(a => a.type === selectedSport);
 
   const filteredGlobalProgression = selectedSport === 'All'
     ? globalProgression
@@ -313,6 +309,12 @@ const StravaStats = () => {
         </button>
       </div>
 
+      {/* Hub Data Analyse - 4 modales */}
+      <DataAnalysisHub activities={activities} />
+
+      {/* Sélecteur temporel global */}
+      <TemporalSelector />
+
       {/* Filtres par type de sport */}
       {sportsList.length > 1 && (
         <div className="flex flex-wrap gap-2">
@@ -348,23 +350,91 @@ const StravaStats = () => {
       <YearlyProgress />
 
       <div className="glass-panel p-6">
-        <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-          <TrendingUp size={20} className="text-[#0055ff]" /> {t('stravaStats.globalProgression')}
-        </h3>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+          <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+            <TrendingUp size={20} className="text-[#0055ff]" /> {t('stravaStats.globalProgression')}
+          </h3>
+          {filteredGlobalProgression.length > 0 && (
+            <div className="flex items-baseline gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
+              <span>
+                <span className="opacity-70">Période :</span>{' '}
+                <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>
+                  {new Date(filteredGlobalProgression[0].fullDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                  {' → '}
+                  {new Date(filteredGlobalProgression[filteredGlobalProgression.length - 1].fullDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                </span>
+              </span>
+              <span>
+                <span className="opacity-70">Total :</span>{' '}
+                <span className="font-bold text-[#0055ff]">
+                  {filteredGlobalProgression[filteredGlobalProgression.length - 1].cumulativeDistance.toLocaleString('fr-FR')} km
+                </span>
+              </span>
+              <span>
+                <span className="opacity-70">Activités :</span>{' '}
+                <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>
+                  {filteredGlobalProgression.length}
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={filteredGlobalProgression}>
+            <AreaChart data={filteredGlobalProgression} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="cumulGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0055ff" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="#0055ff" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" stroke="#a8a29e" />
-              <YAxis stroke="#a8a29e" />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
-                itemStyle={{ color: '#0055ff' }}
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                stroke="#a8a29e"
+                tickFormatter={(ts) => new Date(ts).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
+                minTickGap={60}
+                tick={{ fontSize: 11 }}
               />
-              <Line type="monotone" dataKey="cumulativeDistance" stroke="#0055ff" strokeWidth={3} dot={false} activeDot={{ r: 8 }} />
-            </LineChart>
+              <YAxis
+                stroke="#a8a29e"
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => `${v >= 1000 ? (v / 1000).toFixed(1) + ' k' : v}`}
+                unit=" km"
+              />
+              <Tooltip
+                {...darkTooltipProps}
+                labelFormatter={(ts) => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                formatter={(value, name, payload) => {
+                  if (name === 'cumulativeDistance') {
+                    const activity = payload?.payload?.name || '';
+                    const dailyDistance = payload?.payload?.distance;
+                    return [
+                      `${value.toLocaleString('fr-FR')} km cumulés${dailyDistance ? ` (+${dailyDistance} km ce jour)` : ''}`,
+                      activity ? `Activité : ${activity}` : 'Distance cumulée',
+                    ];
+                  }
+                  return [value, name];
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="cumulativeDistance"
+                stroke="#0055ff"
+                strokeWidth={2.5}
+                fill="url(#cumulGradient)"
+                activeDot={{ r: 6, stroke: '#0055ff', strokeWidth: 2, fill: '#fff' }}
+                name="Distance cumulée"
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
+        <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+          Distance totale parcourue depuis ta première activité Strava. Chaque marche correspond à une sortie.
+          Survole la courbe pour voir le détail de chaque activité.
+        </p>
       </div>
 
       <div className="glass-panel p-6">
@@ -509,5 +579,11 @@ const StravaStats = () => {
     </div>
   );
 };
+
+const StravaStats = () => (
+  <TemporalProvider defaultPreset="12M">
+    <StravaStatsContent />
+  </TemporalProvider>
+);
 
 export default StravaStats;

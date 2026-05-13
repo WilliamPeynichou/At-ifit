@@ -3,7 +3,14 @@ const router = express.Router();
 const axios = require('axios');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
-const { syncUserActivities } = require('../services/stravaSync');
+const ActivityStream = require('../models/ActivityStream');
+const { syncUserActivities, syncSince, enrichUserActivities } = require('../services/stravaSync');
+const {
+  getAnalyticsSummary,
+  getTimeInZones,
+  getPowerCurve,
+  getGpsHeatmap,
+} = require('../services/stravaAnalytics');
 const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
 const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHandler');
@@ -23,6 +30,14 @@ const {
   revokeStravaToken
 } = require('../utils/stravaHelpers');
 const logger = require('../utils/logger');
+const cache = require('../utils/memoryCache');
+
+// TTLs pour les endpoints peu volatiles
+const TTL_ATHLETE = 3600;     // 1h — profil quasi statique
+const TTL_STATS = 1800;       // 30min — totaux changent à chaque activité
+const TTL_ZONES = 86400;      // 24h — zones HR configurées par l'user
+const TTL_GEAR = 3600;        // 1h — équipement change rarement
+const TTL_CLUBS = 86400;      // 24h
 
 // Stockage en mémoire des états OAuth en attente (TTL 10 min)
 const pendingOAuthStates = new Map();
@@ -159,7 +174,7 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
     return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
   }
 
-  const { type, limit = 200, page = 1 } = req.query;
+  const { type, limit = 200, page = 1, from, to } = req.query;
 
   // Vérifie si la DB est vide pour cet utilisateur → sync initiale
   const count = await Activity.count({ where: { userId: req.userId } });
@@ -168,11 +183,28 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
     syncUserActivities(req.userId).catch(err =>
       logger.error('[Strava] Erreur sync background', { userId: req.userId, error: err.message })
     );
+  } else {
+    // Sync incrémental auto si lastSyncAt > 10 min (sans webhook actif, c'est le fallback).
+    // Le mutex sync évite les doubles appels même si plusieurs requêtes simultanées.
+    const lastSync = user.lastSyncAt ? new Date(user.lastSyncAt) : null;
+    const STALE_MS = 10 * 60 * 1000;
+    if (!lastSync || (Date.now() - lastSync.getTime()) > STALE_MS) {
+      const since = lastSync ? Math.floor(lastSync.getTime() / 1000) : Math.floor((Date.now() - 7 * 86400 * 1000) / 1000);
+      logger.info('[Strava] Sync incrémentale auto (lastSyncAt stale)', { userId: req.userId, since });
+      syncSince(req.userId, since).catch(err =>
+        logger.error('[Strava] Erreur syncSince auto', { userId: req.userId, error: err.message })
+      );
+    }
   }
 
   // Construit la requête Sequelize
   const where = { userId: req.userId };
   if (type) where.type = type;
+  if (from || to) {
+    where.startDate = {};
+    if (from) where.startDate[Op.gte] = new Date(from);
+    if (to) where.startDate[Op.lte] = new Date(to);
+  }
 
   const activities = await Activity.findAll({
     where,
@@ -230,106 +262,95 @@ router.delete('/disconnect', auth, asyncHandler(async (req, res) => {
 
 router.get('/athlete', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
-  
-  if (!user) {
-    return sendError(res, 'User not found', 404);
-  }
-  
-  if (!user.stravaAccessToken) {
-    return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
-  }
-
-  const accessToken = await getValidStravaToken(user);
-  
-  if (!accessToken) {
-    return sendError(res, 'Failed to get valid Strava token', 401);
-  }
+  if (!user) return sendError(res, 'User not found', 404);
+  if (!user.stravaAccessToken) return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
 
   try {
-    const athlete = await getAthlete(accessToken);
+    const athlete = await cache.getOrSet(
+      `athlete:${req.userId}`,
+      async () => {
+        const accessToken = await getValidStravaToken(user);
+        if (!accessToken) throw new Error('Failed to get valid Strava token');
+        return getAthlete(accessToken);
+      },
+      TTL_ATHLETE
+    );
     sendSuccess(res, athlete);
   } catch (error) {
     logger.error('Failed to fetch athlete', error);
-    return sendError(res, 'Failed to fetch athlete profile', 500);
+    return sendError(res, error.message || 'Failed to fetch athlete profile', 500);
   }
 }));
 
 router.get('/athlete/stats', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
-  
-  if (!user) {
-    return sendError(res, 'User not found', 404);
-  }
-  
-  if (!user.stravaAccessToken) {
-    return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
-  }
-
-  const accessToken = await getValidStravaToken(user);
-  
-  if (!accessToken) {
-    return sendError(res, 'Failed to get valid Strava token', 401);
-  }
+  if (!user) return sendError(res, 'User not found', 404);
+  if (!user.stravaAccessToken) return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
 
   try {
-    const athlete = await getAthlete(accessToken);
-    const stats = await getAthleteStats(accessToken, athlete.id);
+    const stats = await cache.getOrSet(
+      `athlete-stats:${req.userId}`,
+      async () => {
+        const accessToken = await getValidStravaToken(user);
+        if (!accessToken) throw new Error('Failed to get valid Strava token');
+        // Mutualise le fetch athlete via cache pour éviter un double appel
+        const athlete = await cache.getOrSet(
+          `athlete:${req.userId}`,
+          () => getAthlete(accessToken),
+          TTL_ATHLETE
+        );
+        return getAthleteStats(accessToken, athlete.id);
+      },
+      TTL_STATS
+    );
     sendSuccess(res, stats);
   } catch (error) {
     logger.error('Failed to fetch athlete stats', error);
-    return sendError(res, 'Failed to fetch athlete stats', 500);
+    return sendError(res, error.message || 'Failed to fetch athlete stats', 500);
   }
 }));
 
 router.get('/athlete/zones', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
-  
-  if (!user) {
-    return sendError(res, 'User not found', 404);
-  }
-  
-  if (!user.stravaAccessToken) {
-    return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
-  }
-
-  const accessToken = await getValidStravaToken(user);
-  
-  if (!accessToken) {
-    return sendError(res, 'Failed to get valid Strava token', 401);
-  }
+  if (!user) return sendError(res, 'User not found', 404);
+  if (!user.stravaAccessToken) return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
 
   try {
-    const zones = await getAthleteZones(accessToken);
+    const zones = await cache.getOrSet(
+      `athlete-zones:${req.userId}`,
+      async () => {
+        const accessToken = await getValidStravaToken(user);
+        if (!accessToken) throw new Error('Failed to get valid Strava token');
+        return getAthleteZones(accessToken);
+      },
+      TTL_ZONES
+    );
     sendSuccess(res, zones);
   } catch (error) {
     logger.error('Failed to fetch athlete zones', error);
-    return sendError(res, 'Failed to fetch athlete zones', 500);
+    return sendError(res, error.message || 'Failed to fetch athlete zones', 500);
   }
 }));
 
 router.get('/athlete/clubs', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
-  
-  if (!user) {
-    return sendError(res, 'User not found', 404);
-  }
-  
-  if (!user.stravaAccessToken) {
-    return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
-  }
-
-  const accessToken = await getValidStravaToken(user);
-  
-  if (!accessToken) {
-    return sendError(res, 'Failed to get valid Strava token', 401);
-  }
+  if (!user) return sendError(res, 'User not found', 404);
+  if (!user.stravaAccessToken) return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
 
   try {
-    const clubs = await getAthleteClubs(accessToken);
+    const clubs = await cache.getOrSet(
+      `athlete-clubs:${req.userId}`,
+      async () => {
+        const accessToken = await getValidStravaToken(user);
+        if (!accessToken) throw new Error('Failed to get valid Strava token');
+        return getAthleteClubs(accessToken);
+      },
+      TTL_CLUBS
+    );
     sendSuccess(res, clubs);
   } catch (error) {
     logger.error('Failed to fetch athlete clubs', error);
-    return sendError(res, 'Failed to fetch athlete clubs', 500);
+    return sendError(res, error.message || 'Failed to fetch athlete clubs', 500);
   }
 }));
 
@@ -362,31 +383,103 @@ router.get('/activities/:id', auth, asyncHandler(async (req, res) => {
 
 router.get('/activities/:id/streams', auth, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { types } = req.query;
+  const { types, fresh } = req.query;
   const user = await User.findByPk(req.userId);
-  
-  if (!user) {
-    return sendError(res, 'User not found', 404);
-  }
-  
+
+  if (!user) return sendError(res, 'User not found', 404);
   if (!user.stravaAccessToken) {
     return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
   }
 
-  const accessToken = await getValidStravaToken(user);
-  
-  if (!accessToken) {
-    return sendError(res, 'Failed to get valid Strava token', 401);
+  // Cherche d'abord en cache local (par stravaId, scopé au user)
+  const activity = await Activity.findOne({
+    where: { stravaId: id, userId: req.userId }
+  });
+
+  if (activity && !fresh) {
+    const cached = await ActivityStream.findOne({ where: { activityId: activity.id } });
+    if (cached) {
+      return sendSuccess(res, {
+        time: { data: cached.time },
+        distance: { data: cached.distance },
+        heartrate: { data: cached.heartrate },
+        watts: { data: cached.watts },
+        cadence: { data: cached.cadence },
+        velocity_smooth: { data: cached.velocitySmooth },
+        altitude: { data: cached.altitude },
+        latlng: { data: cached.latlng },
+        grade_smooth: { data: cached.gradeSmooth },
+        temp: { data: cached.temp },
+        moving: { data: cached.moving },
+        cached: true,
+      });
+    }
   }
 
+  // Fallback : appel direct Strava
+  const accessToken = await getValidStravaToken(user);
+  if (!accessToken) return sendError(res, 'Failed to get valid Strava token', 401);
+
   try {
-    const streamTypes = types ? types.split(',') : ['time', 'distance', 'latlng', 'altitude'];
+    const streamTypes = types ? types.split(',') : ['time', 'distance', 'heartrate', 'watts', 'altitude', 'latlng'];
     const streams = await getActivityStreams(accessToken, id, streamTypes);
     sendSuccess(res, streams);
   } catch (error) {
     logger.error('Failed to fetch activity streams', error);
     return sendError(res, 'Failed to fetch activity streams', 500);
   }
+}));
+
+// Déclenche manuellement l'enrichissement (détail + streams) en background
+router.post('/sync/enrich', auth, asyncHandler(async (req, res) => {
+  const { force = false, maxCount = 500 } = req.body || {};
+  enrichUserActivities(req.userId, { force, maxCount }).catch(err =>
+    logger.error('[Strava] Erreur enrichissement manuel', { userId: req.userId, error: err.message })
+  );
+  sendSuccess(res, { started: true }, 'Enrichissement lancé en arrière-plan');
+}));
+
+// === Analytics endpoints (Phase 0.6) ===
+const parseRange = (req) => ({
+  from: req.query.from || null,
+  to: req.query.to || null,
+});
+
+router.get('/analytics/summary', auth, asyncHandler(async (req, res) => {
+  const summary = await getAnalyticsSummary(req.userId, parseRange(req));
+  sendSuccess(res, summary);
+}));
+
+router.get('/analytics/zones', auth, asyncHandler(async (req, res) => {
+  const { hrMax, hrRest } = req.query;
+  const data = await getTimeInZones(req.userId, {
+    hrMax: hrMax ? parseInt(hrMax) : 190,
+    hrRest: hrRest ? parseInt(hrRest) : 60,
+    ...parseRange(req),
+  });
+  sendSuccess(res, data);
+}));
+
+router.get('/analytics/power-curve', auth, asyncHandler(async (req, res) => {
+  const data = await getPowerCurve(req.userId, parseRange(req));
+  sendSuccess(res, data);
+}));
+
+router.get('/analytics/gps-heatmap', auth, asyncHandler(async (req, res) => {
+  const data = await getGpsHeatmap(req.userId, parseRange(req));
+  sendSuccess(res, data);
+}));
+
+// Status de l'enrichissement : combien d'activités ont leur détail/streams
+router.get('/sync/status', auth, asyncHandler(async (req, res) => {
+  const total = await Activity.count({ where: { userId: req.userId } });
+  const withDetail = await Activity.count({
+    where: { userId: req.userId, detailFetchedAt: { [Op.not]: null } }
+  });
+  const withStream = await Activity.count({
+    where: { userId: req.userId, streamFetchedAt: { [Op.not]: null } }
+  });
+  sendSuccess(res, { total, withDetail, withStream });
 }));
 
 router.get('/routes', auth, asyncHandler(async (req, res) => {
@@ -417,27 +510,23 @@ router.get('/routes', auth, asyncHandler(async (req, res) => {
 
 router.get('/gear', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId);
-  
-  if (!user) {
-    return sendError(res, 'User not found', 404);
-  }
-  
-  if (!user.stravaAccessToken) {
-    return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
-  }
-
-  const accessToken = await getValidStravaToken(user);
-  
-  if (!accessToken) {
-    return sendError(res, 'Failed to get valid Strava token', 401);
-  }
+  if (!user) return sendError(res, 'User not found', 404);
+  if (!user.stravaAccessToken) return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
 
   try {
-    const gear = await getAthleteGear(accessToken);
+    const gear = await cache.getOrSet(
+      `athlete-gear:${req.userId}`,
+      async () => {
+        const accessToken = await getValidStravaToken(user);
+        if (!accessToken) throw new Error('Failed to get valid Strava token');
+        return getAthleteGear(accessToken);
+      },
+      TTL_GEAR
+    );
     sendSuccess(res, gear);
   } catch (error) {
     logger.error('Failed to fetch gear', error);
-    return sendError(res, 'Failed to fetch gear', 500);
+    return sendError(res, error.message || 'Failed to fetch gear', 500);
   }
 }));
 

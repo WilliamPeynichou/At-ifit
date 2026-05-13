@@ -36,6 +36,21 @@ const User = sequelize.define('User', {
     type: DataTypes.FLOAT,
     allowNull: true
   },
+  restHeartrate: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Fréquence cardiaque de repos saisie par l’utilisateur'
+  },
+  bikeType: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Type de pratique cycliste principale'
+  },
+  cyclingGoal: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Objectif cycliste principal'
+  },
   stravaAccessToken: {
     type: DataTypes.STRING(600), // chiffré : iv(32) + ':' + ciphertext(~180) → ~215 chars
     allowNull: true,
