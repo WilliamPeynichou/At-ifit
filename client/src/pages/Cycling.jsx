@@ -4,6 +4,14 @@ import {
 } from 'recharts';
 import { Bike, HeartPulse, RefreshCw, TrendingUp, Zap, Gauge, Activity, ListChecks, Save } from 'lucide-react';
 import api from '../api';
+import { TemporalProvider, useTemporal } from '../context/TemporalContext';
+import TemporalSelector from '../components/analytics/TemporalSelector';
+import YearlyProgress from '../components/YearlyProgress';
+import HeartRateZones from '../components/HeartRateZones';
+import CyclingPerf from '../components/analytics/performance/CyclingPerf';
+
+// Types Strava considérés comme cyclisme (route + virtuel + VAE + gravel)
+const CYCLING_TYPES = ['Ride', 'VirtualRide', 'EBikeRide', 'GravelRide'];
 
 const zoneColors = ['#60a5fa', '#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444', '#a855f7'];
 
@@ -56,13 +64,15 @@ const metric = (label, value, unit, icon) => (
   </div>
 );
 
-const Cycling = () => {
+const CyclingContent = () => {
+  const { fromISO, toISO } = useTemporal();
   const [data, setData] = useState({
     profile: null,
     rides: [],
     progress: [],
     recovery: null,
     insights: [],
+    activities: [], // activités brutes Strava filtrées vélo (pour les graphes réutilisés)
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -78,13 +88,17 @@ const Cycling = () => {
     try {
       setLoading(true);
       setError('');
-      const [profile, rides, progress, recovery, insights] = await Promise.all([
+      const [profile, rides, progress, recovery, insights, activitiesResp] = await Promise.all([
         api.get('/cycling/profile'),
         api.get('/cycling/rides?limit=30'),
         api.get('/cycling/progress'),
         api.get('/cycling/recovery'),
         api.get('/cycling/insights'),
+        api.get('/strava/activities?limit=500'),
       ]);
+
+      const rawActivities = Array.isArray(activitiesResp.data) ? activitiesResp.data : (activitiesResp.data?.data || []);
+      const cyclingActivities = rawActivities.filter(a => CYCLING_TYPES.includes(a.type));
 
       setData({
         profile: profile.data,
@@ -92,6 +106,7 @@ const Cycling = () => {
         progress: progress.data || [],
         recovery: recovery.data,
         insights: insights.data || [],
+        activities: cyclingActivities,
       });
       setProfileForm({
         restHeartrate: profile.data?.restHeartrate || '',
@@ -136,6 +151,17 @@ const Cycling = () => {
       setSavingProfile(false);
     }
   };
+
+  // Filtre les activités vélo selon la fenêtre temporelle (pour les graphes réutilisés)
+  const filteredActivities = useMemo(() => {
+    if (!fromISO && !toISO) return data.activities;
+    const fromMs = fromISO ? new Date(fromISO).getTime() : -Infinity;
+    const toMs = toISO ? new Date(toISO).getTime() : Infinity;
+    return data.activities.filter(a => {
+      const t = new Date(a.startDate || a.start_date).getTime();
+      return t >= fromMs && t <= toMs;
+    });
+  }, [data.activities, fromISO, toISO]);
 
   const latestRide = data.rides[0];
   const zonesChart = useMemo(() => (
@@ -384,12 +410,12 @@ const Cycling = () => {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={wattsChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="dateLabel" stroke="rgba(232,232,232,0.45)" tick={{ fontSize: 11 }} />
-                <YAxis stroke="rgba(232,232,232,0.45)" tick={{ fontSize: 11 }} unit=" W" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
+                <XAxis dataKey="dateLabel" stroke="rgba(19,16,20,0.55)" tick={{ fontSize: 11, fill: '#131014' }} />
+                <YAxis stroke="rgba(19,16,20,0.55)" tick={{ fontSize: 11, fill: '#131014' }} unit=" W" />
                 <Tooltip
-                  contentStyle={{ background: 'rgba(19,16,20,0.97)', border: '1px solid rgba(0,85,255,0.2)', color: '#e8e8e8' }}
-                  labelStyle={{ color: '#e8e8e8' }}
+                  contentStyle={{ background: '#ffffff', border: '1px solid rgba(0,85,255,0.2)', color: '#131014' }}
+                  labelStyle={{ color: '#131014' }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {profile?.ftp && (
@@ -439,6 +465,19 @@ const Cycling = () => {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="mb-8">
+        <TemporalSelector />
+      </section>
+
+      <section className="mb-8">
+        <CyclingPerf activities={filteredActivities} hideKpis />
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <YearlyProgress activities={filteredActivities} hideRunning />
+        <HeartRateZones activities={filteredActivities} />
       </section>
 
       <section className="glass-panel p-6 mb-8">
@@ -494,5 +533,11 @@ const Cycling = () => {
     </div>
   );
 };
+
+const Cycling = () => (
+  <TemporalProvider defaultPreset="12M">
+    <CyclingContent />
+  </TemporalProvider>
+);
 
 export default Cycling;

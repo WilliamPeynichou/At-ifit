@@ -18,7 +18,7 @@ const FTP_SOURCE_LABELS = {
   missing_power_data: 'Données puissance manquantes',
 };
 
-const CyclingPerf = ({ activities }) => {
+const CyclingPerf = ({ activities, hideKpis = false }) => {
   const { queryParams, fromISO, toISO } = useTemporal();
   const [profile, setProfile] = useState(null);
   const [rides, setRides] = useState([]);
@@ -108,6 +108,7 @@ const CyclingPerf = ({ activities }) => {
 
   return (
     <div className="space-y-6">
+      {!hideKpis && (<>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-2xl p-5" style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px solid #a855f740' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#a855f7' }}>Distance vélo</p>
@@ -208,9 +209,10 @@ const CyclingPerf = ({ activities }) => {
           )}
         </div>
       )}
+      </>)}
 
       {/* Comparaison sorties : distance + vitesse + BPM (min/avg/max) */}
-      <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)' }}>
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <HeartPulse size={20} style={{ color: '#ef4444' }} /> Comparaison sorties — distance, vitesse, BPM
         </h3>
@@ -225,7 +227,7 @@ const CyclingPerf = ({ activities }) => {
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={ridesChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
                   <XAxis dataKey="dateLabel" stroke="#a8a29e" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="left" stroke="#a855f7" unit=" km" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="right" orientation="right" stroke="#ef4444" unit=" bpm" tick={{ fontSize: 11 }} domain={['dataMin - 10', 'dataMax + 10']} />
@@ -247,7 +249,7 @@ const CyclingPerf = ({ activities }) => {
       </div>
 
       {/* Vitesse vs Dénivelé — corrélation */}
-      <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)' }}>
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <Mountain size={20} style={{ color: '#84cc16' }} /> Vitesse moyenne vs dénivelé
         </h3>
@@ -262,7 +264,7 @@ const CyclingPerf = ({ activities }) => {
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
                   <XAxis type="number" dataKey="elevationMeters" name="Dénivelé" unit=" m" stroke="#84cc16" tick={{ fontSize: 11 }} />
                   <YAxis type="number" dataKey="averageSpeedKmh" name="Vitesse moy." unit=" km/h" stroke="#22c55e" tick={{ fontSize: 11 }} />
                   <ZAxis type="number" dataKey="distanceKm" range={[40, 240]} name="Distance" unit=" km" />
@@ -279,27 +281,66 @@ const CyclingPerf = ({ activities }) => {
       </div>
 
       {/* TSS evolution */}
-      <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)' }}>
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <TrendingUp size={20} style={{ color: '#0055ff' }} /> Évolution TSS / IF
         </h3>
-        {data.ftpEstimated ? (
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.sessions.filter(s => s.tss).map(s => ({
-                ...s,
-                dateLabel: s.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }),
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="dateLabel" stroke="#a8a29e" interval="preserveStartEnd" />
-                <YAxis yAxisId="left" stroke="#fc4c02" />
-                <YAxis yAxisId="right" orientation="right" stroke="#0055ff" domain={[0, 2]} />
-                <Tooltip {...darkTooltipProps} />
-                <Line yAxisId="left" type="monotone" dataKey="tss" stroke="#fc4c02" strokeWidth={2} dot={{ r: 3 }} name="TSS" />
-                <Line yAxisId="right" type="monotone" dataKey="if_" stroke="#0055ff" strokeWidth={1.5} dot={false} name="IF" strokeDasharray="3 3" />
-              </LineChart>
-            </ResponsiveContainer>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div className="rounded-xl p-3" style={{ background: 'rgba(252,76,2,0.06)', border: '1px solid rgba(252,76,2,0.2)' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#fc4c02' }}>TSS · Training Stress Score</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Charge totale d'une sortie (intensité × durée). Une heure à FTP = 100 TSS.
+              <span className="block mt-1 opacity-80">
+                &lt;150 : facile · 150–300 : modérée · 300–450 : exigeante · &gt;450 : épique
+              </span>
+            </p>
           </div>
+          <div className="rounded-xl p-3" style={{ background: 'rgba(0,85,255,0.06)', border: '1px solid rgba(0,85,255,0.2)' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#0055ff' }}>IF · Intensity Factor</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Intensité moyenne rapportée à la FTP (puissance normalisée ÷ FTP).
+              <span className="block mt-1 opacity-80">
+                &lt;0.75 : endurance · 0.75–0.85 : tempo · 0.85–0.95 : seuil · &gt;0.95 : course / record
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {data.ftpEstimated ? (
+          <>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.sessions.filter(s => s.tss).map(s => ({
+                  ...s,
+                  dateLabel: s.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
+                  <XAxis dataKey="dateLabel" stroke="#a8a29e" interval="preserveStartEnd" />
+                  <YAxis yAxisId="left" stroke="#fc4c02" />
+                  <YAxis yAxisId="right" orientation="right" stroke="#0055ff" domain={[0, 2]} />
+                  <Tooltip {...darkTooltipProps} />
+                  <Line yAxisId="left" type="monotone" dataKey="tss" stroke="#fc4c02" strokeWidth={2} dot={{ r: 3 }} name="TSS" />
+                  <Line yAxisId="right" type="monotone" dataKey="if_" stroke="#0055ff" strokeWidth={1.5} dot={false} name="IF" strokeDasharray="3 3" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-4 rounded-xl p-4" style={{ background: 'rgba(0,85,255,0.05)', border: '1px solid rgba(0,85,255,0.18)' }}>
+              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--accent-blue)' }}>
+                Comment lire ce graphique
+              </p>
+              <ul className="text-xs leading-relaxed space-y-1.5" style={{ color: 'var(--text-secondary)' }}>
+                <li>• <span className="font-bold">TSS qui monte semaine après semaine</span> → ta charge progresse. Bonne adaptation si la fatigue reste contenue, risque de surcharge si trop rapide.</li>
+                <li>• <span className="font-bold">TSS variable (alternance pics / creux)</span> → entraînement structuré : tu enchaînes sortie dure puis récupération. Pattern recherché pour progresser.</li>
+                <li>• <span className="font-bold">TSS plat et bas</span> → routine trop confortable, peu de stimulus pour progresser.</li>
+                <li>• <span className="font-bold">IF souvent autour de 0.65–0.75</span> → tu travailles surtout l'endurance fondamentale (zone 2). Bon socle aérobie.</li>
+                <li>• <span className="font-bold">IF répété au-dessus de 0.85</span> → tu pousses régulièrement au seuil. Efficace mais coûteux : surveille la fatigue.</li>
+                <li>• <span className="font-bold">TSS élevé + IF élevé sur la même sortie</span> → course ou test FTP. À répéter rarement.</li>
+                <li>• <span className="font-bold">TSS élevé + IF bas</span> → sortie longue endurance. Excellent pour le CTL (forme de fond).</li>
+              </ul>
+            </div>
+          </>
         ) : (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>FTP requise pour calculer TSS/IF.</p>
         )}
