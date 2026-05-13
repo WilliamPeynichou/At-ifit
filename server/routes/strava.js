@@ -6,6 +6,7 @@ const Activity = require('../models/Activity');
 const ActivityStream = require('../models/ActivityStream');
 const stravaRunningRoutes = require('./stravaRunning.routes');
 const stravaSwimmingRoutes = require('./stravaSwimming.routes');
+const stravaCyclingRoutes = require('./stravaCycling.routes');
 const { syncUserActivities, syncSince, enrichUserActivities } = require('../services/stravaSync');
 const {
   getAnalyticsSummary,
@@ -47,6 +48,7 @@ const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 router.use('/running', stravaRunningRoutes);
 router.use('/swimming', stravaSwimmingRoutes);
+router.use('/cycling', stravaCyclingRoutes);
 
 function cleanExpiredStates() {
   const now = Date.now();

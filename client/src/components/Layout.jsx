@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { path: '/strava-stats', label: 'Strava', icon: BarChart2 },
   { path: '/running-dashboard', label: 'Running', icon: Route },
   { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
-  { path: '/cyclisme', label: 'Cyclisme', icon: Bike },
+  { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
 ];
 
