@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Bike, LogOut, Home, Flame, User, BarChart2 } from 'lucide-react';
+import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import Footer from './Footer';
@@ -7,6 +7,8 @@ import Footer from './Footer';
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: Home },
   { path: '/strava-stats', label: 'Strava', icon: BarChart2 },
+  { path: '/running-dashboard', label: 'Running', icon: Route },
+  { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
   { path: '/cyclisme', label: 'Cyclisme', icon: Bike },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
 ];

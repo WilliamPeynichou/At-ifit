@@ -10,6 +10,8 @@ import Dashboard from './components/Dashboard';
 import StravaConnect from './pages/StravaConnect';
 import StravaStats from './pages/StravaStats';
 import Cycling from './pages/Cycling';
+import RunningDashboard from './pages/RunningDashboard';
+import SwimmingDashboard from './pages/SwimmingDashboard';
 import KcalCalculator from './components/KcalCalculator';
 import Onboarding from './components/Onboarding';
 import StatsExplanation from './pages/StatsExplanation';
@@ -68,6 +70,26 @@ function AppInner() {
               <ProtectedRoute>
                 <Layout>
                   <Cycling />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/running-dashboard"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <RunningDashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/swimming-dashboard"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SwimmingDashboard />
                 </Layout>
               </ProtectedRoute>
             }

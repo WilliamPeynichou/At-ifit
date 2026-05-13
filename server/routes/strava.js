@@ -4,6 +4,8 @@ const axios = require('axios');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
 const ActivityStream = require('../models/ActivityStream');
+const stravaRunningRoutes = require('./stravaRunning.routes');
+const stravaSwimmingRoutes = require('./stravaSwimming.routes');
 const { syncUserActivities, syncSince, enrichUserActivities } = require('../services/stravaSync');
 const {
   getAnalyticsSummary,
@@ -42,6 +44,9 @@ const TTL_CLUBS = 86400;      // 24h
 // Stockage en mémoire des états OAuth en attente (TTL 10 min)
 const pendingOAuthStates = new Map();
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+router.use('/running', stravaRunningRoutes);
+router.use('/swimming', stravaSwimmingRoutes);
 
 function cleanExpiredStates() {
   const now = Date.now();
@@ -624,4 +629,3 @@ router.get('/all', auth, asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
-
