@@ -176,16 +176,15 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
 
   const { type, limit = 200, page = 1, from, to } = req.query;
 
-  // Vérifie si la DB est vide pour cet utilisateur → sync initiale
-  const count = await Activity.count({ where: { userId: req.userId } });
-  if (count === 0) {
-    logger.info('[Strava] DB vide, déclenchement sync initiale', { userId: req.userId });
-    syncUserActivities(req.userId).catch(err =>
-      logger.error('[Strava] Erreur sync background', { userId: req.userId, error: err.message })
+  // Auto-sync : full sync tant que fullSyncCompletedAt est null (self-healing si interrompu),
+  // sinon sync incrémentale si lastSyncAt > 10 min (fallback webhook).
+  // Le mutex syncInFlight évite les doubles appels simultanés.
+  if (!user.fullSyncCompletedAt) {
+    logger.info('[Strava] Full sync auto (fullSyncCompletedAt null)', { userId: req.userId });
+    syncUserActivities(req.userId, { enrich: true }).catch(err =>
+      logger.error('[Strava] Erreur full sync auto', { userId: req.userId, error: err.message })
     );
   } else {
-    // Sync incrémental auto si lastSyncAt > 10 min (sans webhook actif, c'est le fallback).
-    // Le mutex sync évite les doubles appels même si plusieurs requêtes simultanées.
     const lastSync = user.lastSyncAt ? new Date(user.lastSyncAt) : null;
     const STALE_MS = 10 * 60 * 1000;
     if (!lastSync || (Date.now() - lastSync.getTime()) > STALE_MS) {
@@ -196,6 +195,8 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
       );
     }
   }
+
+  const count = await Activity.count({ where: { userId: req.userId } });
 
   // Construit la requête Sequelize
   const where = { userId: req.userId };
@@ -229,6 +230,21 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
   }
 
   sendSuccess(res, activities);
+}));
+
+router.post('/resync', auth, asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.userId);
+  if (!user) return sendError(res, 'User not found', 404);
+  if (!user.stravaAccessToken) {
+    return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
+  }
+
+  syncUserActivities(req.userId, { enrich: true }).catch(err =>
+    logger.error('[Strava] Erreur resync manuelle', { userId: req.userId, error: err.message })
+  );
+
+  logger.info('[Strava] Resync manuelle déclenchée', { userId: req.userId });
+  sendSuccess(res, { status: 'started' }, 'Resync started');
 }));
 
 router.delete('/disconnect', auth, asyncHandler(async (req, res) => {

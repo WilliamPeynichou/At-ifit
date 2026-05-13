@@ -49,6 +49,7 @@ async function runMigrations() {
   await addColumnIfMissing('Users', 'failedLoginAttempts',  'INT NOT NULL DEFAULT 0');
   await addColumnIfMissing('Users', 'lockedUntil',          "DATETIME NULL COMMENT 'Compte verrouillé jusqu\\'à cette date'");
   await addColumnIfMissing('Users', 'lastSyncAt',           "DATETIME NULL COMMENT 'Dernière synchronisation Strava'");
+  await addColumnIfMissing('Users', 'fullSyncCompletedAt',  "DATETIME NULL COMMENT 'Date de la première sync complète Strava'");
   await addColumnIfMissing('Users', 'imc',                  "FLOAT NULL COMMENT 'Indice de Masse Corporelle'");
   await addColumnIfMissing('Users', 'country',              "VARCHAR(255) NULL DEFAULT 'FR'");
   await addColumnIfMissing('Users', 'consoKcal',            'INT NULL');

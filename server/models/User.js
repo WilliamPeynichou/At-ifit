@@ -98,6 +98,11 @@ const User = sequelize.define('User', {
     allowNull: true,
     comment: 'Dernière synchronisation Strava réussie'
   },
+  fullSyncCompletedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Date de la première sync complète Strava réussie (pagination totale + enrichissement)'
+  },
   stravaAthleteId: {
     type: DataTypes.BIGINT,
     allowNull: true,

@@ -7,7 +7,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend,
   AreaChart, Area, ReferenceDot,
 } from 'recharts';
-import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut } from 'lucide-react';
+import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut, RefreshCw } from 'lucide-react';
 import api from '../api';
 import { darkTooltipProps } from '../components/ui/chartStyles';
 import YearlyProgress from '../components/YearlyProgress';
@@ -30,6 +30,8 @@ const StravaStatsContent = () => {
   const [selectedSport, setSelectedSport] = useState('All');
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
+  const [resyncMessage, setResyncMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -181,6 +183,22 @@ const StravaStatsContent = () => {
     });
   };
 
+  const handleResync = async () => {
+    if (resyncing) return;
+    setResyncing(true);
+    setResyncMessage('');
+    setError('');
+    try {
+      await api.post('/strava/resync');
+      setResyncMessage('Sync lancée. Revenez dans quelques minutes et rechargez la page.');
+    } catch (err) {
+      console.error('Strava resync error:', err);
+      setError(err.response?.data?.error || 'Erreur lors du déclenchement de la resync');
+    } finally {
+      setResyncing(false);
+    }
+  };
+
   const handleDisconnect = async () => {
     if (!window.confirm(t('stravaStats.disconnectConfirm'))) {
       return;
@@ -296,18 +314,40 @@ const StravaStatsContent = () => {
             {activities.length} activités analysées
           </p>
         </div>
-        <button
-          onClick={handleDisconnect}
-          disabled={disconnecting}
-          className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 self-start sm:self-auto"
-          style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.2)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.1)'}
-        >
-          <LogOut size={16} />
-          {disconnecting ? t('stravaStats.disconnecting') : t('stravaStats.disconnect')}
-        </button>
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleResync}
+            disabled={resyncing}
+            className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+            style={{ background: 'rgba(0,85,255,0.1)', border: '1px solid rgba(0,85,255,0.3)', color: 'var(--accent-blue)' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,85,255,0.2)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,85,255,0.1)'}
+          >
+            <RefreshCw size={16} className={resyncing ? 'animate-spin' : ''} />
+            {resyncing ? 'Lancement…' : 'Re-synchroniser tout'}
+          </button>
+          <button
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+            className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+            style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.2)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.1)'}
+          >
+            <LogOut size={16} />
+            {disconnecting ? t('stravaStats.disconnecting') : t('stravaStats.disconnect')}
+          </button>
+        </div>
       </div>
+
+      {resyncMessage && (
+        <div
+          className="px-4 py-3 rounded-lg text-sm"
+          style={{ background: 'rgba(0,85,255,0.08)', border: '1px solid rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
+        >
+          {resyncMessage}
+        </div>
+      )}
 
       {/* Hub Data Analyse - 4 modales */}
       <DataAnalysisHub activities={activities} />
