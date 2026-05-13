@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -247,9 +247,18 @@ const StravaStatsContent = () => {
   const sportsList = Object.keys(sportProgression);
   const colors = ['#0055ff', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
 
-  const filteredGlobalProgression = selectedSport === 'All'
-    ? globalProgression
-    : globalProgression.filter(a => a.type === selectedSport);
+  // Recalcule le cumul à partir du sous-ensemble filtré pour avoir une vraie progression par sport.
+  // `globalProgression[i].cumulativeDistance` est un cumul tous sports → faux quand on filtre.
+  const filteredGlobalProgression = useMemo(() => {
+    const base = selectedSport === 'All'
+      ? globalProgression
+      : globalProgression.filter(a => a.type === selectedSport);
+    let cum = 0;
+    return base.map(p => {
+      cum += (p.distance || 0);
+      return { ...p, cumulativeDistance: Number(cum.toFixed(2)) };
+    });
+  }, [globalProgression, selectedSport]);
 
   // Set default selected sport if not set or if current selection doesn't exist
   useEffect(() => {
@@ -514,11 +523,26 @@ const StravaStatsContent = () => {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={filteredGlobalProgression.filter(d => d.bpm > 0)}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" stroke="#a8a29e" />
-              <YAxis stroke="#a8a29e" domain={['dataMin - 10', 'dataMax + 10']} />
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                stroke="#a8a29e"
+                tickFormatter={(ts) => new Date(ts).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
+                minTickGap={60}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                stroke="#a8a29e"
+                domain={['dataMin - 10', 'dataMax + 10']}
+                unit=" bpm"
+                tick={{ fontSize: 11 }}
+              />
               <Tooltip
                 contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
                 itemStyle={{ color: '#ec4899' }}
+                labelFormatter={(ts) => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                formatter={(v, _n, p) => [`${v} bpm`, p?.payload?.name || 'FC moyenne']}
               />
               <Line type="monotone" dataKey="bpm" stroke="#ec4899" strokeWidth={2} dot={{ r: 3, fill: '#ec4899' }} activeDot={{ r: 6 }} />
             </LineChart>
