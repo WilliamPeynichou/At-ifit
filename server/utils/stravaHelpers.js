@@ -66,11 +66,20 @@ const stravaFetch = async (url, options = {}, { userId } = {}) => {
   }
 };
 
+const normalizeRedirectUri = (redirectUri) => {
+  if (!redirectUri) return redirectUri;
+
+  const trimmed = redirectUri.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  return `https://${trimmed}`;
+};
+
 const getStravaCredentials = (userId) => {
   return {
     clientId: process.env.STRAVA_CLIENT_ID,
     clientSecret: process.env.STRAVA_CLIENT_SECRET,
-    redirectUri: process.env.STRAVA_REDIRECT_URI
+    redirectUri: normalizeRedirectUri(process.env.STRAVA_REDIRECT_URI)
   };
 };
 
