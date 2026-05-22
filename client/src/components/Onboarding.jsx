@@ -17,24 +17,18 @@ const Onboarding = () => {
 
   useEffect(() => {
     checkStatus();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const checkStatus = async () => {
     try {
-      // Reload user data
-      if (loadUser) {
-        await loadUser();
-      }
-
-      // Get fresh user data
+      // Lit directement depuis l'API au lieu de passer par loadUser() (évite la boucle
+      // useEffect([user]) → setUser → user change → useEffect re-fire → ...)
       const res = await api.get('/user');
       const freshUser = res.data;
 
-      // Check if profile is complete
       const hasProfile = freshUser && freshUser.height && freshUser.age && freshUser.gender;
       setProfileComplete(!!hasProfile);
-
-      // Check if Strava is connected
       setStravaConnected(!!freshUser.stravaAccessToken);
     } catch (error) {
       console.error('Error checking status:', error);
@@ -111,6 +105,14 @@ const Onboarding = () => {
     navigate('/');
   };
 
+  // Redirige vers dashboard si tout est complet (via useEffect, pas pendant le render)
+  useEffect(() => {
+    if (profileComplete && stravaConnected) {
+      localStorage.setItem('onboarding_completed', 'true');
+      navigate('/');
+    }
+  }, [profileComplete, stravaConnected, navigate]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen text-neon-cyan animate-pulse tracking-widest font-bold">
@@ -119,10 +121,7 @@ const Onboarding = () => {
     );
   }
 
-  // If both are complete, redirect to dashboard
   if (profileComplete && stravaConnected) {
-    localStorage.setItem('onboarding_completed', 'true');
-    navigate('/');
     return null;
   }
 
