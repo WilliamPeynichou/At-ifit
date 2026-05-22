@@ -66,6 +66,17 @@ const Onboarding = () => {
   const handleStravaConnect = async () => {
     try {
       const res = await api.get('/strava/auth');
+
+      if (!res.data?.url) {
+        throw new Error('Strava OAuth URL missing in server response');
+      }
+
+      try {
+        sessionStorage.setItem('strava_oauth_return_path', '/onboarding');
+      } catch (storageError) {
+        console.warn('Unable to store Strava return path:', storageError);
+      }
+
       window.location.href = res.data.url;
     } catch (error) {
       console.error('Error connecting Strava:', error);

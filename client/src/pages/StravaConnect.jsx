@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Activity, CheckCircle, AlertCircle, LogOut, Mail, Lock, ArrowRight } from 'lucide-react';
 import api from '../api';
@@ -8,30 +8,24 @@ const StravaConnect = () => {
   const { loadUser, user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [stravaAthlete, setStravaAthlete] = useState(null);
+  const processedCodeRef = useRef(null);
 
-  useEffect(() => {
-    checkStravaStatus();
-    const code = searchParams.get('code');
-    const errorParam = searchParams.get('error');
+  const refreshUser = useCallback(() => {
+    if (!loadUser) return;
 
-    if (errorParam) {
-      setError('Strava authentication failed. Please try again.');
-    } else if (code) {
-      handleConnect(code);
-    }
+    loadUser().catch((loadUserError) => {
+      console.warn('Unable to refresh user after Strava change:', loadUserError);
+    });
+  }, [loadUser]);
 
-    // Nettoyage d'éventuels résidus de l'ancien flux (login → OAuth via sessionStorage)
-    sessionStorage.removeItem('strava_oauth_url');
-    sessionStorage.removeItem('strava_login_redirect');
-  }, [searchParams]);
-
-  const checkStravaStatus = async () => {
+  const checkStravaStatus = useCallback(async () => {
     try {
       const res = await api.get('/user');
       setIsConnected(!!res.data.stravaAccessToken);
@@ -41,9 +35,9 @@ const StravaConnect = () => {
     } catch (error) {
       console.error('Error checking Strava status:', error);
     }
-  };
+  }, []);
 
-  const handleConnect = async (code) => {
+  const handleConnect = useCallback(async (code) => {
     setLoading(true);
     setError('');
     try {
@@ -53,9 +47,7 @@ const StravaConnect = () => {
       if (response.data?.athlete) {
         setStravaAthlete(response.data.athlete);
       }
-      if (loadUser) {
-        await loadUser();
-      }
+      refreshUser();
       setTimeout(() => navigate('/strava-stats'), 2000);
     } catch (err) {
       console.error('Strava connect error:', err);
@@ -63,7 +55,28 @@ const StravaConnect = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, refreshUser]);
+
+  useEffect(() => {
+    checkStravaStatus();
+    const code = searchParams.get('code');
+    const errorParam = searchParams.get('error');
+    const redirectedError = location.state?.stravaError;
+
+    if (redirectedError) {
+      setError(redirectedError);
+      navigate('/strava-connect', { replace: true, state: null });
+    } else if (errorParam) {
+      setError('Strava authentication failed. Please try again.');
+    } else if (code && processedCodeRef.current !== code) {
+      processedCodeRef.current = code;
+      handleConnect(code);
+    }
+
+    // Nettoyage d'éventuels résidus de l'ancien flux (login → OAuth via sessionStorage)
+    sessionStorage.removeItem('strava_oauth_url');
+    sessionStorage.removeItem('strava_login_redirect');
+  }, [checkStravaStatus, handleConnect, searchParams, location.state, navigate]);
 
   const handleDisconnect = async () => {
     if (!window.confirm('Are you sure you want to disconnect your Strava account?')) {
@@ -76,9 +89,7 @@ const StravaConnect = () => {
       await api.delete('/strava/disconnect');
       setIsConnected(false);
       setStravaAthlete(null);
-      if (loadUser) {
-        await loadUser();
-      }
+      refreshUser();
       setSuccess(false);
     } catch (err) {
       console.error('Strava disconnect error:', err);
@@ -103,6 +114,11 @@ const StravaConnect = () => {
       // Redirection directe vers la page d'autorisation OAuth Strava.
       // Strava affichera lui-même l'écran de login si nécessaire,
       // puis l'écran d'autorisation, puis nous renverra vers /strava/callback.
+      try {
+        sessionStorage.setItem('strava_oauth_return_path', '/strava-stats');
+      } catch (storageError) {
+        console.warn('Unable to store Strava return path:', storageError);
+      }
       window.location.href = stravaOAuthUrl;
     } catch (err) {
       console.error('Failed to initiate Strava auth:', err);

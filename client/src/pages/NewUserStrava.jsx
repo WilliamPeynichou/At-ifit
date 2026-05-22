@@ -118,6 +118,10 @@ const NewUserStrava = () => {
       const response = await api.get('/strava/auth');
       const stravaOAuthUrl = response.data.url;
 
+      if (!stravaOAuthUrl) {
+        throw new Error('Strava OAuth URL missing in server response');
+      }
+
       // Rediriger la popup déjà ouverte vers l'URL OAuth Strava
       stravaWindowRef.current.location.href = stravaOAuthUrl;
 
