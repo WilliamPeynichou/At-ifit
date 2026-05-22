@@ -115,7 +115,7 @@ router.post('/connect', auth, asyncHandler(async (req, res) => {
     return sendError(res, 'Authorization code is required', 400);
   }
   
-  const { clientId, clientSecret } = getStravaCredentials(req.userId);
+  const { clientId, clientSecret, redirectUri } = getStravaCredentials(req.userId);
 
   try {
     logger.info('Attempting to connect Strava', { userId: req.userId, userEmail: req.user?.email });
@@ -124,7 +124,8 @@ router.post('/connect', auth, asyncHandler(async (req, res) => {
       client_id: clientId,
       client_secret: clientSecret,
       code,
-      grant_type: 'authorization_code'
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri
     });
 
     const { access_token, refresh_token, expires_at, athlete } = response.data;
@@ -175,7 +176,8 @@ router.post('/connect', auth, asyncHandler(async (req, res) => {
       error: error.message,
       response: error.response?.data 
     });
-    return sendError(res, 'Failed to connect Strava account', 500);
+    const stravaError = error.response?.data?.message || error.response?.data?.errors?.[0]?.resource || error.message;
+    return sendError(res, `Failed to connect Strava account: ${stravaError}`, 500);
   }
 }));
 
