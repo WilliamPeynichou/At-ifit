@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
 const ActivityStream = require('../models/ActivityStream');
@@ -42,31 +43,25 @@ const TTL_ZONES = 86400;      // 24h — zones HR configurées par l'user
 const TTL_GEAR = 3600;        // 1h — équipement change rarement
 const TTL_CLUBS = 86400;      // 24h
 
-// Stockage en mémoire des états OAuth en attente (TTL 10 min)
-const pendingOAuthStates = new Map();
-const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+// Le `state` OAuth est un JWT signé (stateless) — survit aux redémarrages Railway
+// et au scaling horizontal multi-instances. Expiration intégrée de 10 minutes.
+const OAUTH_STATE_TTL = '10m';
+const OAUTH_STATE_TYPE = 'strava_oauth';
 
 router.use('/running', stravaRunningRoutes);
 router.use('/swimming', stravaSwimmingRoutes);
 router.use('/cycling', stravaCyclingRoutes);
 
-function cleanExpiredStates() {
-  const now = Date.now();
-  for (const [state, { expiresAt }] of pendingOAuthStates) {
-    if (now > expiresAt) pendingOAuthStates.delete(state);
-  }
-}
-
 router.get('/auth', auth, asyncHandler(async (req, res) => {
   const { clientId, redirectUri } = getStravaCredentials(req.userId);
   const scope = 'read,activity:read_all,profile:read_all';
 
-  const crypto = require('crypto');
-  const state = crypto.randomBytes(16).toString('hex');
-
-  // Stocke le state avec le userId et une expiration
-  cleanExpiredStates();
-  pendingOAuthStates.set(state, { userId: req.userId, expiresAt: Date.now() + OAUTH_STATE_TTL_MS });
+  // JWT signé contenant le userId — pas besoin de stockage serveur
+  const state = jwt.sign(
+    { userId: req.userId, type: OAUTH_STATE_TYPE },
+    process.env.JWT_SECRET,
+    { expiresIn: OAUTH_STATE_TTL }
+  );
 
   const url = `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&approval_prompt=force&state=${state}`;
 
@@ -88,17 +83,26 @@ router.get('/callback', (req, res) => {
     return res.redirect(`${frontendUrl}/strava-callback?error=no_code`);
   }
 
-  // Valide le state
-  const pending = state ? pendingOAuthStates.get(state) : null;
-  if (!state || !pending || Date.now() > pending.expiresAt) {
-    logger.warn('Strava OAuth callback: state invalide ou expiré', { state: state ? 'present' : 'missing' });
+  // Valide le JWT state
+  if (!state) {
+    logger.warn('Strava OAuth callback: state manquant');
     return res.redirect(`${frontendUrl}/strava-callback?error=invalid_state`);
   }
 
-  // State valide → on le consomme (one-time use)
-  pendingOAuthStates.delete(state);
+  let decoded;
+  try {
+    decoded = jwt.verify(state, process.env.JWT_SECRET);
+  } catch (err) {
+    logger.warn('Strava OAuth callback: JWT state invalide', { reason: err.message });
+    return res.redirect(`${frontendUrl}/strava-callback?error=invalid_state`);
+  }
 
-  logger.info('Strava OAuth callback valide', { userId: pending.userId });
+  if (decoded.type !== OAUTH_STATE_TYPE) {
+    logger.warn('Strava OAuth callback: type de state inattendu', { type: decoded.type });
+    return res.redirect(`${frontendUrl}/strava-callback?error=invalid_state`);
+  }
+
+  logger.info('Strava OAuth callback valide', { userId: decoded.userId });
   res.redirect(`${frontendUrl}/strava-callback?code=${code}&state=${state}`);
 });
 
