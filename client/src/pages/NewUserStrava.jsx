@@ -122,8 +122,19 @@ const NewUserStrava = () => {
         throw new Error('Strava OAuth URL missing in server response');
       }
 
-      // Rediriger la popup déjà ouverte vers l'URL OAuth Strava
-      stravaWindowRef.current.location.href = stravaOAuthUrl;
+      // 1. Ouvre la popup sur le logout Strava pour forcer une déconnexion de tout
+      //    compte Strava actif dans le navigateur — sinon l'utilisateur saute direct
+      //    à l'autorisation avec son compte courant sans pouvoir en choisir un autre.
+      stravaWindowRef.current.location.href = 'https://www.strava.com/logout';
+
+      // 2. Après ~1.5s (temps que le logout prenne effet), rediriger vers l'OAuth.
+      //    Strava affiche alors sa page de login → l'utilisateur peut choisir
+      //    quel compte connecter.
+      setTimeout(() => {
+        if (stravaWindowRef.current && !stravaWindowRef.current.closed) {
+          stravaWindowRef.current.location.href = stravaOAuthUrl;
+        }
+      }, 1500);
 
       // Le callback Strava enverra un message via postMessage
       // Le polling sert de backup si le message n'est pas reçu
