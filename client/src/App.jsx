@@ -157,6 +157,7 @@ function AppInner() {
             }
           />
           <Route path="/strava-callback" element={<StravaCallback />} />
+          <Route path="/api/strava/callback" element={<StravaCallback />} />
         </Routes>
       </div>
       {/* Chatbot temporairement désactivé — réactiver quand Mistral cloud configuré */}
