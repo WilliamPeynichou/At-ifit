@@ -71,7 +71,9 @@ router.get('/auth', auth, asyncHandler(async (req, res) => {
 
 router.get('/callback', (req, res) => {
   const { code, error, state } = req.query;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5174';
+  // FRONTEND_URL peut contenir plusieurs origins (séparés par virgule, pour le CORS).
+  // Pour le redirect Strava on prend la première URL = origin primaire.
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim().replace(/\/$/, '');
 
   if (error) {
     logger.warn('Strava auth failed', { error });
