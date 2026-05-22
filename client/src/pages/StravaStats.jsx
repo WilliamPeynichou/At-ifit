@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -7,7 +7,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend,
   AreaChart, Area, ReferenceDot,
 } from 'recharts';
-import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut } from 'lucide-react';
+import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut, RefreshCw } from 'lucide-react';
 import api from '../api';
 import { darkTooltipProps } from '../components/ui/chartStyles';
 import YearlyProgress from '../components/YearlyProgress';
@@ -30,6 +30,8 @@ const StravaStatsContent = () => {
   const [selectedSport, setSelectedSport] = useState('All');
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
+  const [resyncMessage, setResyncMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -181,6 +183,22 @@ const StravaStatsContent = () => {
     });
   };
 
+  const handleResync = async () => {
+    if (resyncing) return;
+    setResyncing(true);
+    setResyncMessage('');
+    setError('');
+    try {
+      await api.post('/strava/resync');
+      setResyncMessage('Sync lancée. Revenez dans quelques minutes et rechargez la page.');
+    } catch (err) {
+      console.error('Strava resync error:', err);
+      setError(err.response?.data?.error || 'Erreur lors du déclenchement de la resync');
+    } finally {
+      setResyncing(false);
+    }
+  };
+
   const handleDisconnect = async () => {
     if (!window.confirm(t('stravaStats.disconnectConfirm'))) {
       return;
@@ -229,9 +247,18 @@ const StravaStatsContent = () => {
   const sportsList = Object.keys(sportProgression);
   const colors = ['#0055ff', '#00f3ff', '#a855f7', '#22c55e', '#eab308', '#ef4444'];
 
-  const filteredGlobalProgression = selectedSport === 'All'
-    ? globalProgression
-    : globalProgression.filter(a => a.type === selectedSport);
+  // Recalcule le cumul à partir du sous-ensemble filtré pour avoir une vraie progression par sport.
+  // `globalProgression[i].cumulativeDistance` est un cumul tous sports → faux quand on filtre.
+  const filteredGlobalProgression = useMemo(() => {
+    const base = selectedSport === 'All'
+      ? globalProgression
+      : globalProgression.filter(a => a.type === selectedSport);
+    let cum = 0;
+    return base.map(p => {
+      cum += (p.distance || 0);
+      return { ...p, cumulativeDistance: Number(cum.toFixed(2)) };
+    });
+  }, [globalProgression, selectedSport]);
 
   // Set default selected sport if not set or if current selection doesn't exist
   useEffect(() => {
@@ -296,18 +323,40 @@ const StravaStatsContent = () => {
             {activities.length} activités analysées
           </p>
         </div>
-        <button
-          onClick={handleDisconnect}
-          disabled={disconnecting}
-          className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 self-start sm:self-auto"
-          style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.2)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.1)'}
-        >
-          <LogOut size={16} />
-          {disconnecting ? t('stravaStats.disconnecting') : t('stravaStats.disconnect')}
-        </button>
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleResync}
+            disabled={resyncing}
+            className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+            style={{ background: 'rgba(0,85,255,0.1)', border: '1px solid rgba(0,85,255,0.3)', color: 'var(--accent-blue)' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,85,255,0.2)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,85,255,0.1)'}
+          >
+            <RefreshCw size={16} className={resyncing ? 'animate-spin' : ''} />
+            {resyncing ? 'Lancement…' : 'Re-synchroniser tout'}
+          </button>
+          <button
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+            className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+            style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.2)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.1)'}
+          >
+            <LogOut size={16} />
+            {disconnecting ? t('stravaStats.disconnecting') : t('stravaStats.disconnect')}
+          </button>
+        </div>
       </div>
+
+      {resyncMessage && (
+        <div
+          className="px-4 py-3 rounded-lg text-sm"
+          style={{ background: 'rgba(0,85,255,0.08)', border: '1px solid rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
+        >
+          {resyncMessage}
+        </div>
+      )}
 
       {/* Hub Data Analyse - 4 modales */}
       <DataAnalysisHub activities={activities} />
@@ -474,11 +523,26 @@ const StravaStatsContent = () => {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={filteredGlobalProgression.filter(d => d.bpm > 0)}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" stroke="#a8a29e" />
-              <YAxis stroke="#a8a29e" domain={['dataMin - 10', 'dataMax + 10']} />
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                stroke="#a8a29e"
+                tickFormatter={(ts) => new Date(ts).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
+                minTickGap={60}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                stroke="#a8a29e"
+                domain={['dataMin - 10', 'dataMax + 10']}
+                unit=" bpm"
+                tick={{ fontSize: 11 }}
+              />
               <Tooltip
                 contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
                 itemStyle={{ color: '#ec4899' }}
+                labelFormatter={(ts) => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                formatter={(v, _n, p) => [`${v} bpm`, p?.payload?.name || 'FC moyenne']}
               />
               <Line type="monotone" dataKey="bpm" stroke="#ec4899" strokeWidth={2} dot={{ r: 3, fill: '#ec4899' }} activeDot={{ r: 6 }} />
             </LineChart>

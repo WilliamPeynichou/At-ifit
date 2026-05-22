@@ -314,7 +314,11 @@ async function _doSync(userId, { enrich = true } = {}) {
     }
   }
 
-  await User.update({ lastSyncAt: new Date() }, { where: { id: userId } });
+  const now = new Date();
+  await User.update(
+    { lastSyncAt: now, fullSyncCompletedAt: now },
+    { where: { id: userId } }
+  );
   logger.info('[StravaSync] Sync complète terminée', { userId, totalSynced });
 
   // Enrichissement détail + streams en background

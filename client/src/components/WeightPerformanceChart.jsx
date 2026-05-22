@@ -11,7 +11,7 @@ const tooltipStyle = {
   backdropFilter: 'blur(12px)',
   border: '1px solid var(--glass-border)',
   borderRadius: '12px',
-  color: 'var(--text-primary)',
+  color: '#ffffff',
   padding: '10px 14px',
   fontSize: '13px',
 };
@@ -20,7 +20,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={tooltipStyle}>
-      <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{label}</p>
+      <p className="font-semibold mb-1" style={{ color: '#ffffff' }}>{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }}>
           {p.name} : <strong>{p.value ?? '—'}{p.unit}</strong>
@@ -106,35 +106,41 @@ const WeightPerformanceChart = () => {
         <>
           <ResponsiveContainer width="100%" height={260}>
             <ComposedChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+              <defs>
+                <linearGradient id="distanceBarGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0055ff" stopOpacity={0.85} />
+                  <stop offset="100%" stopColor="#0055ff" stopOpacity={0.35} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" vertical={false} />
               <XAxis
                 dataKey="weekLabel"
                 tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
                 axisLine={false}
                 tickLine={false}
               />
-              {/* Axe poids (gauche) */}
+              {/* Axe poids (gauche, violet) */}
               <YAxis
                 yAxisId="weight"
                 orientation="left"
                 domain={[minW, maxW]}
-                tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                tick={{ fontSize: 11, fill: '#a855f7' }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={v => `${v}kg`}
                 width={42}
               />
-              {/* Axe distance (droite) */}
+              {/* Axe distance (droite, bleu) */}
               <YAxis
                 yAxisId="distance"
                 orientation="right"
-                tick={{ fontSize: 11, fill: 'rgba(0,85,255,0.6)' }}
+                tick={{ fontSize: 11, fill: '#0055ff' }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={v => `${v}km`}
                 width={42}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,85,255,0.06)' }} />
               <Legend
                 wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
                 formatter={(value) => <span style={{ color: 'var(--text-secondary)' }}>{value}</span>}
@@ -143,8 +149,8 @@ const WeightPerformanceChart = () => {
                 yAxisId="distance"
                 dataKey="totalDistance"
                 name="Distance (km)"
-                fill="rgba(0,85,255,0.18)"
-                stroke="rgba(0,85,255,0.4)"
+                fill="url(#distanceBarGradient)"
+                stroke="#0055ff"
                 strokeWidth={1}
                 radius={[4, 4, 0, 0]}
                 unit=" km"
@@ -154,10 +160,10 @@ const WeightPerformanceChart = () => {
                 type="monotone"
                 dataKey="avgWeight"
                 name="Poids (kg)"
-                stroke="var(--text-primary)"
-                strokeWidth={2}
-                dot={{ fill: 'var(--text-primary)', r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5 }}
+                stroke="#a855f7"
+                strokeWidth={2.5}
+                dot={{ fill: '#a855f7', r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 6, stroke: '#a855f7', strokeWidth: 2, fill: '#fff' }}
                 connectNulls
                 unit=" kg"
               />

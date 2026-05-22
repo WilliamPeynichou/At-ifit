@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Activity, CheckCircle, AlertCircle, LogOut, Mail, Lock, ArrowRight } from 'lucide-react';
 import api from '../api';
@@ -8,36 +8,24 @@ const StravaConnect = () => {
   const { loadUser, user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [stravaAthlete, setStravaAthlete] = useState(null);
+  const processedCodeRef = useRef(null);
 
-  useEffect(() => {
-    checkStravaStatus();
-    const code = searchParams.get('code');
-    const errorParam = searchParams.get('error');
+  const refreshUser = useCallback(() => {
+    if (!loadUser) return;
 
-    if (errorParam) {
-      setError('Strava authentication failed. Please try again.');
-    } else if (code) {
-      handleConnect(code);
-    } else {
-      const storedOAuthUrl = sessionStorage.getItem('strava_oauth_url');
-      const loginRedirect = sessionStorage.getItem('strava_login_redirect');
+    loadUser().catch((loadUserError) => {
+      console.warn('Unable to refresh user after Strava change:', loadUserError);
+    });
+  }, [loadUser]);
 
-      if (storedOAuthUrl && loginRedirect === 'true' && !code && !errorParam) {
-        sessionStorage.removeItem('strava_login_redirect');
-        setTimeout(() => {
-          window.location.href = storedOAuthUrl;
-        }, 1000);
-      }
-    }
-  }, [searchParams]);
-
-  const checkStravaStatus = async () => {
+  const checkStravaStatus = useCallback(async () => {
     try {
       const res = await api.get('/user');
       setIsConnected(!!res.data.stravaAccessToken);
@@ -47,9 +35,9 @@ const StravaConnect = () => {
     } catch (error) {
       console.error('Error checking Strava status:', error);
     }
-  };
+  }, []);
 
-  const handleConnect = async (code) => {
+  const handleConnect = useCallback(async (code) => {
     setLoading(true);
     setError('');
     try {
@@ -59,9 +47,7 @@ const StravaConnect = () => {
       if (response.data?.athlete) {
         setStravaAthlete(response.data.athlete);
       }
-      if (loadUser) {
-        await loadUser();
-      }
+      refreshUser();
       setTimeout(() => navigate('/strava-stats'), 2000);
     } catch (err) {
       console.error('Strava connect error:', err);
@@ -69,7 +55,28 @@ const StravaConnect = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, refreshUser]);
+
+  useEffect(() => {
+    checkStravaStatus();
+    const code = searchParams.get('code');
+    const errorParam = searchParams.get('error');
+    const redirectedError = location.state?.stravaError;
+
+    if (redirectedError) {
+      setError(redirectedError);
+      navigate('/strava-connect', { replace: true, state: null });
+    } else if (errorParam) {
+      setError('Strava authentication failed. Please try again.');
+    } else if (code && processedCodeRef.current !== code) {
+      processedCodeRef.current = code;
+      handleConnect(code);
+    }
+
+    // Nettoyage d'éventuels résidus de l'ancien flux (login → OAuth via sessionStorage)
+    sessionStorage.removeItem('strava_oauth_url');
+    sessionStorage.removeItem('strava_login_redirect');
+  }, [checkStravaStatus, handleConnect, searchParams, location.state, navigate]);
 
   const handleDisconnect = async () => {
     if (!window.confirm('Are you sure you want to disconnect your Strava account?')) {
@@ -82,9 +89,7 @@ const StravaConnect = () => {
       await api.delete('/strava/disconnect');
       setIsConnected(false);
       setStravaAthlete(null);
-      if (loadUser) {
-        await loadUser();
-      }
+      refreshUser();
       setSuccess(false);
     } catch (err) {
       console.error('Strava disconnect error:', err);
@@ -102,10 +107,19 @@ const StravaConnect = () => {
       const response = await api.get('/strava/auth');
       const stravaOAuthUrl = response.data.url;
 
-      sessionStorage.setItem('strava_oauth_url', stravaOAuthUrl);
-      sessionStorage.setItem('strava_login_redirect', 'true');
+      if (!stravaOAuthUrl) {
+        throw new Error('Strava OAuth URL missing in server response');
+      }
 
-      window.location.href = 'https://www.strava.com/login';
+      // Redirection directe vers la page d'autorisation OAuth Strava.
+      // Strava affichera lui-même l'écran de login si nécessaire,
+      // puis l'écran d'autorisation, puis nous renverra vers /strava/callback.
+      try {
+        sessionStorage.setItem('strava_oauth_return_path', '/strava-stats');
+      } catch (storageError) {
+        console.warn('Unable to store Strava return path:', storageError);
+      }
+      window.location.href = stravaOAuthUrl;
     } catch (err) {
       console.error('Failed to initiate Strava auth:', err);
       setError('Failed to initiate Strava connection. Please try again.');
@@ -197,11 +211,11 @@ const StravaConnect = () => {
                       <ol className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                         <li className="flex items-start gap-3">
                           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fc4c02]/20 border border-[#fc4c02]/30 flex items-center justify-center text-[#fc4c02] font-bold text-xs">1</span>
-                          <span>Click the button below to be redirected to Strava's secure login page</span>
+                          <span>Click the button below to be redirected to Strava's secure authorization page</span>
                         </li>
                         <li className="flex items-start gap-3">
                           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fc4c02]/20 border border-[#fc4c02]/30 flex items-center justify-center text-[#fc4c02] font-bold text-xs">2</span>
-                          <span>Log in with your Strava email and password (or create a new account)</span>
+                          <span>Log in with your Strava email and password if you are not already signed in</span>
                         </li>
                         <li className="flex items-start gap-3">
                           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fc4c02]/20 border border-[#fc4c02]/30 flex items-center justify-center text-[#fc4c02] font-bold text-xs">3</span>
@@ -220,9 +234,9 @@ const StravaConnect = () => {
                         <span>
                           <strong>How it works:</strong> When you click the button below:
                           <ol className="list-decimal list-inside mt-2 space-y-1 ml-2">
-                            <li>You'll be redirected to <strong>Strava's login page</strong> (<a href="https://www.strava.com/login" target="_blank" rel="noopener noreferrer" className="underline">strava.com/login</a>)</li>
-                            <li>Log in with <strong>your own</strong> Strava account (email and password)</li>
-                            <li>After logging in, <strong>come back to this page</strong> - you'll be automatically redirected to authorize the application</li>
+                            <li>You'll be redirected to <strong>Strava's OAuth authorization page</strong> on <a href="https://www.strava.com" target="_blank" rel="noopener noreferrer" className="underline">strava.com</a></li>
+                            <li>If you are not signed in, Strava will ask you to log in with <strong>your own</strong> account</li>
+                            <li>Authorize the application to read your activities</li>
                             <li>Once authorized, you'll be redirected back and <strong>your Strava data will be fetched automatically</strong></li>
                           </ol>
                         </span>

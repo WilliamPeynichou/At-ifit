@@ -13,12 +13,15 @@ const tooltipStyle = {
   backdropFilter: 'blur(12px)',
   border: '1px solid var(--glass-border)',
   borderRadius: '12px',
-  color: 'var(--text-primary)',
+  color: '#ffffff',
   padding: '10px 14px',
   fontSize: '12px',
 };
 
-const HeartRateZones = () => {
+const tooltipItemStyle = { color: '#ffffff' };
+const tooltipLabelStyle = { color: '#ffffff', fontWeight: 600 };
+
+const HeartRateZones = ({ activities: providedActivities }) => {
   const { queryParams, fromISO, toISO } = useTemporal();
   const [zones, setZones] = useState(null);
   const [distribution, setDistribution] = useState([]);
@@ -26,17 +29,19 @@ const HeartRateZones = () => {
 
   useEffect(() => {
     const sep = queryParams ? '&' : '?';
-    Promise.all([
-      api.get('/strava/athlete/zones').catch(() => null),
-      api.get(`/strava/activities${queryParams}${sep}limit=500`).catch(() => null),
-    ]).then(([zonesRes, actsRes]) => {
+    const promises = [api.get('/strava/athlete/zones').catch(() => null)];
+    if (!providedActivities) {
+      promises.push(api.get(`/strava/activities${queryParams}${sep}limit=500`).catch(() => null));
+    }
+    Promise.all(promises).then((results) => {
+      const zonesRes = results[0];
       const hrZones = zonesRes?.data?.heart_rate?.zones;
       if (!hrZones || hrZones.length === 0) return;
 
       setZones(hrZones);
 
       // Calcule la répartition des activités par zone (sur avg_heartrate)
-      const acts = Array.isArray(actsRes?.data) ? actsRes.data : [];
+      const acts = providedActivities ?? (Array.isArray(results[1]?.data) ? results[1].data : []);
       const actsWithHR = acts.filter(a => (a.averageHeartrate || a.average_heartrate));
 
       if (actsWithHR.length === 0) return;
@@ -62,7 +67,7 @@ const HeartRateZones = () => {
         })).filter(d => d.value > 0)
       );
     }).finally(() => setLoading(false));
-  }, [fromISO, toISO]);
+  }, [fromISO, toISO, providedActivities]);
 
   const hasData = distribution.length > 0;
 
@@ -120,6 +125,8 @@ const HeartRateZones = () => {
                 </Pie>
                 <Tooltip
                   contentStyle={tooltipStyle}
+                  itemStyle={tooltipItemStyle}
+                  labelStyle={tooltipLabelStyle}
                   formatter={(v, n, p) => [`${p.payload.pct}% (${v} séances)`, p.payload.name]}
                 />
               </PieChart>
