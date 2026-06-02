@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -20,11 +20,13 @@ import NewUserWeight from './pages/NewUserWeight';
 import NewUserStrava from './pages/NewUserStrava';
 import StravaCallback from './pages/StravaCallback';
 import Chatbot from './components/Chatbot';
+import Assistant from './pages/Assistant';
 import ParticlesBackground from './components/ParticlesBackground';
 import CyclistLoader from './components/CyclistLoader';
 
 function AppInner() {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
+  const [isChatOpen, setIsChatOpen] = useState(false);
   if (loading) return <CyclistLoader />;
 
   return (
@@ -156,12 +158,21 @@ function AppInner() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/assistant"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Assistant />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
           <Route path="/strava-callback" element={<StravaCallback />} />
           <Route path="/api/strava/callback" element={<StravaCallback />} />
         </Routes>
       </div>
-      {/* Chatbot temporairement désactivé — réactiver quand Mistral cloud configuré */}
-      {/* <Chatbot isOpen={isChatOpen} setIsOpen={setIsChatOpen} /> */}
+      {user && <div className="hidden md:block"><Chatbot isOpen={isChatOpen} setIsOpen={setIsChatOpen} /></div>}
     </div>
   );
 }

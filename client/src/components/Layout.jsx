@@ -1,5 +1,5 @@
-import React from 'react';
-import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import Footer from './Footer';
@@ -13,9 +13,21 @@ const NAV_ITEMS = [
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
 ];
 
+const MOBILE_NAV_ITEMS = [
+  { path: '/', label: 'Dashboard', icon: Home },
+  { path: '/strava-stats', label: 'Strava', icon: BarChart2 },
+  { path: '/assistant', label: 'Coach IA', icon: Bot },
+  { path: '/running-dashboard', label: 'Running', icon: Route },
+  { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
+  { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
+  { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
+  { path: '/new-user-profile', label: 'Profil', icon: User },
+];
+
 const Layout = ({ children }) => {
   const { logout, user } = useAuth();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
@@ -77,65 +89,85 @@ const Layout = ({ children }) => {
       {/* Mobile top bar */}
       <div className="glass-nav sticky top-0 z-50 md:hidden">
         <div className="px-4 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
             <Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
             <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em', fontSize: '1rem' }}>
               AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
             </span>
           </Link>
           <button
-            onClick={logout}
-            className="p-2 rounded-lg"
-            style={{ color: 'var(--text-muted)' }}
+            onClick={() => setMobileMenuOpen(open => !open)}
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--text-primary)', background: mobileMenuOpen ? 'rgba(0,85,255,0.10)' : 'transparent' }}
+            aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={mobileMenuOpen}
           >
-            <LogOut className="w-4 h-4" />
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
+
+        {mobileMenuOpen && (
+          <div
+            className="absolute left-3 right-3 top-16 rounded-2xl overflow-hidden shadow-2xl"
+            style={{
+              background: 'rgba(255,255,255,0.96)',
+              backdropFilter: 'blur(18px)',
+              border: '1px solid var(--glass-border)',
+            }}
+          >
+            <div className="p-3 space-y-1">
+              {user && (
+                <div className="px-3 py-2 mb-2 rounded-xl text-xs flex items-center gap-2" style={{ background: 'rgba(34,197,94,0.08)', color: 'var(--text-muted)' }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  {user.pseudo || user.email}
+                </div>
+              )}
+
+              {MOBILE_NAV_ITEMS.map(({ path, label, icon }) => {
+                const active = isActive(path);
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all"
+                    style={{
+                      color: active ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                      background: active ? 'var(--accent-blue-light)' : 'transparent',
+                    }}
+                  >
+                    {React.createElement(icon, { size: 18, strokeWidth: active ? 2.5 : 1.8 })}
+                    {label}
+                  </Link>
+                );
+              })}
+
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mt-2"
+                style={{ color: '#b91c1c', background: 'rgba(239,68,68,0.07)' }}
+              >
+                <LogOut className="w-4 h-4" />
+                Déconnexion
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Main content — padding bottom on mobile for bottom nav */}
-      <main className="w-full relative z-10 pb-20 md:pb-0">
+      {/* Main content */}
+      <main className="w-full relative z-10 pb-6 md:pb-0">
         {children}
       </main>
 
-      {/* Footer — desktop only (mobile uses bottom nav) */}
+      {/* Footer — desktop only */}
       <div className="hidden md:block">
         <Footer />
       </div>
 
-      {/* Bottom nav — mobile only */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 flex items-center dark-surface"
-        style={{
-          background: 'rgba(11, 10, 13, 0.94)',
-          backdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(0, 85, 255, 0.1)',
-        }}
-      >
-        {NAV_ITEMS.map(({ path, label, icon }) => {
-          const active = isActive(path);
-          return (
-            <Link
-              key={path}
-              to={path}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 relative ${active ? 'nav-drop' : ''}`}
-              style={{ color: active ? 'var(--accent-blue)' : 'var(--text-muted)' }}
-            >
-              {React.createElement(icon, { size: 20, strokeWidth: active ? 2.5 : 1.8 })}
-              <span className="text-[10px] font-medium">{label}</span>
-            </Link>
-          );
-        })}
-        {/* Profile tab */}
-        <Link
-          to="/new-user-profile"
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 relative ${isActive('/new-user-profile') ? 'nav-drop' : ''}`}
-          style={{ color: isActive('/new-user-profile') ? 'var(--accent-blue)' : 'var(--text-muted)' }}
-        >
-          <User size={20} strokeWidth={isActive('/new-user-profile') ? 2.5 : 1.8} />
-          <span className="text-[10px] font-medium">Profil</span>
-        </Link>
-      </nav>
     </div>
   );
 };

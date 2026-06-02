@@ -58,7 +58,8 @@ const AgentStatus = ({ loading, pendingAction }) => {
   };
 };
 
-const Chatbot = ({ isOpen, setIsOpen }) => {
+const Chatbot = ({ isOpen = true, setIsOpen = () => {}, variant = 'floating' }) => {
+  const isPageMode = variant === 'page';
   const { user } = useAuth();
   const { sendMessage, executeAction, loading, actionLoading, error, resetHistory } = useAICoach();
   const [messages, setMessages] = useState([
@@ -182,7 +183,7 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
 
   return (
     <>
-      {!isOpen && (
+      {!isPageMode && !isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           className="fixed right-6 bottom-6 z-50 p-4 rounded-full transition-all hover:scale-110 group"
@@ -199,7 +200,9 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
       )}
 
       <div
-        className={`fixed top-0 right-0 h-full shadow-2xl transition-transform duration-300 ease-out z-50 flex flex-col ${isOpen ? 'translate-x-0 w-full md:w-[430px]' : 'translate-x-full w-full md:w-[430px] pointer-events-none'}`}
+        className={isPageMode
+          ? 'relative h-[calc(100vh-11rem)] md:h-[calc(100vh-12rem)] min-h-[520px] rounded-3xl overflow-hidden shadow-2xl flex flex-col'
+          : `fixed top-0 right-0 h-full shadow-2xl transition-transform duration-300 ease-out z-50 flex flex-col ${isOpen ? 'translate-x-0 w-full md:w-[430px]' : 'translate-x-full w-full md:w-[430px] pointer-events-none'}`}
         style={{
           background: 'rgba(255,255,255,0.94)',
           backdropFilter: 'blur(20px)',
@@ -225,9 +228,11 @@ const Chatbot = ({ isOpen, setIsOpen }) => {
               <button onClick={handleReset} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }} title="Réinitialiser la conversation">
                 <RotateCcw className="w-4 h-4" />
               </button>
-              <button onClick={() => setIsOpen(false)} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }} aria-label="Fermer le chat">
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              {!isPageMode && (
+                <button onClick={() => setIsOpen(false)} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }} aria-label="Fermer le chat">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
 
