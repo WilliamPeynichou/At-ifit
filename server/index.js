@@ -122,6 +122,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/ai-coach', aiCoachRoutes);
+// Alias de compatibilité si un build frontend utilise une VITE_API_URL sans suffixe /api.
+app.use('/ai-coach', aiCoachRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/cycling', cyclingRoutes);
 // Webhook Strava — route publique (pas d'auth JWT, Strava appelle directement)

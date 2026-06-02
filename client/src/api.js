@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const normalizedApiUrl = rawApiUrl.replace(/\/+$/, '');
+const apiBaseURL = normalizedApiUrl.endsWith('/api')
+  ? normalizedApiUrl
+  : `${normalizedApiUrl}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  baseURL: apiBaseURL,
 });
 
 // Flag to prevent multiple simultaneous refresh attempts
