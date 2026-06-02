@@ -124,17 +124,21 @@ const User = sequelize.define('User', {
 });
 
 // Hash password before saving
-User.beforeCreate(async (user) => {
-  if (user.password) {
-    user.password = await bcrypt.hash(user.password, 12);
-  }
-});
+if (typeof User.beforeCreate === 'function') {
+  User.beforeCreate(async (user) => {
+    if (user.password) {
+      user.password = await bcrypt.hash(user.password, 12);
+    }
+  });
+}
 
-User.beforeUpdate(async (user) => {
-  if (user.changed('password')) {
-    user.password = await bcrypt.hash(user.password, 12);
-  }
-});
+if (typeof User.beforeUpdate === 'function') {
+  User.beforeUpdate(async (user) => {
+    if (user.changed('password')) {
+      user.password = await bcrypt.hash(user.password, 12);
+    }
+  });
+}
 
 // Method to compare passwords
 User.prototype.comparePassword = async function(candidatePassword) {
