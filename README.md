@@ -110,9 +110,19 @@ STRAVA_CLIENT_ID=your_strava_client_id
 STRAVA_CLIENT_SECRET=your_strava_client_secret
 STRAVA_REDIRECT_URI=http://localhost:3001/api/strava/callback
 
-# OpenAI (pour le Coach IA)
-OPENAI_API_KEY=your_openai_api_key
+# Anthropic / Claude (pour le Coach IA)
+AI_PROVIDER=anthropic
+ANTHROPIC_API_KEY=your_anthropic_api_key
+ANTHROPIC_MODEL=claude-3-5-sonnet-latest
+
+# Alternative compatible existante : Mistral/Ollama
+# AI_PROVIDER=mistral
+# MISTRAL_API_KEY=your_mistral_api_key
+# MISTRAL_MODEL=mistral-large-latest
+# MISTRAL_API_URL=https://api.mistral.ai/v1/chat/completions
 ```
+
+Note : une clé API Anthropic côté serveur permet d'utiliser Claude dans l'application, mais elle ne donne pas accès aux MCP connectés dans ton compte Claude Desktop/Web. Les données Strava utilisées par le coach viennent de la synchronisation Strava déjà présente dans la base de données de l'application.
 
 ### Configuration Strava
 

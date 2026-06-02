@@ -1,11 +1,16 @@
 const { getUserContext } = require('./userContextService');
 const logger = require('../utils/logger');
 
-// Configurable via .env — supporte Ollama (local) et Mistral cloud
+// Configurable via .env — supporte Anthropic (Claude), Mistral cloud et Ollama (compatible OpenAI)
+const AI_PROVIDER = (process.env.AI_PROVIDER || (process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'mistral')).toLowerCase();
+
 const MISTRAL_API_URL = process.env.MISTRAL_API_URL || 'https://api.mistral.ai/v1/chat/completions';
 const MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-large-latest';
+const ANTHROPIC_API_URL = process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest';
+const ANTHROPIC_VERSION = process.env.ANTHROPIC_VERSION || '2023-06-01';
 // CPU local : 120s. Cloud : 30s
-const MISTRAL_TIMEOUT_MS = parseInt(process.env.MISTRAL_TIMEOUT_MS || '120000', 10);
+const AI_TIMEOUT_MS = parseInt(process.env.AI_TIMEOUT_MS || process.env.MISTRAL_TIMEOUT_MS || process.env.ANTHROPIC_TIMEOUT_MS || '120000', 10);
 
 /**
  * Construit le system prompt à partir du contexte utilisateur
@@ -83,17 +88,131 @@ Ton naturel, direct, comme un coach qui parle à son athlète.`;
 }
 
 /**
- * Envoie un message à Mistral AI et retourne la réponse
- * @param {number} userId - ID utilisateur (vérifié par middleware auth)
- * @param {string} message - Message courant de l'utilisateur
- * @param {Array} history - Historique de la conversation [{role, content}]
- * @returns {Promise<Object>} { success, message } ou { success: false, error }
+ * Retourne la configuration active du fournisseur IA.
  */
-async function sendMessageToAICoach(userId, message, history = []) {
-  const apiKey = process.env.MISTRAL_API_KEY;
+function getAIProviderConfig() {
+  if (AI_PROVIDER === 'anthropic') {
+    return {
+      provider: 'anthropic',
+      label: 'Anthropic',
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      missingKey: !process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key_here',
+      maxHistory: parseInt(process.env.ANTHROPIC_MAX_HISTORY || process.env.AI_MAX_HISTORY || '4', 10),
+      maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS || process.env.AI_MAX_TOKENS || '512', 10),
+    };
+  }
 
-  if (!apiKey || (apiKey === 'your_mistral_api_key_here' && MISTRAL_API_URL.includes('mistral.ai'))) {
-    logger.error('[AI Coach] MISTRAL_API_KEY non configurée');
+  return {
+    provider: 'mistral',
+    label: MISTRAL_API_URL.includes('mistral.ai') ? 'Mistral' : 'Ollama',
+    apiKey: process.env.MISTRAL_API_KEY,
+    missingKey: !process.env.MISTRAL_API_KEY || (process.env.MISTRAL_API_KEY === 'your_mistral_api_key_here' && MISTRAL_API_URL.includes('mistral.ai')),
+    maxHistory: parseInt(process.env.MISTRAL_MAX_HISTORY || process.env.AI_MAX_HISTORY || '4', 10),
+    maxTokens: parseInt(process.env.MISTRAL_MAX_TOKENS || process.env.AI_MAX_TOKENS || '256', 10),
+  };
+}
+
+function normalizeMessages(history, message) {
+  return [
+    ...history
+      .filter(m => ['user', 'assistant'].includes(m?.role) && typeof m.content === 'string')
+      .map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: message }
+  ];
+}
+
+async function callAnthropic(systemPrompt, messages, options = {}) {
+  const config = getAIProviderConfig();
+
+  const response = await fetch(ANTHROPIC_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': config.apiKey,
+      'anthropic-version': ANTHROPIC_VERSION,
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      system: systemPrompt,
+      messages,
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens || config.maxTokens,
+    }),
+    signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    logger.error('[AI Coach] Erreur API Anthropic', { status: response.status, body: errorBody });
+    return { success: false, error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.' };
+  }
+
+  const data = await response.json();
+  const text = data.content
+    ?.filter(block => block.type === 'text')
+    .map(block => block.text)
+    .join('\n')
+    .trim();
+
+  if (!text) {
+    logger.error('[AI Coach] Réponse Anthropic vide', { data });
+    return { success: false, error: 'Réponse vide du service IA.' };
+  }
+
+  return { success: true, message: text };
+}
+
+async function callMistral(systemPrompt, messages, options = {}) {
+  const config = getAIProviderConfig();
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.apiKey}`
+    },
+    body: JSON.stringify({
+      model: MISTRAL_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages,
+      ],
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens || config.maxTokens
+    }),
+    signal: AbortSignal.timeout(AI_TIMEOUT_MS)
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    logger.error('[AI Coach] Erreur API Mistral', { status: response.status, body: errorBody });
+    return { success: false, error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.' };
+  }
+
+  const data = await response.json();
+  const aiMessage = data.choices?.[0]?.message?.content;
+
+  if (!aiMessage) {
+    logger.error('[AI Coach] Réponse Mistral vide', { data });
+    return { success: false, error: 'Réponse vide du service IA.' };
+  }
+
+  return { success: true, message: aiMessage };
+}
+
+async function callAI(systemPrompt, messages, options = {}) {
+  if (AI_PROVIDER === 'anthropic') {
+    return callAnthropic(systemPrompt, messages, options);
+  }
+
+  return callMistral(systemPrompt, messages, options);
+}
+
+async function sendMessageToAICoach(userId, message, history = []) {
+  const config = getAIProviderConfig();
+
+  if (config.missingKey) {
+    logger.error(`[AI Coach] Clé API ${config.label} non configurée`);
     return {
       success: false,
       error: 'Le service IA n\'est pas configuré. Veuillez contacter l\'administrateur.'
@@ -104,67 +223,33 @@ async function sendMessageToAICoach(userId, message, history = []) {
     const userContext = await getUserContext(parseInt(userId));
     const systemPrompt = buildSystemPrompt(userContext);
 
-    // Limite l'historique aux 4 derniers messages (2 échanges) pour éviter le timeout sur CPU
-    const MAX_HISTORY = parseInt(process.env.MISTRAL_MAX_HISTORY || '4', 10);
-    const trimmedHistory = history.slice(-MAX_HISTORY);
+    // Limite l'historique aux derniers messages pour maîtriser le coût/temps de réponse.
+    const trimmedHistory = history.slice(-config.maxHistory);
+    const messages = normalizeMessages(trimmedHistory, message);
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...trimmedHistory,
-      { role: 'user', content: message }
-    ];
-
-    logger.info('[AI Coach] Requête Mistral', {
+    logger.info(`[AI Coach] Requête ${config.label}`, {
       userId,
+      provider: config.provider,
       historyLength: history.length,
       messageLength: message.length,
       hasContext: !!userContext
     });
 
-    const response = await fetch(MISTRAL_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: MISTRAL_MODEL,
-        messages,
-        temperature: 0.7,
-        max_tokens: parseInt(process.env.MISTRAL_MAX_TOKENS || '256', 10)
-      }),
-      signal: AbortSignal.timeout(MISTRAL_TIMEOUT_MS)
-    });
+    const result = await callAI(systemPrompt, messages);
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      logger.error('[AI Coach] Erreur API Mistral', { status: response.status, body: errorBody });
-      return {
-        success: false,
-        error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.'
-      };
-    }
+    if (!result.success) return result;
 
-    const data = await response.json();
-    const aiMessage = data.choices?.[0]?.message?.content;
-
-    if (!aiMessage) {
-      logger.error('[AI Coach] Réponse Mistral vide', { data });
-      return { success: false, error: 'Réponse vide du service IA.' };
-    }
-
-    logger.info('[AI Coach] Réponse reçue', { userId, responseLength: aiMessage.length });
-
-    return { success: true, message: aiMessage };
+    logger.info('[AI Coach] Réponse reçue', { userId, provider: config.provider, responseLength: result.message.length });
+    return result;
 
   } catch (error) {
     if (error.name === 'TimeoutError') {
-      logger.error('[AI Coach] Timeout Mistral', { userId });
+      logger.error(`[AI Coach] Timeout ${config.label}`, { userId });
       return { success: false, error: 'Le service IA met trop de temps à répondre. Réessayez.' };
     }
     if (error.message === 'fetch failed' || error.cause?.code === 'ECONNREFUSED') {
-      logger.error('[AI Coach] Ollama non joignable', { userId });
-      return { success: false, error: 'Le service IA local (Ollama) n\'est pas démarré.' };
+      logger.error(`[AI Coach] ${config.label} non joignable`, { userId });
+      return { success: false, error: 'Le service IA est temporairement indisponible.' };
     }
     logger.error('[AI Coach] Erreur inattendue', { userId, error: error.message });
     return { success: false, error: 'Erreur lors de la communication avec le service IA.' };
@@ -186,8 +271,8 @@ async function generateWeeklyReport(userId, force = false) {
     return { success: true, report: cached.report, cached: true, generatedAt: cached.generatedAt };
   }
 
-  const apiKey = process.env.MISTRAL_API_KEY;
-  if (!apiKey || (apiKey === 'your_mistral_api_key_here' && MISTRAL_API_URL.includes('mistral.ai'))) {
+  const config = getAIProviderConfig();
+  if (config.missingKey) {
     return { success: false, error: 'Service IA non configuré.' };
   }
 
@@ -229,32 +314,18 @@ N'utilise PAS de tirets (-), de listes à puces (*), ni de titres en gras (**Tit
 Chaque paragraphe doit être séparé par une ligne vide.
 Ton naturel et motivant, comme un coach qui parle directement à son athlète.`;
 
-    const response = await fetch(MISTRAL_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MISTRAL_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Génère mon bilan de la semaine.' },
-        ],
-        temperature: 0.7,
-        max_tokens: parseInt(process.env.MISTRAL_MAX_TOKENS || '512', 10),
-      }),
-      signal: AbortSignal.timeout(MISTRAL_TIMEOUT_MS),
-    });
+    const result = await callAI(
+      systemPrompt,
+      [{ role: 'user', content: 'Génère mon bilan de la semaine.' }],
+      { maxTokens: parseInt(process.env.AI_WEEKLY_REPORT_MAX_TOKENS || process.env.ANTHROPIC_MAX_TOKENS || process.env.MISTRAL_MAX_TOKENS || '512', 10) }
+    );
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      logger.error('[WeeklyReport] Erreur API', { status: response.status, body: errorBody });
-      return { success: false, error: 'Service IA temporairement indisponible.' };
+    if (!result.success) {
+      logger.error('[WeeklyReport] Erreur API', { provider: config.provider, error: result.error });
+      return { success: false, error: result.error || 'Service IA temporairement indisponible.' };
     }
 
-    const data = await response.json();
-    const report = data.choices?.[0]?.message?.content;
+    const report = result.message;
     if (!report) return { success: false, error: 'Réponse vide du service IA.' };
 
     const generatedAt = Date.now();
@@ -264,12 +335,12 @@ Ton naturel et motivant, comme un coach qui parle directement à son athlète.`;
     return { success: true, report, cached: false, generatedAt };
   } catch (err) {
     if (err.name === 'TimeoutError') {
-      logger.error('[WeeklyReport] Timeout', { userId });
+      logger.error(`[WeeklyReport] Timeout ${config.label}`, { userId });
       return { success: false, error: 'Le service IA met trop de temps à répondre. Réessayez.' };
     }
     if (err.message === 'fetch failed' || err.cause?.code === 'ECONNREFUSED') {
-      logger.error('[WeeklyReport] Ollama non joignable', { userId });
-      return { success: false, error: 'Le service IA local (Ollama) n\'est pas démarré. Lancez Ollama et réessayez.' };
+      logger.error(`[WeeklyReport] ${config.label} non joignable`, { userId });
+      return { success: false, error: 'Le service IA est temporairement indisponible.' };
     }
     logger.error('[WeeklyReport] Erreur inattendue', { userId, error: err.message });
     return { success: false, error: 'Erreur lors de la génération du bilan.' };
