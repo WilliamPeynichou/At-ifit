@@ -52,18 +52,29 @@ const redactSensitive = (value) => {
   return value;
 };
 
-const unwrapRows = (payload) => {
-  if (!payload) return [];
-  if (Array.isArray(payload)) return payload;
-  return payload.rows || payload.items || payload.users || payload.activities || payload.logs || payload.data || [];
+const unwrapPayload = (payload) => {
+  if (!payload) return payload;
+  if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) return payload.data;
+  return payload;
 };
 
-const unwrapMeta = (payload, fallbackPage = 1) => ({
-  page: Number(payload?.page || payload?.pagination?.page || fallbackPage),
-  totalPages: Number(payload?.totalPages || payload?.pagination?.totalPages || 1),
-  total: Number(payload?.total || payload?.pagination?.total || unwrapRows(payload).length || 0),
-});
+const firstDefined = (...values) => values.find(value => value !== undefined && value !== null);
 
+const unwrapRows = (payload) => {
+  const body = unwrapPayload(payload);
+  if (!body) return [];
+  if (Array.isArray(body)) return body;
+  return body.rows || body.items || body.users || body.activities || body.logs || body.data || [];
+};
+
+const unwrapMeta = (payload, fallbackPage = 1) => {
+  const body = unwrapPayload(payload);
+  return {
+    page: Number(body?.page || body?.pagination?.page || fallbackPage),
+    totalPages: Number(body?.totalPages || body?.pagination?.totalPages || 1),
+    total: Number(firstDefined(body?.total, body?.count, body?.pagination?.total, unwrapRows(body).length, 0)),
+  };
+};
 const formatDate = (value) => {
   if (!value) return '—';
   const date = new Date(value);
@@ -246,8 +257,8 @@ function UsersTable({ users, selectedId, onSelect, onRoleChange }) {
                   <Badge tone={stravaConnected ? 'good' : 'neutral'}>{stravaConnected ? 'Connecté' : 'Non connecté'}</Badge>
                   <p className="font-mono mt-1" style={{ color: 'var(--text-muted)' }}>{safeText(user.stravaAthleteId || user.strava_athlete_id)}</p>
                 </td>
-                <td className="py-3 pr-3">{formatNumber(user.activitiesCount || user.activities_count)}</td>
-                <td className="py-3 pr-3">{formatNumber(user.aiCallsCount || user.ai_calls_count)} / {formatNumber(user.stravaCallsCount || user.strava_calls_count)}</td>
+                <td className="py-3 pr-3">{formatNumber(firstDefined(user.totalActivities, user.activitiesCount, user.activities_count, user.activityCount, 0))}</td>
+                <td className="py-3 pr-3">{formatNumber(firstDefined(user.aiCallCount, user.aiCallsCount, user.ai_calls_count, 0))} / {formatNumber(firstDefined(user.stravaCallCount, user.stravaCallsCount, user.strava_calls_count, 0))}</td>
                 <td className="py-3 pr-3">{formatDate(user.lastLoginAt || user.last_login_at)}</td>
                 <td className="py-3 text-right">
                   <button className="btn-ghost py-2 px-3 inline-flex items-center gap-2" onClick={() => onSelect(user)}><Eye className="w-4 h-4" />Voir</button>
@@ -327,6 +338,9 @@ function StravaDiagnosticPanel({ userId }) {
 
   useEffect(() => { load(); }, [userId]);
   const data = diagnostic?.diagnostic || diagnostic?.checks || diagnostic || {};
+  const diagnosticCounts = data.counts || diagnostic?.counts || {};
+  const diagnosticConnection = data.connection || diagnostic?.connection || {};
+  const diagnosticSync = data.sync || diagnostic?.sync || {};
   const actionButtons = [
     ['sync-recent', 'Sync récente'], ['sync-full', 'Sync complète'], ['enrich-details', 'Détails'], ['enrich-streams', 'Streams'], ['repair-incomplete', 'Réparer incomplètes'], ['request-reconnect', 'Demander reconnexion'],
   ];
@@ -335,12 +349,12 @@ function StravaDiagnosticPanel({ userId }) {
     <SectionTitle subtitle="Diagnostic complet sans secrets et actions Strava auditables">Diagnostic et réparation Strava</SectionTitle>
     {loading ? <LoadingBlock /> : error ? <ErrorBlock message={error} onRetry={load} /> : <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm mb-4">
-        <Info label="Connexion" value={data.stravaConnected ?? data.connected ?? data.connectionStatus} />
-        <Info label="Athlète" value={data.stravaAthleteId || data.athleteId} />
-        <Info label="Activités" value={data.activityCount || data.totalActivities} />
-        <Info label="Avec détails" value={data.withDetail || data.activitiesWithDetails} />
-        <Info label="Avec streams" value={data.withStream || data.activitiesWithStreams} />
-        <Info label="Dernière sync" value={formatDate(data.lastSyncAt)} />
+        <Info label="Connexion" value={firstDefined(data.stravaConnected, data.connected, diagnosticConnection.connected, data.connectionStatus)} />
+        <Info label="Athlète" value={firstDefined(data.stravaAthleteId, data.athleteId, diagnosticConnection.athleteId)} />
+        <Info label="Activités synchronisées" value={firstDefined(data.activityCount, data.totalActivities, diagnosticCounts.totalActivities, diagnosticSync.current?.synced, 0)} />
+        <Info label="Avec détails" value={firstDefined(data.withDetail, data.activitiesWithDetails, diagnosticCounts.withDetail, 0)} />
+        <Info label="Avec streams" value={firstDefined(data.withStream, data.activitiesWithStreams, diagnosticCounts.withStreams, diagnosticCounts.withStream, 0)} />
+        <Info label="Dernière sync" value={formatDate(firstDefined(data.lastSyncAt, diagnosticSync.lastSyncAt))} />
         <Info label="Erreurs Strava" value={data.stravaErrors || data.lastErrors?.length || 0} />
         <Info label="Recommandation" value={data.recommendation || (data.stravaConnected === false ? 'reconnecter Strava' : 'attendre / relancer si retard')} />
       </div>
@@ -461,9 +475,11 @@ function UserDetail({ userId }) {
         api.get(`/super-admin/users/${userId}`),
         api.get(`/super-admin/users/${userId}/activities`, { params: { page, limit: 10 } }),
       ]);
-      setDetail(redactSensitive(detailRes.data?.user || detailRes.data));
-      setActivities(unwrapRows(activitiesRes.data).map(redactSensitive));
-      setActivityMeta(unwrapMeta(activitiesRes.data, page));
+      const detailPayload = unwrapPayload(detailRes.data);
+      const activitiesPayload = unwrapPayload(activitiesRes.data);
+      setDetail(redactSensitive(detailPayload?.user ? detailPayload : detailPayload));
+      setActivities(unwrapRows(activitiesPayload).map(redactSensitive));
+      setActivityMeta(unwrapMeta(activitiesPayload, page));
     } catch (err) {
       setError(err.response?.status === 403 ? 'Accès refusé par le serveur.' : 'Impossible de charger la fiche utilisateur.');
     } finally {
@@ -478,8 +494,17 @@ function UserDetail({ userId }) {
   if (error) return <ErrorBlock message={error} onRetry={() => loadDetail(activityMeta.page)} />;
   if (!detail) return null;
 
-  const profile = detail.profile || detail;
+  const profile = detail.user || detail.profile || detail;
   const summary = detail.summary || detail.usage || {};
+  const totalSyncedActivities = firstDefined(
+    summary.activities,
+    summary.totalActivities,
+    detail.totalActivities,
+    detail.activityCount,
+    activityMeta.total,
+    activities.length,
+    0
+  );
   const recentAudit = detail.auditLogs || detail.recentAuditLogs || [];
   const recentStrava = detail.stravaLogs || detail.recentStravaLogs || [];
   const recentAi = detail.aiLogs || detail.recentAiLogs || [];
@@ -498,6 +523,7 @@ function UserDetail({ userId }) {
               <Info label="Créé" value={formatDate(profile.createdAt || profile.created_at)} />
               <Info label="Mis à jour" value={formatDate(profile.updatedAt || profile.updated_at)} />
               <Info label="Dernière synchro" value={formatDate(profile.lastSyncAt || profile.last_sync_at)} />
+              <Info label="Activités synchronisées" value={formatNumber(totalSyncedActivities)} />
               <Info label="Dernière connexion" value={formatDate(profile.lastLoginAt || profile.last_login_at)} />
             </div>
           </div>
@@ -506,7 +532,7 @@ function UserDetail({ userId }) {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card><SectionTitle>Synthèse d’usage</SectionTitle><JsonPreview value={summary} /></Card>
+        <Card><SectionTitle>Synthèse d’usage</SectionTitle><div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-sm"><Info label="Activités synchronisées" value={formatNumber(totalSyncedActivities)} /><Info label="Appels Strava" value={formatNumber(summary.stravaCalls)} /><Info label="Appels IA" value={formatNumber(summary.aiCalls)} /></div><JsonPreview value={summary} /></Card>
         <Card><SectionTitle>Derniers appels Strava</SectionTitle><LogList rows={recentStrava.slice(0, 5)} /></Card>
         <Card><SectionTitle>Derniers appels IA</SectionTitle><LogList rows={recentAi.slice(0, 5)} /></Card>
       </div>
