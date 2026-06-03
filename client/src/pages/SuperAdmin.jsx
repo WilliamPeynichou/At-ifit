@@ -616,6 +616,7 @@ export default function SuperAdmin() {
   const [status, setStatus] = useState('');
   const [period, setPeriod] = useState('7d');
   const [resourceKey, setResourceKey] = useState('users');
+  const [detailUserIdInput, setDetailUserIdInput] = useState('');
 
   const filters = useMemo(() => ({
     ...(query ? { search: query } : {}),
@@ -649,6 +650,17 @@ export default function SuperAdmin() {
     } finally {
       setUsersLoading(false);
     }
+  };
+
+  const selectUserForDetail = (value) => {
+    const id = String(value || '').trim();
+    setDetailUserIdInput(id);
+    if (!id) {
+      setSelectedUser(null);
+      return;
+    }
+    const found = users.find(u => String(u.id) === id);
+    setSelectedUser(found || { id });
   };
 
   const changeRole = async (userId, nextRole) => {
@@ -717,11 +729,46 @@ export default function SuperAdmin() {
             <select className="input-clean py-2 px-3" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Tous statuts Strava</option><option value="connected">Strava connecté</option><option value="disconnected">Strava non connecté</option></select>
             <button className="btn-ghost py-2 px-4" onClick={() => loadUsers(userMeta.page)}><RefreshCw className="w-4 h-4 inline mr-2" />Actualiser</button>
           </div>
-          {usersLoading ? <LoadingBlock /> : usersError ? <ErrorBlock message={usersError} onRetry={() => loadUsers(userMeta.page)} /> : <><UsersTable users={users} selectedId={selectedUser?.id} onSelect={(u) => { setSelectedUser(u); setTab('detail'); }} onRoleChange={changeRole} /><Pagination meta={userMeta} onPage={loadUsers} /></>}
+          {usersLoading ? <LoadingBlock /> : usersError ? <ErrorBlock message={usersError} onRetry={() => loadUsers(userMeta.page)} /> : <><UsersTable users={users} selectedId={selectedUser?.id} onSelect={(u) => { setSelectedUser(u); setDetailUserIdInput(String(u.id)); setTab('detail'); }} onRoleChange={changeRole} /><Pagination meta={userMeta} onPage={loadUsers} /></>}
         </Card>
       )}
 
-      {tab === 'detail' && <UserDetail userId={selectedUser?.id} />}
+      {tab === 'detail' && (
+        <div className="space-y-4">
+          <Card>
+            <SectionTitle subtitle="Sélectionnez un utilisateur depuis la liste chargée ou saisissez directement son ID interne.">Sélection utilisateur</SectionTitle>
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto] gap-3 items-end">
+              <div>
+                <label className="block text-xs uppercase font-bold mb-1" style={{ color: 'var(--text-muted)' }}>Utilisateur</label>
+                <select
+                  className="input-clean py-2 px-3 w-full"
+                  value={selectedUser?.id || ''}
+                  onChange={(e) => selectUserForDetail(e.target.value)}
+                >
+                  <option value="">Choisir un utilisateur…</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{safeText(u.pseudo || u.email)} — #{u.id}</option>
+                  ))}
+                </select>
+              </div>
+              <span className="text-sm pb-2" style={{ color: 'var(--text-muted)' }}>ou</span>
+              <div>
+                <label className="block text-xs uppercase font-bold mb-1" style={{ color: 'var(--text-muted)' }}>ID utilisateur</label>
+                <input
+                  className="input-clean py-2 px-3 w-full"
+                  placeholder="Ex: 42"
+                  value={detailUserIdInput}
+                  onChange={(e) => setDetailUserIdInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') selectUserForDetail(detailUserIdInput); }}
+                />
+              </div>
+              <button className="btn-ghost py-2 px-4" onClick={() => selectUserForDetail(detailUserIdInput)}>Afficher</button>
+            </div>
+            {users.length === 0 && <p className="text-sm mt-3" style={{ color: 'var(--text-muted)' }}>Aucun utilisateur chargé avec les filtres actuels. Ajustez la recherche ou cliquez sur Actualiser dans l’onglet Utilisateurs.</p>}
+          </Card>
+          <UserDetail userId={selectedUser?.id} />
+        </div>
+      )}
       {tab === 'strava-actions' && <GlobalStravaActions />}
       {tab === 'crud' && (<div className="space-y-4"><Card className="!p-3"><select className="input-clean py-2 px-3" value={resourceKey} onChange={(e) => setResourceKey(e.target.value)}>{Object.entries(resourceConfig).map(([key, cfg]) => <option key={key} value={key}>{cfg.label}</option>)}</select></Card><ResourceCrud resourceKey={resourceKey} filters={filters} /></div>)}
       {tab === 'strava' && <LogsSection title="Logs Strava — lecture seule" endpoint="/super-admin/strava-logs" filters={filters} />}

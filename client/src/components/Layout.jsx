@@ -38,7 +38,7 @@ const Layout = ({ children }) => {
   const visibleMobileNavItems = MOBILE_NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative flex flex-col">
       {/* Desktop header — hidden on mobile */}
       <header className="glass-nav sticky top-0 z-50 hidden md:block">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -165,12 +165,12 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Main content */}
-      <main className="w-full relative z-10 pb-6 md:pb-0">
+      <main className="w-full relative z-10 flex-1 pb-10 md:pb-12">
         {children}
       </main>
 
       {/* Footer — desktop only */}
-      <div className="hidden md:block">
+      <div className="hidden md:block mt-auto pt-6">
         <Footer />
       </div>
 
