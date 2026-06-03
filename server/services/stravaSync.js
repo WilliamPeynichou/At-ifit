@@ -20,6 +20,7 @@ const STREAM_TYPES = [
 // le rate limit. Avec pause 4s entre batchs : 5 req/4s = 75/min = OK pour 15min cumulés.
 const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 4000;
+const INCREMENTAL_OVERLAP_DAYS = parseInt(process.env.STRAVA_INCREMENTAL_OVERLAP_DAYS || '14', 10);
 
 // Mutex de sync : empêche les syncs parallèles pour un même user
 const syncInFlight = new Map(); // userId -> Promise
@@ -76,13 +77,32 @@ function mapStravaActivity(raw, userId) {
  */
 function mapStravaActivityDetail(detail) {
   return {
+    name: detail.name || null,
+    type: detail.type || 'Other',
+    distance: detail.distance || 0,
+    movingTime: detail.moving_time || 0,
+    elapsedTime: detail.elapsed_time || null,
+    totalElevationGain: detail.total_elevation_gain || 0,
+    averageSpeed: detail.average_speed || null,
+    maxSpeed: detail.max_speed || null,
+    averageHeartrate: detail.average_heartrate || null,
+    maxHeartrate: detail.max_heartrate || null,
+    hasHeartrate: detail.has_heartrate ?? null,
+    calories: detail.calories ?? null,
+    kilojoules: detail.kilojoules ?? null,
+    sufferScore: detail.suffer_score ?? null,
+    averageWatts: detail.average_watts ?? null,
+    maxWatts: detail.max_watts ?? null,
+    weightedAverageWatts: detail.weighted_average_watts ?? null,
+    deviceWatts: detail.device_watts ?? null,
+    averageCadence: detail.average_cadence ?? null,
+    averageTemp: detail.average_temp ?? null,
+    gearId: detail.gear_id || null,
+    workoutType: detail.workout_type ?? null,
     bestEfforts: detail.best_efforts || null,
     splitsMetric: detail.splits_metric || null,
     laps: detail.laps || null,
     deviceName: detail.device_name || null,
-    sufferScore: detail.suffer_score ?? null,
-    calories: detail.calories ?? null,
-    kilojoules: detail.kilojoules ?? null,
     detailFetchedAt: new Date(),
   };
 }
@@ -334,7 +354,7 @@ async function _doSync(userId, { enrich = true } = {}) {
 /**
  * Synchronise les activités Strava depuis une date donnée (pour webhooks ou refresh partiel)
  */
-async function syncSince(userId, afterTimestamp) {
+async function syncSince(userId, afterTimestamp, { enrich = true, overlapDays = INCREMENTAL_OVERLAP_DAYS } = {}) {
   const user = await User.findByPk(userId);
   if (!user || !user.stravaAccessToken) {
     return { success: false, error: 'Strava non connecté' };
@@ -346,22 +366,43 @@ async function syncSince(userId, afterTimestamp) {
   }
 
   try {
-    const activities = await fetchStravaActivities(accessToken, {
-      per_page: 100,
-      after: afterTimestamp
-    });
+    const PER_PAGE = 100;
+    const safeOverlapDays = Number.isFinite(overlapDays) ? Math.max(0, overlapDays) : INCREMENTAL_OVERLAP_DAYS;
+    const effectiveAfter = afterTimestamp
+      ? Math.max(0, Number(afterTimestamp) - safeOverlapDays * 86400)
+      : undefined;
 
-    const synced = await upsertActivities(activities || [], userId);
-    if (synced > 0) {
-      await User.update({ lastSyncAt: new Date() }, { where: { id: userId } });
+    let page = 1;
+    let totalSynced = 0;
+    let totalFetched = 0;
 
-      // Enrichit immédiatement les nouvelles activités
-      enrichUserActivities(userId, { maxCount: synced }).catch(err =>
+    while (true) {
+      const batch = await fetchStravaActivities(accessToken, {
+        per_page: PER_PAGE,
+        page,
+        ...(effectiveAfter ? { after: effectiveAfter } : {})
+      });
+
+      if (!batch || batch.length === 0) break;
+
+      totalFetched += batch.length;
+      totalSynced += await upsertActivities(batch || [], userId);
+
+      if (batch.length < PER_PAGE) break;
+      page++;
+    }
+
+    await User.update({ lastSyncAt: new Date() }, { where: { id: userId } });
+
+    if (enrich && totalSynced > 0) {
+      // Force l'enrichissement récent : utile quand Strava complète après coup gear/power/capteurs.
+      enrichUserActivities(userId, { maxCount: Math.min(Math.max(totalSynced, 20), 100), force: true }).catch(err =>
         logger.error('[StravaSync] Erreur enrichissement post-syncSince', { userId, error: err.message })
       );
     }
-    logger.info('[StravaSync] Sync partielle terminée', { userId, afterTimestamp, synced });
-    return { success: true, synced };
+
+    logger.info('[StravaSync] Sync partielle terminée', { userId, afterTimestamp, effectiveAfter, overlapDays: safeOverlapDays, fetched: totalFetched, synced: totalSynced });
+    return { success: true, synced: totalSynced, fetched: totalFetched, effectiveAfter };
 
   } catch (err) {
     logger.error('[StravaSync] Erreur sync partielle', { userId, error: err.message });

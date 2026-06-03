@@ -55,7 +55,7 @@ async function ensureStravaState(userId, { triggerSync = false } = {}) {
       if (!lastSync || Date.now() - lastSync.getTime() > staleMs) {
         const since = lastSync
           ? Math.floor(lastSync.getTime() / 1000)
-          : Math.floor((Date.now() - 7 * 86400 * 1000) / 1000);
+          : Math.floor((Date.now() - 14 * 86400 * 1000) / 1000);
         syncSince(userId, since).catch(err =>
           logger.error('[Running] Incremental sync auto failed', { userId, error: err.message })
         );

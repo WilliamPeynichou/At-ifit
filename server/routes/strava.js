@@ -203,7 +203,7 @@ router.get('/activities', auth, asyncHandler(async (req, res) => {
     const lastSync = user.lastSyncAt ? new Date(user.lastSyncAt) : null;
     const STALE_MS = 10 * 60 * 1000;
     if (!lastSync || (Date.now() - lastSync.getTime()) > STALE_MS) {
-      const since = lastSync ? Math.floor(lastSync.getTime() / 1000) : Math.floor((Date.now() - 7 * 86400 * 1000) / 1000);
+      const since = lastSync ? Math.floor(lastSync.getTime() / 1000) : Math.floor((Date.now() - 14 * 86400 * 1000) / 1000);
       logger.info('[Strava] Sync incrémentale auto (lastSyncAt stale)', { userId: req.userId, since });
       syncSince(req.userId, since).catch(err =>
         logger.error('[Strava] Erreur syncSince auto', { userId: req.userId, error: err.message })
