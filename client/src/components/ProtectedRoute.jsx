@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Onboarding from './Onboarding';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, requiredRole }) => {
   const { token, accessToken, loading, user } = useAuth();
   const effectiveToken = accessToken || token;
   const location = useLocation();
@@ -39,6 +39,22 @@ const ProtectedRoute = ({ children }) => {
   
   if ((!effectiveToken || !hasTokenInStorage) || (!user && !loading && !hasTokenInStorage)) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && user?.role !== requiredRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="glass-card max-w-lg w-full p-6 text-center">
+          <h1 className="text-2xl font-black mb-3" style={{ color: 'var(--text-primary)' }}>Accès refusé</h1>
+          <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
+            Cette page est réservée aux utilisateurs ayant le rôle {requiredRole}. La vérification serveur reste obligatoire.
+          </p>
+          <Link to="/" className="btn-primary inline-flex justify-center px-5 py-3">
+            Retour au dashboard
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (

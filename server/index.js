@@ -9,6 +9,9 @@ const RefreshToken = require('./models/RefreshToken');
 const Activity = require('./models/Activity');
 const ActivityStream = require('./models/ActivityStream');
 const Goal = require('./models/Goal');
+const AuditLog = require('./models/AuditLog');
+const StravaApiLog = require('./models/StravaApiLog');
+const AiUsageLog = require('./models/AiUsageLog');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const stravaRoutes = require('./routes/strava');
@@ -17,6 +20,7 @@ const statsRoutes = require('./routes/stats');
 const stravaWebhookRoutes = require('./routes/stravaWebhook');
 const goalsRoutes = require('./routes/goals');
 const cyclingRoutes = require('./routes/cycling');
+const superAdminRoutes = require('./routes/superAdmin');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
 const { errorHandler, notFoundHandler, asyncHandler, sendSuccess, sendError } = require('./middleware/errorHandler');
@@ -98,6 +102,17 @@ ActivityStream.belongsTo(Activity, { foreignKey: 'activityId' });
 User.hasMany(Goal, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Goal.belongsTo(User, { foreignKey: 'userId' });
 
+User.hasMany(AuditLog, { foreignKey: 'userId', onDelete: 'SET NULL' });
+AuditLog.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(AuditLog, { foreignKey: 'actorUserId', as: 'ActorAuditLogs', onDelete: 'SET NULL' });
+AuditLog.belongsTo(User, { foreignKey: 'actorUserId', as: 'Actor' });
+
+User.hasMany(StravaApiLog, { foreignKey: 'userId', onDelete: 'SET NULL' });
+StravaApiLog.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(AiUsageLog, { foreignKey: 'userId', onDelete: 'SET NULL' });
+AiUsageLog.belongsTo(User, { foreignKey: 'userId' });
+
 // Test Database Connection, Sync and Migrate
 const { runMigrations } = require('./scripts/migrate');
 sequelize.authenticate()
@@ -129,6 +144,7 @@ app.use('/api/cycling', cyclingRoutes);
 // Webhook Strava — route publique (pas d'auth JWT, Strava appelle directement)
 app.use('/api/webhook', stravaWebhookRoutes);
 app.use('/api/goals', goalsRoutes);
+app.use('/api/super-admin', superAdminRoutes);
 
 // Weight Routes
 app.get('/api/weight', 

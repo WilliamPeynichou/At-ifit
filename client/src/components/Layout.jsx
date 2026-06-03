@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X } from 'lucide-react';
+import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import Footer from './Footer';
+
+const SUPER_ADMIN_NAV_ITEM = { path: '/super-admin', label: 'Super Admin', icon: ShieldAlert, superAdminOnly: true };
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: Home },
@@ -11,6 +13,7 @@ const NAV_ITEMS = [
   { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
   { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
+  SUPER_ADMIN_NAV_ITEM,
 ];
 
 const MOBILE_NAV_ITEMS = [
@@ -21,6 +24,7 @@ const MOBILE_NAV_ITEMS = [
   { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
   { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
+  SUPER_ADMIN_NAV_ITEM,
   { path: '/new-user-profile', label: 'Profil', icon: User },
 ];
 
@@ -30,6 +34,8 @@ const Layout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
+  const visibleNavItems = NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
+  const visibleMobileNavItems = MOBILE_NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
 
   return (
     <div className="min-h-screen relative">
@@ -48,7 +54,7 @@ const Layout = ({ children }) => {
 
           {/* Nav links */}
           <nav className="flex items-center gap-1">
-            {NAV_ITEMS.map(({ path, label, icon }) => (
+            {visibleNavItems.map(({ path, label, icon }) => (
               <Link
                 key={path}
                 to={path}
@@ -123,7 +129,7 @@ const Layout = ({ children }) => {
                 </div>
               )}
 
-              {MOBILE_NAV_ITEMS.map(({ path, label, icon }) => {
+              {visibleMobileNavItems.map(({ path, label, icon }) => {
                 const active = isActive(path);
                 return (
                   <Link

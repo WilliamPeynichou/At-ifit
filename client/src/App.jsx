@@ -21,6 +21,7 @@ import NewUserStrava from './pages/NewUserStrava';
 import StravaCallback from './pages/StravaCallback';
 import Chatbot from './components/Chatbot';
 import Assistant from './pages/Assistant';
+import SuperAdmin from './pages/SuperAdmin';
 import ParticlesBackground from './components/ParticlesBackground';
 import CyclistLoader from './components/CyclistLoader';
 
@@ -164,6 +165,16 @@ function AppInner() {
               <ProtectedRoute>
                 <Layout>
                   <Assistant />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/super-admin"
+            element={
+              <ProtectedRoute requiredRole="super_admin">
+                <Layout>
+                  <SuperAdmin />
                 </Layout>
               </ProtectedRoute>
             }

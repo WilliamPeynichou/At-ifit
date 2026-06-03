@@ -7,6 +7,7 @@ const { validateRequest, validations } = require('../middleware/validation');
 const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHandler');
 const { authLimiter } = require('../middleware/rateLimiter');
 const logger = require('../utils/logger');
+const { logAuditEvent } = require('../services/auditService');
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ const formatUserResponse = (user) => ({
   id: user.id,
   email: user.email,
   pseudo: user.pseudo,
+  role: user.role || 'user',
   height: user.height,
   age: user.age,
   gender: user.gender,
@@ -89,6 +91,16 @@ router.post('/register',
       userId: user.id, 
       email: user.email,
       ip: req.ip
+    });
+
+    await logAuditEvent({
+      req,
+      userId: user.id,
+      actorUserId: user.id,
+      eventType: 'registration_success',
+      category: 'auth',
+      message: 'User registered',
+      metadata: { email: user.email, role: user.role },
     });
 
     sendSuccess(res, {
@@ -142,12 +154,25 @@ router.post('/login',
         userAgent: req.get('user-agent'),
         userExists: !!user
       });
+      await logAuditEvent({
+        req,
+        userId: user?.id || null,
+        actorUserId: user?.id || null,
+        eventType: 'login_failure',
+        status: 'failure',
+        riskLevel: user?.lockedUntil ? 'high' : 'medium',
+        category: 'auth',
+        message: 'Failed login attempt',
+        metadata: { email, userExists: !!user, locked: !!user?.lockedUntil },
+      });
       return sendError(res, 'Invalid credentials', 401);
     }
 
     // Succès : réinitialise le compteur d'échecs
     if (user.failedLoginAttempts > 0 || user.lockedUntil) {
-      await user.update({ failedLoginAttempts: 0, lockedUntil: null });
+      await user.update({ failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() });
+    } else {
+      await user.update({ lastLoginAt: new Date() });
     }
 
     // Generate tokens
@@ -165,6 +190,16 @@ router.post('/login',
       userId: user.id,
       email: user.email,
       ip: req.ip
+    });
+
+    await logAuditEvent({
+      req,
+      userId: user.id,
+      actorUserId: user.id,
+      eventType: 'login_success',
+      category: 'auth',
+      message: 'User logged in',
+      metadata: { method: 'password', role: user.role },
     });
 
     sendSuccess(res, {
@@ -241,6 +276,14 @@ router.post('/refresh',
       });
 
       logger.info('Tokens rotated', { userId: decoded.id });
+      await logAuditEvent({
+        userId: decoded.id,
+        actorUserId: decoded.id,
+        eventType: 'refresh_token',
+        category: 'auth',
+        message: 'Access token refreshed',
+        metadata: { rotated: true },
+      });
 
       sendSuccess(res, {
         accessToken,
@@ -279,6 +322,14 @@ router.post('/logout',
     }
 
     logger.info('User logged out', { userId: req.userId });
+    await logAuditEvent({
+      req,
+      userId: req.userId,
+      actorUserId: req.userId,
+      eventType: 'logout',
+      category: 'auth',
+      message: 'User logged out',
+    });
 
     sendSuccess(res, null, 'Logged out successfully');
   })

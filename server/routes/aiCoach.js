@@ -5,6 +5,8 @@ const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHan
 const { aiCoachLimiter } = require('../middleware/rateLimiter');
 const { sendMessageToAICoach, generateWeeklyReport, executeConfirmedAction } = require('../services/aiCoachService');
 const logger = require('../utils/logger');
+const { logAiUsage } = require('../services/aiUsageService');
+const { logAuditEvent } = require('../services/auditService');
 
 const router = express.Router();
 const pendingActions = new Map();
@@ -71,6 +73,9 @@ router.post('/message', auth, aiCoachLimiter, asyncHandler(async (req, res) => {
 
   if (result.success) {
     const pendingAction = storePendingAction(userId, result.pendingAction);
+    if (pendingAction) {
+      await logAuditEvent({ req, userId, actorUserId: userId, eventType: 'ai_action_proposed', category: 'ai', message: 'AI action proposed', metadata: { actionType: pendingAction.type } });
+    }
     return sendSuccess(res, {
       response: result.message,
       agentStatus: result.agentStatus,
@@ -109,6 +114,8 @@ router.post('/actions/:id/confirm', auth, aiCoachLimiter, asyncHandler(async (re
   deletePendingAction(req.userId, req.params.id);
 
   if (result.success) {
+    await logAiUsage({ userId: req.userId, provider: 'internal', usageType: 'action_ia', status: 'success', actionProposed: action.type, actionStatus: 'validated', metadata: { actionId: req.params.id } });
+    await logAuditEvent({ req, userId: req.userId, actorUserId: req.userId, eventType: 'ai_action_validated', category: 'ai', message: 'AI action validated', metadata: { actionId: req.params.id, actionType: action.type } });
     return sendSuccess(res, {
       ...result,
       actionId: req.params.id,
@@ -124,6 +131,8 @@ router.post('/actions/:id/cancel', auth, aiCoachLimiter, asyncHandler(async (req
   const action = getPendingAction(req.userId, req.params.id);
   if (!action) return sendError(res, 'Action en attente introuvable ou expirée', 404);
   deletePendingAction(req.userId, req.params.id);
+  await logAiUsage({ userId: req.userId, provider: 'internal', usageType: 'action_ia', status: 'success', actionProposed: action.type, actionStatus: 'cancelled', metadata: { actionId: req.params.id } });
+  await logAuditEvent({ req, userId: req.userId, actorUserId: req.userId, eventType: 'ai_action_cancelled', category: 'ai', message: 'AI action cancelled', metadata: { actionId: req.params.id, actionType: action.type } });
   return sendSuccess(res, {
     success: true,
     actionId: req.params.id,

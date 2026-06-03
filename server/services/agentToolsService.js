@@ -5,6 +5,11 @@ const User = require('../models/User');
 const Weight = require('../models/Weight');
 const logger = require('../utils/logger');
 const { syncUserActivities } = require('./stravaSync');
+const {
+  assessClarificationNeed,
+  buildAdvancedSportsAnalysisContext,
+  getMedicalSafetyGuidance,
+} = require('./advancedSportsAnalysisSkill');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_RANGE_DAYS = 370;
@@ -240,6 +245,10 @@ async function getPersonalRecords(userId, sportType = null) {
   };
 }
 
+function shouldUseAdvancedSportsAnalysis(message = '') {
+  return /(analyse|progress|progresse|bilan|sorties?|activit|cardio|fréquence cardiaque|frequence cardiaque|vitesse|allure|puissance|watts?|cadence|endurance|fatigue|récup|recup|stream|intervalles?|derni[eè]re sortie|prépa|prepa|course|vélo|velo|running|natation)/i.test(String(message));
+}
+
 async function buildTargetedAgentContext(userId, message) {
   const intents = detectIntent(message);
   const sportType = sportFromIntents(intents);
@@ -247,6 +256,33 @@ async function buildTargetedAgentContext(userId, message) {
   const [status, profile] = await Promise.all([getStravaStatus(userId), getProfileAndGoals(userId)]);
   const context = { generatedAt: new Date().toISOString(), intents, strava: status, profile: profile.profile, weights: profile.weights, goals: profile.goals };
   dataUsed.push('profile_without_secrets', 'active_goals', 'strava_connection_status');
+
+  if (shouldUseAdvancedSportsAnalysis(message)) {
+    const clarification = assessClarificationNeed(message);
+    context.advancedSportsAnalysis = {
+      clarification,
+      instructions: {
+        askClarificationBeforeDeepAnalysis: clarification.needsClarification,
+        doNotInventMissingMetrics: true,
+        useStreamsOnlyWhenUseful: true,
+        medicalSafety: getMedicalSafetyGuidance(message),
+      },
+    };
+    dataUsed.push('advanced_sports_analysis_skill', 'clarification_assessment');
+
+    if (!clarification.needsClarification) {
+      const advanced = await buildAdvancedSportsAnalysisContext(userId, {
+        message,
+        sportType,
+        includeStreams: /(stream|détail|detail|intervalles?|derni[eè]re sortie|cardio|puissance|cadence|allure|vitesse)/i.test(message),
+      });
+      context.advancedSportsAnalysis = {
+        ...context.advancedSportsAnalysis,
+        ...advanced.context,
+      };
+      dataUsed.push(...advanced.dataUsed.filter(item => !dataUsed.includes(item)));
+    }
+  }
 
   if (intents.includes('recent_activities')) {
     context.recent = await getActivitiesForPeriod(userId, { from: addDays(new Date(), -30), to: new Date(), sportType });
@@ -380,6 +416,7 @@ module.exports = {
   detectIntent,
   detectUnsafeRequest,
   executeConfirmedAction,
+  shouldUseAdvancedSportsAnalysis,
   summarizeActivities,
   clampDateRange,
 };

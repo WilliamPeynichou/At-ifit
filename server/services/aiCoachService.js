@@ -10,6 +10,8 @@ const {
   executeConfirmedAction,
 } = require('./agentToolsService');
 const logger = require('../utils/logger');
+const { logAiUsage } = require('./aiUsageService');
+const { logAuditEvent } = require('./auditService');
 
 // Configurable via .env — supporte Anthropic (Claude), Mistral cloud et Ollama (compatible OpenAI)
 const AI_PROVIDER = (process.env.AI_PROVIDER || (process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'mistral')).toLowerCase();
@@ -90,9 +92,19 @@ Ton naturel, direct, comme un coach qui parle à son athlète.`;
     `- Utilise le prénom de l'utilisateur quand c'est naturel.`,
     `- Base tes conseils sur les données ci-dessus quand c'est pertinent.`,
     `- Si tu reçois un contexte agentique JSON dans le message utilisateur, utilise-le comme source de vérité prioritaire.`,
+    `- Skill disponible : advanced_sports_analysis. Pour une demande sportive vague ou large, commence par poser 1 à 3 questions de clarification (période, sport, objectif) au lieu de produire une analyse superficielle.`,
+    `- Quand le contexte advancedSportsAnalysis contient clarification.needsClarification=true, réponds par ces questions naturellement et attends la réponse utilisateur avant l'analyse détaillée.`,
+    `- Quand le contexte advancedSportsAnalysis contient des activités, exploite volumes, tendances, cardio, vitesse/allure, puissance, cadence, charge/effort et streams résumés seulement s'ils sont utiles.`,
+    `- Mentionne clairement les métriques ou streams absents ; n'invente jamais de fréquence cardiaque, puissance, cadence ou données point par point.`,
+    `- Sur les sujets cardio/santé, reste coach sportif prudent : aucun diagnostic médical et orientation vers un professionnel de santé en cas de symptôme inquiétant.`,
     `- Ne mentionne pas d'identifiants internes, de tokens ou de détails techniques.`,
     `- Si une action est pertinente, explique qu'elle doit être validée par l'utilisateur ; ne prétends jamais l'avoir exécutée.`,
     `- Si tu n'as pas assez de données pour répondre précisément, dis-le et demande les informations manquantes.`,
+    `- Skill disponible : advanced_sports_analysis. Utilise-le pour les analyses sportives approfondies : historique complet ou ancien, progression, endurance, fatigue, récupération, cardio, vitesse, allure, puissance, cadence, charge, détails d'activité et streams.`,
+    `- Si le contexte advancedSportsAnalysis indique qu'une clarification est nécessaire, pose d'abord quelques questions simples sur la période, le sport, l'objectif et la comparaison éventuelle, au lieu de produire une analyse générale trop rapide.`,
+    `- Pour les gros volumes, exploite les agrégats, tendances, meilleures sorties, sorties atypiques et échantillons fournis ; ne recopie pas inutilement les données brutes.`,
+    `- Pour les streams, utilise uniquement les résumés disponibles et signale clairement leur absence quand ils ne sont pas disponibles.`,
+    `- Sur les sujets cardio/santé, reste coach sportif : aucun diagnostic médical et recommandation d'un professionnel de santé en cas de symptôme inquiétant.`,
     ``,
     `Format de réponse OBLIGATOIRE :`,
     `- Écris en paragraphes courts et aérés, séparés par une ligne vide.`,
@@ -141,6 +153,7 @@ function normalizeMessages(history, message) {
 
 async function callAnthropic(systemPrompt, messages, options = {}) {
   const config = getAIProviderConfig();
+  const startedAt = Date.now();
 
   const response = await fetch(ANTHROPIC_API_URL, {
     method: 'POST',
@@ -162,7 +175,7 @@ async function callAnthropic(systemPrompt, messages, options = {}) {
   if (!response.ok) {
     const errorBody = await response.text();
     logger.error('[AI Coach] Erreur API Anthropic', { status: response.status, body: errorBody });
-    return { success: false, error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.' };
+    return { success: false, error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.', durationMs: Date.now() - startedAt };
   }
 
   const data = await response.json();
@@ -174,14 +187,15 @@ async function callAnthropic(systemPrompt, messages, options = {}) {
 
   if (!text) {
     logger.error('[AI Coach] Réponse Anthropic vide', { data });
-    return { success: false, error: 'Réponse vide du service IA.' };
+    return { success: false, error: 'Réponse vide du service IA.', durationMs: Date.now() - startedAt, usage: data.usage || null };
   }
 
-  return { success: true, message: text };
+  return { success: true, message: text, durationMs: Date.now() - startedAt, usage: data.usage || null, model: ANTHROPIC_MODEL };
 }
 
 async function callMistral(systemPrompt, messages, options = {}) {
   const config = getAIProviderConfig();
+  const startedAt = Date.now();
 
   const response = await fetch(MISTRAL_API_URL, {
     method: 'POST',
@@ -204,7 +218,7 @@ async function callMistral(systemPrompt, messages, options = {}) {
   if (!response.ok) {
     const errorBody = await response.text();
     logger.error('[AI Coach] Erreur API Mistral', { status: response.status, body: errorBody });
-    return { success: false, error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.' };
+    return { success: false, error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.', durationMs: Date.now() - startedAt };
   }
 
   const data = await response.json();
@@ -212,10 +226,10 @@ async function callMistral(systemPrompt, messages, options = {}) {
 
   if (!aiMessage) {
     logger.error('[AI Coach] Réponse Mistral vide', { data });
-    return { success: false, error: 'Réponse vide du service IA.' };
+    return { success: false, error: 'Réponse vide du service IA.', durationMs: Date.now() - startedAt, usage: data.usage || null };
   }
 
-  return { success: true, message: aiMessage };
+  return { success: true, message: aiMessage, durationMs: Date.now() - startedAt, usage: data.usage || null, model: MISTRAL_MODEL };
 }
 
 async function callAI(systemPrompt, messages, options = {}) {
@@ -233,7 +247,11 @@ function buildAgentUserMessage(message, agentContext, dataUsed) {
 async function sendMessageToAICoach(userId, message, history = []) {
   const config = getAIProviderConfig();
   const unsafeRequest = detectUnsafeRequest(message);
-  if (unsafeRequest) return unsafeRequest;
+  if (unsafeRequest) {
+    await logAiUsage({ userId, provider: config.provider, model: AI_PROVIDER === 'anthropic' ? ANTHROPIC_MODEL : MISTRAL_MODEL, usageType: 'refus_securite', status: 'refusal', userMessageLength: message?.length || 0, errorMessage: unsafeRequest.error, metadata: { reason: 'guardrails' } });
+    await logAuditEvent({ userId, actorUserId: userId, eventType: 'ai_refusal', status: 'failure', riskLevel: 'medium', category: 'ai', message: 'Unsafe AI request refused' });
+    return unsafeRequest;
+  }
 
   if (config.missingKey) {
     logger.error(`[AI Coach] Clé API ${config.label} non configurée`);
@@ -271,7 +289,40 @@ async function sendMessageToAICoach(userId, message, history = []) {
 
     const result = await callAI(systemPrompt, messages);
 
+    await logAiUsage({
+      userId,
+      provider: config.provider,
+      model: result.model || (AI_PROVIDER === 'anthropic' ? ANTHROPIC_MODEL : MISTRAL_MODEL),
+      usageType: 'message_agent',
+      status: result.success ? 'success' : 'error',
+      durationMs: result.durationMs || null,
+      userMessageLength: message.length,
+      responseLength: result.message?.length || null,
+      dataUsed,
+      intents: agentContext.intents,
+      actionProposed: pendingAction?.type || null,
+      actionStatus: pendingAction ? 'proposed' : null,
+      promptTokens: result.usage?.prompt_tokens || result.usage?.input_tokens || null,
+      completionTokens: result.usage?.completion_tokens || result.usage?.output_tokens || null,
+      errorMessage: result.success ? null : result.error,
+      metadata: { dataUsedCount: dataUsed.length },
+    });
+
     if (!result.success) return result;
+
+    await logAuditEvent({
+      userId,
+      actorUserId: userId,
+      eventType: 'ai_agent_call',
+      category: 'ai',
+      message: 'AI coach message processed',
+      metadata: {
+        hasAction: !!pendingAction,
+        dataUsed,
+        advancedSportsAnalysisUsed: dataUsed.includes('advanced_sports_analysis_skill') || dataUsed.includes('advanced_sports_activities'),
+        clarificationSuggested: Boolean(agentContext.advancedSportsAnalysis?.clarification?.needsClarification),
+      },
+    });
 
     logger.info('[AI Coach] Réponse reçue', { userId, provider: config.provider, responseLength: result.message.length });
     return {
@@ -359,6 +410,22 @@ Ton naturel et motivant, comme un coach qui parle directement à son athlète.`;
       [{ role: 'user', content: 'Génère mon bilan de la semaine.' }],
       { maxTokens: parseInt(process.env.AI_WEEKLY_REPORT_MAX_TOKENS || process.env.ANTHROPIC_MAX_TOKENS || process.env.MISTRAL_MAX_TOKENS || '512', 10) }
     );
+
+    await logAiUsage({
+      userId,
+      provider: config.provider,
+      model: result.model || (AI_PROVIDER === 'anthropic' ? ANTHROPIC_MODEL : MISTRAL_MODEL),
+      usageType: 'bilan_hebdomadaire',
+      status: result.success ? 'success' : 'error',
+      durationMs: result.durationMs || null,
+      userMessageLength: 'Génère mon bilan de la semaine.'.length,
+      responseLength: result.message?.length || null,
+      dataUsed: ['weekly_context', 'recent_activities', 'weight'],
+      promptTokens: result.usage?.prompt_tokens || result.usage?.input_tokens || null,
+      completionTokens: result.usage?.completion_tokens || result.usage?.output_tokens || null,
+      errorMessage: result.success ? null : result.error,
+      metadata: { cached: false },
+    });
 
     if (!result.success) {
       logger.error('[WeeklyReport] Erreur API', { provider: config.provider, error: result.error });

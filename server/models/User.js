@@ -16,6 +16,14 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  role: {
+    type: DataTypes.ENUM('user', 'admin', 'super_admin'),
+    allowNull: false,
+    defaultValue: 'user',
+    validate: {
+      isIn: [['user', 'admin', 'super_admin']],
+    },
+  },
   height: {
     type: DataTypes.FLOAT,
     allowNull: true,
@@ -118,6 +126,11 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     allowNull: true,
     comment: 'Compte verrouillé jusqu\'à cette date après trop d\'échecs de connexion'
+  },
+  lastLoginAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Dernière connexion réussie'
   }
 }, {
   timestamps: true

@@ -1,5 +1,33 @@
 const axios = require('axios');
 const logger = require('./logger');
+const { logStravaApiCall } = require('../services/stravaApiLogService');
+const { logAuditEvent } = require('../services/auditService');
+
+function classifyStravaCall(url) {
+  if (/oauth\/token/.test(url)) return 'refresh_token';
+  if (/oauth\/deauthorize/.test(url)) return 'revocation';
+  if (/\/athlete$/.test(url)) return 'profile_athlete';
+  if (/\/athlete\/activities/.test(url)) return 'activity_list';
+  if (/\/activities\/[^/]+\/streams/.test(url)) return 'activity_streams';
+  if (/\/activities\//.test(url)) return 'activity_detail';
+  if (/\/athletes\/[^/]+\/stats/.test(url)) return 'athlete_stats';
+  if (/\/athlete\/zones/.test(url)) return 'zones';
+  if (/\/athlete\/clubs/.test(url)) return 'clubs';
+  if (/\/routes/.test(url)) return 'routes';
+  if (/\/segments\/starred/.test(url)) return 'segments';
+  return 'other';
+}
+
+function resourceIdFromUrl(url) {
+  const match = url.match(/\/(activities|athletes)\/(\d+)/);
+  return match?.[2] || null;
+}
+
+function countItems(data) {
+  if (Array.isArray(data)) return data.length;
+  if (data && typeof data === 'object') return Object.keys(data).length;
+  return null;
+}
 
 /**
  * Helper centralisé pour tous les appels API Strava
@@ -9,9 +37,27 @@ const stravaFetch = async (url, options = {}, { userId } = {}) => {
   const MAX_RETRIES = 3;
   const RETRY_DELAYS = [2000, 4000, 8000];
 
+  const startedAt = Date.now();
+  const method = options.method || 'GET';
+  const callType = options.callType || classifyStravaCall(url);
+  let attempts = 0;
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    attempts = attempt + 1;
     try {
       const response = await axios({ url, ...options });
+      await logStravaApiCall({
+        userId,
+        callType,
+        endpoint: url.replace(/^https:\/\/www\.strava\.com\/api\/v3/, ''),
+        method,
+        status: 'success',
+        httpStatus: response.status,
+        durationMs: Date.now() - startedAt,
+        attempts,
+        itemCount: countItems(response.data),
+        resourceId: resourceIdFromUrl(url),
+      });
       return response.data;
     } catch (error) {
       const status = error.response?.status;
@@ -61,6 +107,18 @@ const stravaFetch = async (url, options = {}, { userId } = {}) => {
       }
 
       logger.error('[StravaFetch] Échec définitif', { userId, url, status, error: error.message });
+      await logStravaApiCall({
+        userId,
+        callType,
+        endpoint: url.replace(/^https:\/\/www\.strava\.com\/api\/v3/, ''),
+        method,
+        status: 'error',
+        httpStatus: status || null,
+        durationMs: Date.now() - startedAt,
+        attempts,
+        errorMessage: error.code || error.message,
+        resourceId: resourceIdFromUrl(url),
+      });
       throw error;
     }
   }
@@ -114,82 +172,86 @@ const getValidStravaToken = async (user) => {
     });
     
     logger.info('Strava token refreshed successfully', { userId: user.id });
+    await logStravaApiCall({ userId: user.id, callType: 'refresh_token', endpoint: '/oauth/token', method: 'POST', status: 'success', httpStatus: response.status, attempts: 1 });
+    await logAuditEvent({ userId: user.id, actorUserId: user.id, eventType: 'strava_refresh_token', category: 'strava', message: 'Strava token refreshed' });
     return access_token;
     
   } catch (error) {
     logger.error('Failed to refresh Strava token', error);
+    await logStravaApiCall({ userId: user.id, callType: 'refresh_token', endpoint: '/oauth/token', method: 'POST', status: 'error', httpStatus: error.response?.status || null, attempts: 1, errorMessage: error.message });
     return null;
   }
 };
 
-const fetchStravaActivities = (accessToken, params = {}) =>
+const fetchStravaActivities = (accessToken, params = {}, meta = {}) =>
   stravaFetch('https://www.strava.com/api/v3/athlete/activities', {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
     params: { per_page: 100, ...params },
-  });
+  }, meta);
 
-const getAthlete = (accessToken) =>
+const getAthlete = (accessToken, meta = {}) =>
   stravaFetch('https://www.strava.com/api/v3/athlete', {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  }, meta);
 
-const getAthleteStats = (accessToken, athleteId) =>
+const getAthleteStats = (accessToken, athleteId, meta = {}) =>
   stravaFetch(`https://www.strava.com/api/v3/athletes/${athleteId}/stats`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  }, meta);
 
-const getAthleteZones = (accessToken) =>
+const getAthleteZones = (accessToken, meta = {}) =>
   stravaFetch('https://www.strava.com/api/v3/athlete/zones', {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  }, meta);
 
-const getAthleteClubs = (accessToken) =>
+const getAthleteClubs = (accessToken, meta = {}) =>
   stravaFetch('https://www.strava.com/api/v3/athlete/clubs', {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  }, meta);
 
-const getActivity = (accessToken, activityId) =>
+const getActivity = (accessToken, activityId, meta = {}) =>
   stravaFetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  }, meta);
 
-const getActivityStreams = (accessToken, activityId, types = ['time', 'distance', 'latlng', 'altitude']) =>
+const getActivityStreams = (accessToken, activityId, types = ['time', 'distance', 'latlng', 'altitude'], meta = {}) =>
   stravaFetch(`https://www.strava.com/api/v3/activities/${activityId}/streams`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
     params: { keys: types.join(','), key_by_type: true },
-  });
+  }, meta);
 
-const getAthleteRoutes = (accessToken, params = {}) =>
+const getAthleteRoutes = (accessToken, params = {}, meta = {}) =>
   stravaFetch('https://www.strava.com/api/v3/athletes/self/routes', {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
     params: { per_page: 30, ...params },
-  });
+  }, meta);
 
-const getAthleteGear = async (accessToken) => {
-  const athlete = await getAthlete(accessToken);
+const getAthleteGear = async (accessToken, meta = {}) => {
+  const athlete = await getAthlete(accessToken, meta);
   return { bikes: athlete.bikes || [], shoes: athlete.shoes || [] };
 };
 
-const getStarredSegments = (accessToken, params = {}) =>
+const getStarredSegments = (accessToken, params = {}, meta = {}) =>
   stravaFetch('https://www.strava.com/api/v3/segments/starred', {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
     params: { per_page: 30, ...params },
-  });
+  }, meta);
 
 const revokeStravaToken = async (accessToken) => {
   try {
     await axios.post('https://www.strava.com/oauth/deauthorize', {
       access_token: accessToken
     });
+    await logStravaApiCall({ callType: 'revocation', endpoint: '/oauth/deauthorize', method: 'POST', status: 'success', attempts: 1 });
     logger.info('Strava token revoked successfully');
     return true;
   } catch (error) {
@@ -198,6 +260,7 @@ const revokeStravaToken = async (accessToken) => {
       return true;
     }
     logger.error('Failed to revoke Strava token', error);
+    await logStravaApiCall({ callType: 'revocation', endpoint: '/oauth/deauthorize', method: 'POST', status: 'error', httpStatus: error.response?.status || null, attempts: 1, errorMessage: error.message });
     return false;
   }
 };

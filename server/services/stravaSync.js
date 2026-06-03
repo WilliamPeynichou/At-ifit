@@ -165,7 +165,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
   // 1. Détail activité (best_efforts, splits, laps)
   if (force || !activity.detailFetchedAt) {
     try {
-      const detail = await getActivity(accessToken, activity.stravaId);
+      const detail = await getActivity(accessToken, activity.stravaId, { userId: activity.userId });
       const updates = mapStravaActivityDetail(detail);
       await Activity.update(updates, { where: { id: activity.id } });
       detailCalled = true;
@@ -177,7 +177,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
   // 2. Streams (séries temporelles)
   if (force || !activity.streamFetchedAt) {
     try {
-      const streams = await getActivityStreams(accessToken, activity.stravaId, STREAM_TYPES);
+      const streams = await getActivityStreams(accessToken, activity.stravaId, STREAM_TYPES, { userId: activity.userId });
       if (streams && Object.keys(streams).length > 0) {
         const streamData = mapStravaStreams(streams, activity.id, activity.stravaId);
         await ActivityStream.upsert(streamData, { conflictFields: ['activityId'] });
