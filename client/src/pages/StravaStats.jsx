@@ -7,7 +7,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend,
   AreaChart, Area, ReferenceDot,
 } from 'recharts';
-import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut, RefreshCw } from 'lucide-react';
+import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut, RefreshCw, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import api from '../api';
 import { darkTooltipProps } from '../components/ui/chartStyles';
 import YearlyProgress from '../components/YearlyProgress';
@@ -32,12 +32,35 @@ const StravaStatsContent = () => {
   const [disconnecting, setDisconnecting] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [resyncMessage, setResyncMessage] = useState('');
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchActivities();
+    fetchSyncStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromISO, toISO]);
+
+  useEffect(() => {
+    const id = setInterval(fetchSyncStatus, 15000);
+    return () => clearInterval(id);
+  }, []);
+
+  const fetchSyncStatus = async () => {
+    try {
+      setSyncLoading(true);
+      const res = await api.get('/strava/sync/status');
+      setSyncStatus(res.data?.data || res.data || null);
+    } catch (err) {
+      if (err.response?.status === 400 || err.response?.status === 401) {
+        setSyncStatus({ connected: false, authRequired: true, recommendation: 'Reconnecter Strava' });
+      }
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   const fetchActivities = async () => {
     try {
@@ -189,14 +212,42 @@ const StravaStatsContent = () => {
     setResyncMessage('');
     setError('');
     try {
-      await api.post('/strava/resync');
-      setResyncMessage('Sync lancée. Revenez dans quelques minutes et rechargez la page.');
+      const res = await api.post('/strava/resync');
+      const payload = res.data?.data || res.data || {};
+      setResyncMessage(payload.finished || payload.status === 'completed'
+        ? `Synchronisation terminée : ${payload.newActivities || payload.synced || 0} nouvelle(s) activité(s), ${payload.enriched || 0} enrichie(s).`
+        : 'Synchronisation lancée en arrière-plan. Le statut se mettra à jour automatiquement.');
+      await fetchSyncStatus();
     } catch (err) {
       console.error('Strava resync error:', err);
       setError(err.response?.data?.error || 'Erreur lors du déclenchement de la resync');
     } finally {
       setResyncing(false);
     }
+  };
+
+  const handleEnrich = async () => {
+    if (enriching) return;
+    setEnriching(true);
+    setResyncMessage('');
+    setError('');
+    try {
+      const res = await api.post('/strava/sync/enrich', { force: false, maxCount: 500 });
+      const payload = res.data?.data || res.data || {};
+      setResyncMessage(payload.status === 'started' ? 'Enrichissement lancé en arrière-plan.' : 'Enrichissement demandé.');
+      await fetchSyncStatus();
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || 'Erreur lors de l’enrichissement Strava');
+    } finally {
+      setEnriching(false);
+    }
+  };
+
+  const syncTone = (status) => {
+    const value = String(status || '').toLowerCase();
+    if (value.includes('fail') || value.includes('error') || value.includes('blocked') || syncStatus?.authRequired) return '#dc2626';
+    if (value.includes('partial') || value.includes('progress') || value.includes('started')) return '#a16207';
+    return '#15803d';
   };
 
   const handleDisconnect = async () => {
@@ -357,6 +408,45 @@ const StravaStatsContent = () => {
           {resyncMessage}
         </div>
       )}
+
+      <div className="glass-panel p-5">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              {syncStatus?.authRequired ? <AlertCircle className="w-5 h-5" style={{ color: '#dc2626' }} /> : <Info className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />}
+              État de récupération Strava
+            </h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+              Suivi observable : connexion, progression, activités locales, détails et streams. Les jetons Strava ne sont jamais affichés.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={fetchSyncStatus} disabled={syncLoading} className="btn-ghost py-2 px-4 text-sm">
+              <RefreshCw size={16} className={syncLoading ? 'animate-spin inline mr-2' : 'inline mr-2'} />Actualiser
+            </button>
+            <button onClick={handleEnrich} disabled={enriching} className="btn-ghost py-2 px-4 text-sm">
+              <Zap size={16} className={enriching ? 'animate-pulse inline mr-2' : 'inline mr-2'} />Enrichir détails/streams
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-sm">
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}>
+            <p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Statut</p>
+            <p className="font-black mt-1" style={{ color: syncTone(syncStatus?.status || syncStatus?.state) }}>{syncStatus?.status || syncStatus?.state || (syncStatus?.authRequired ? 'auth_required' : 'observable')}</p>
+          </div>
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Activités</p><p className="font-black mt-1">{(syncStatus?.total ?? activities.length).toLocaleString('fr-FR')}</p></div>
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Avec détails</p><p className="font-black mt-1">{(syncStatus?.withDetail ?? syncStatus?.details ?? 0).toLocaleString('fr-FR')}</p></div>
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Avec streams</p><p className="font-black mt-1">{(syncStatus?.withStream ?? syncStatus?.streams ?? 0).toLocaleString('fr-FR')}</p></div>
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Dernière sync</p><p className="font-black mt-1">{syncStatus?.lastSyncAt ? new Date(syncStatus.lastSyncAt).toLocaleString('fr-FR') : '—'}</p></div>
+        </div>
+        {(syncStatus?.lastError || syncStatus?.error || syncStatus?.recommendation || syncStatus?.authRequired) && (
+          <div className="mt-4 rounded-lg p-3 text-sm flex items-start gap-2" style={{ background: syncStatus?.authRequired ? 'rgba(220,38,38,0.08)' : 'rgba(234,179,8,0.10)', border: '1px solid rgba(234,179,8,0.20)' }}>
+            {syncStatus?.authRequired ? <AlertCircle className="w-4 h-4 mt-0.5" /> : <CheckCircle2 className="w-4 h-4 mt-0.5" />}
+            <span>{syncStatus?.lastError || syncStatus?.error || syncStatus?.recommendation || 'Reconnectez Strava pour restaurer la récupération.'}</span>
+          </div>
+        )}
+      </div>
+
 
       {/* Hub Data Analyse - 4 modales */}
       <DataAnalysisHub activities={activities} />

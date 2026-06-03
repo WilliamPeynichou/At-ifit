@@ -8,6 +8,7 @@ const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHan
 const { getValidStravaToken, fetchStravaActivities } = require('../utils/stravaHelpers');
 const { updateUserIMCAndCalories } = require('../utils/userCalculations');
 const logger = require('../utils/logger');
+const { sanitizeUserForSuperAdmin } = require('../utils/sensitiveData');
 
 /**
  * Calculate BMR using Mifflin-St Jeor equation
@@ -74,14 +75,16 @@ const calculateCalorieAdjustment = (goal, delta) => {
 // Get User Profile
 router.get('/', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId, {
-    attributes: { exclude: ['password'] }
+    attributes: { exclude: ['password', 'stravaAccessToken', 'stravaRefreshToken', 'stravaApiKey'] }
   });
   
   if (!user) {
     return sendError(res, 'User not found', 404);
   }
   
-  sendSuccess(res, user);
+  const safeUser = sanitizeUserForSuperAdmin(user);
+  safeUser.stravaConnected = Boolean(safeUser.stravaConnected || safeUser.stravaAthleteId);
+  sendSuccess(res, safeUser);
 }));
 
 const pickProfilePayload = (body) => ({

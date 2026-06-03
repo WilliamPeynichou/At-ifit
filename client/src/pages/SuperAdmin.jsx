@@ -7,10 +7,13 @@ import {
   ChevronRight,
   Database,
   Eye,
+  Lock,
   RefreshCw,
   Search,
   Shield,
   ShieldAlert,
+  Trash2,
+  Unlock,
   Users,
   Zap,
 } from 'lucide-react';
@@ -259,6 +262,189 @@ function UsersTable({ users, selectedId, onSelect, onRoleChange }) {
   );
 }
 
+
+const resourceConfig = {
+  users: { label: 'Utilisateurs', endpoint: '/super-admin/users', readonly: false, fields: ['email', 'pseudo', 'role', 'country', 'age', 'lockedUntil'] },
+  weights: { label: 'Poids', endpoint: '/super-admin/weights', readonly: false, fields: ['userId', 'date', 'weight'] },
+  goals: { label: 'Objectifs', endpoint: '/super-admin/goals', readonly: false, fields: ['userId', 'type', 'targetValue', 'deadline', 'status'] },
+  activities: { label: 'Activités', endpoint: '/super-admin/activities', readonly: false, fields: ['userId', 'name', 'type', 'startDate', 'distance'] },
+  streams: { label: 'Streams', endpoint: '/super-admin/activity-streams', readonly: false, fields: ['activityId', 'resolution'] },
+};
+
+async function callFirstAvailable(calls) {
+  let lastError;
+  for (const call of calls) {
+    try { return await call(); } catch (err) {
+      lastError = err;
+      if (![404, 405].includes(err.response?.status)) throw err;
+    }
+  }
+  throw lastError;
+}
+
+function ConfirmDanger({ label, onConfirm, disabled }) {
+  const [armed, setArmed] = useState(false);
+  if (!armed) return <button disabled={disabled} className="btn-ghost py-2 px-3 text-sm" style={{ color: '#b91c1c' }} onClick={() => setArmed(true)}><Trash2 className="w-4 h-4 inline mr-1" />{label}</button>;
+  return <button disabled={disabled} className="py-2 px-3 rounded-lg text-sm font-bold" style={{ background: '#dc2626', color: '#fff' }} onClick={() => { setArmed(false); onConfirm(); }}>Confirmer {label}</button>;
+}
+
+function StravaDiagnosticPanel({ userId }) {
+  const [diagnostic, setDiagnostic] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    if (!userId) return;
+    setLoading(true); setError('');
+    try {
+      const res = await callFirstAvailable([
+        () => api.get(`/super-admin/users/${userId}/strava/diagnostic`),
+        () => api.post(`/super-admin/diagnostics/${userId}`),
+      ]);
+      setDiagnostic(redactSensitive(res.data?.data || res.data));
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data?.error || 'Diagnostic Strava indisponible.');
+    } finally { setLoading(false); }
+  };
+
+  const runAction = async (action, danger = false) => {
+    if (danger && !window.confirm('Action sensible auditée. Confirmer ?')) return;
+    setActionLoading(action); setMessage(''); setError('');
+    try {
+      const res = await callFirstAvailable([
+        () => api.post(`/super-admin/users/${userId}/strava/actions`, { action }),
+        () => api.post(`/super-admin/users/${userId}/strava/${action}`),
+        () => api.post(`/super-admin/strava/users/${userId}/${action}`),
+      ]);
+      setMessage(res.data?.message || `Action ${action} lancée.`);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data?.error || `Action ${action} refusée.`);
+    } finally { setActionLoading(''); }
+  };
+
+  useEffect(() => { load(); }, [userId]);
+  const data = diagnostic?.diagnostic || diagnostic?.checks || diagnostic || {};
+  const actionButtons = [
+    ['sync-recent', 'Sync récente'], ['sync-full', 'Sync complète'], ['enrich-details', 'Détails'], ['enrich-streams', 'Streams'], ['repair-incomplete', 'Réparer incomplètes'], ['request-reconnect', 'Demander reconnexion'],
+  ];
+
+  return <Card>
+    <SectionTitle subtitle="Diagnostic complet sans secrets et actions Strava auditables">Diagnostic et réparation Strava</SectionTitle>
+    {loading ? <LoadingBlock /> : error ? <ErrorBlock message={error} onRetry={load} /> : <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm mb-4">
+        <Info label="Connexion" value={data.stravaConnected ?? data.connected ?? data.connectionStatus} />
+        <Info label="Athlète" value={data.stravaAthleteId || data.athleteId} />
+        <Info label="Activités" value={data.activityCount || data.totalActivities} />
+        <Info label="Avec détails" value={data.withDetail || data.activitiesWithDetails} />
+        <Info label="Avec streams" value={data.withStream || data.activitiesWithStreams} />
+        <Info label="Dernière sync" value={formatDate(data.lastSyncAt)} />
+        <Info label="Erreurs Strava" value={data.stravaErrors || data.lastErrors?.length || 0} />
+        <Info label="Recommandation" value={data.recommendation || (data.stravaConnected === false ? 'reconnecter Strava' : 'attendre / relancer si retard')} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {actionButtons.map(([action, label]) => <button key={action} disabled={!!actionLoading} className="btn-ghost py-2 px-3 text-sm" onClick={() => runAction(action)}><RefreshCw className={actionLoading === action ? 'w-4 h-4 inline mr-1 animate-spin' : 'w-4 h-4 inline mr-1'} />{label}</button>)}
+        <ConfirmDanger disabled={!!actionLoading} label="Réinitialiser sync" onConfirm={() => runAction('reset-sync-state', true)} />
+        <ConfirmDanger disabled={!!actionLoading} label="Supprimer données Strava" onConfirm={() => runAction('delete-local-strava-data', true)} />
+      </div>
+      {message && <p className="mt-3 text-sm" style={{ color: '#15803d' }}>{message}</p>}
+      <JsonPreview value={diagnostic} />
+    </>}
+  </Card>;
+}
+
+function DestructiveUserActions({ userId, onDone }) {
+  const [busy, setBusy] = useState('');
+  const run = async (action) => {
+    setBusy(action);
+    try {
+      await callFirstAvailable([
+        () => api.post(`/super-admin/users/${userId}/destructive-actions`, { action }),
+        () => api.post(`/super-admin/users/${userId}/${action}`),
+        () => action === 'delete-user' ? api.delete(`/super-admin/users/${userId}`) : Promise.reject(Object.assign(new Error('skip'), { response: { status: 404 } })),
+      ]);
+      alert('Action destructive exécutée et auditée.');
+      if (onDone) onDone();
+    } catch (err) { alert(err.response?.data?.message || err.response?.data?.error || 'Action destructive refusée.'); }
+    finally { setBusy(''); }
+  };
+  return <Card>
+    <SectionTitle subtitle="Zone dangereuse : suppressions et réinitialisations définitives, toujours auditables">Actions destructives utilisateur</SectionTitle>
+    <div className="flex flex-wrap gap-2">
+      <ConfirmDanger disabled={!!busy} label="Supprimer utilisateur" onConfirm={() => run('delete-user')} />
+      <ConfirmDanger disabled={!!busy} label="Supprimer données associées" onConfirm={() => run('delete-associated-data')} />
+      <ConfirmDanger disabled={!!busy} label="Reset Strava local" onConfirm={() => run('reset-strava-local')} />
+      <ConfirmDanger disabled={!!busy} label="Déconnecter Strava" onConfirm={() => run('disconnect-strava')} />
+      <button disabled={!!busy} className="btn-ghost py-2 px-3 text-sm" onClick={() => run('lock-user')}><Lock className="w-4 h-4 inline mr-1" />Verrouiller</button>
+      <button disabled={!!busy} className="btn-ghost py-2 px-3 text-sm" onClick={() => run('unlock-user')}><Unlock className="w-4 h-4 inline mr-1" />Déverrouiller</button>
+    </div>
+  </Card>;
+}
+
+function GlobalStravaActions() {
+  const [limit, setLimit] = useState(25);
+  const [busy, setBusy] = useState('');
+  const [result, setResult] = useState(null);
+  const run = async (action) => {
+    setBusy(action); setResult(null);
+    try {
+      const res = await callFirstAvailable([
+        () => api.post('/super-admin/strava/global-actions', { action, limit }),
+        () => api.post(`/super-admin/strava/global/${action}`, { limit }),
+      ]);
+      setResult(redactSensitive(res.data?.data || res.data));
+    } catch (err) { setResult({ error: err.response?.data?.message || err.response?.data?.error || 'Action globale refusée.' }); }
+    finally { setBusy(''); }
+  };
+  return <Card>
+    <SectionTitle subtitle="Actions prudentes avec limite volontaire pour respecter Strava">Actions globales Strava</SectionTitle>
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <label className="text-sm">Limite</label><input className="input-clean py-2 px-3 w-24" type="number" min="1" max="200" value={limit} onChange={e => setLimit(e.target.value)} />
+      {[['sync-all-connected','Synchroniser connectés'], ['sync-stale','Synchroniser en retard'], ['enrich-incomplete','Enrichir incomplètes'], ['sync-error-users','Cibler erreurs']].map(([action,label]) => <button key={action} disabled={!!busy} className="btn-ghost py-2 px-3 text-sm" onClick={() => run(action)}><Zap className={busy===action ? 'w-4 h-4 inline mr-1 animate-pulse' : 'w-4 h-4 inline mr-1'} />{label}</button>)}
+    </div>
+    {result && <JsonPreview value={result} />}
+  </Card>;
+}
+
+function ResourceCrud({ resourceKey, filters }) {
+  const config = resourceConfig[resourceKey];
+  const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [draft, setDraft] = useState({});
+  const [editing, setEditing] = useState(null);
+
+  const load = async (page = 1) => {
+    setLoading(true); setError('');
+    try {
+      const res = await api.get(config.endpoint, { params: { page, limit: PAGE_SIZE, ...filters } });
+      setRows(unwrapRows(res.data).map(redactSensitive)); setMeta(unwrapMeta(res.data, page));
+    } catch (err) { setError(err.response?.status === 403 ? 'Accès refusé.' : `${config.label} indisponible.`); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(1); }, [resourceKey, JSON.stringify(filters)]);
+  const save = async () => {
+    try { if (editing) await api.patch(`${config.endpoint}/${editing}`, draft); else await api.post(config.endpoint, draft); setDraft({}); setEditing(null); load(meta.page); }
+    catch (err) { alert(err.response?.data?.message || err.response?.data?.error || 'Sauvegarde refusée.'); }
+  };
+  const remove = async (id) => {
+    try { await api.delete(`${config.endpoint}/${id}`); load(meta.page); }
+    catch (err) { alert(err.response?.data?.message || err.response?.data?.error || 'Suppression refusée.'); }
+  };
+  return <Card>
+    <SectionTitle subtitle={`${formatNumber(meta.total)} entrée(s). Les secrets restent masqués côté interface et serveur.`}>CRUD global — {config.label}</SectionTitle>
+    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-2 mb-4">
+      {config.fields.map(f => <input key={f} className="input-clean py-2 px-3" placeholder={f} value={draft[f] || ''} onChange={e => setDraft({ ...draft, [f]: e.target.value })} />)}
+      <button className="btn-ghost py-2 px-4" onClick={save}>{editing ? 'Modifier' : 'Créer'}</button>
+    </div>
+    {loading ? <LoadingBlock /> : error ? <ErrorBlock message={error} onRetry={() => load(meta.page)} /> : <div className="overflow-x-auto"><table className="w-full text-sm min-w-[900px]"><tbody>{rows.map(row => <tr key={row.id} style={{ borderBottom: '1px solid var(--glass-border)' }}><td className="py-3 pr-3 font-mono">{row.id}</td><td className="py-3 pr-3"><JsonPreview value={row} /></td><td className="py-3 text-right whitespace-nowrap"><button className="btn-ghost py-2 px-3 text-sm" onClick={() => { setEditing(row.id); setDraft(row); }}>Éditer</button><ConfirmDanger label="Supprimer" onConfirm={() => remove(row.id)} /></td></tr>)}</tbody></table>{rows.length===0 && <p className="text-sm py-8 text-center" style={{ color: 'var(--text-muted)' }}>Aucune donnée.</p>}<Pagination meta={meta} onPage={load} /></div>}
+  </Card>;
+}
+
+
 function UserDetail({ userId }) {
   const [detail, setDetail] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -337,6 +523,8 @@ function UserDetail({ userId }) {
         <Pagination meta={activityMeta} onPage={loadDetail} />
       </Card>
 
+      <StravaDiagnosticPanel userId={userId} />
+      <DestructiveUserActions userId={userId} onDone={() => loadDetail(activityMeta.page)} />
       <Card><SectionTitle>Audit récent</SectionTitle><LogList rows={recentAudit.slice(0, 10)} /></Card>
     </div>
   );
@@ -401,11 +589,12 @@ export default function SuperAdmin() {
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
   const [period, setPeriod] = useState('7d');
+  const [resourceKey, setResourceKey] = useState('users');
 
   const filters = useMemo(() => ({
-    ...(query ? { q: query } : {}),
+    ...(query ? { search: query } : {}),
     ...(role ? { role } : {}),
-    ...(status ? { status } : {}),
+    ...(status ? { strava: status } : {}),
     ...(period ? { period } : {}),
   }), [query, role, status, period]);
 
@@ -455,8 +644,10 @@ export default function SuperAdmin() {
     ['overview', 'Vue d’ensemble'],
     ['users', 'Utilisateurs'],
     ['detail', 'Détail utilisateur'],
-    ['strava', 'Consommation Strava'],
-    ['ai', 'Consommation IA'],
+    ['strava-actions', 'Actions Strava'],
+    ['crud', 'CRUD global'],
+    ['strava', 'Logs Strava'],
+    ['ai', 'Logs IA'],
     ['audit', 'Audit'],
     ['errors', 'Erreurs'],
   ];
@@ -468,9 +659,9 @@ export default function SuperAdmin() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-3" style={{ background: 'var(--accent-blue-light)', color: 'var(--accent-blue)' }}>
             <ShieldAlert className="w-4 h-4" /> Super admin
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black">Supervision plateforme</h1>
+          <h1 className="text-4xl sm:text-5xl font-black">Panneau d’administration global</h1>
           <p className="text-sm mt-2 max-w-3xl" style={{ color: 'var(--text-muted)' }}>
-            Vue complète utilisateurs, activités, audit, appels Strava et IA. Les champs confidentiels sont masqués côté interface et doivent être exclus côté serveur.
+            CRUD global, diagnostic Strava, actions destructives auditées et logs strictement en lecture seule. Aucun secret technique n’est exposé.
           </p>
         </div>
         <div className="text-sm rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.65)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
@@ -505,10 +696,12 @@ export default function SuperAdmin() {
       )}
 
       {tab === 'detail' && <UserDetail userId={selectedUser?.id} />}
-      {tab === 'strava' && <LogsSection title="Consommation Strava" endpoint="/super-admin/strava-logs" filters={filters} />}
-      {tab === 'ai' && <LogsSection title="Consommation IA" endpoint="/super-admin/ai-logs" filters={filters} />}
-      {tab === 'audit' && <LogsSection title="Audit" endpoint="/super-admin/audit-logs" filters={filters} />}
-      {tab === 'errors' && <LogsSection title="Erreurs" endpoint="/super-admin/audit-logs" filters={{ ...filters, status: 'error' }} />}
+      {tab === 'strava-actions' && <GlobalStravaActions />}
+      {tab === 'crud' && (<div className="space-y-4"><Card className="!p-3"><select className="input-clean py-2 px-3" value={resourceKey} onChange={(e) => setResourceKey(e.target.value)}>{Object.entries(resourceConfig).map(([key, cfg]) => <option key={key} value={key}>{cfg.label}</option>)}</select></Card><ResourceCrud resourceKey={resourceKey} filters={filters} /></div>)}
+      {tab === 'strava' && <LogsSection title="Logs Strava — lecture seule" endpoint="/super-admin/strava-logs" filters={filters} />}
+      {tab === 'ai' && <LogsSection title="Logs IA — lecture seule" endpoint="/super-admin/ai-logs" filters={filters} />}
+      {tab === 'audit' && <LogsSection title="Audit — lecture seule" endpoint="/super-admin/audit-logs" filters={filters} />}
+      {tab === 'errors' && <LogsSection title="Erreurs — lecture seule" endpoint="/super-admin/audit-logs" filters={{ ...filters, status: 'error' }} />}
     </div>
   );
 }

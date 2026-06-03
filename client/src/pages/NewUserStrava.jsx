@@ -70,7 +70,7 @@ const NewUserStrava = () => {
   const checkStravaStatus = async () => {
     try {
       const res = await api.get('/user');
-      const isConnected = !!res.data.stravaAccessToken;
+      const isConnected = Boolean(res.data.stravaConnected || res.data.stravaAthleteId);
       setStravaConnected(isConnected);
 
       // Si connecté, rediriger vers la page principale
@@ -155,7 +155,7 @@ const NewUserStrava = () => {
         // Vérifier le statut de connexion (backup si postMessage ne fonctionne pas)
         try {
           const res = await api.get('/user');
-          const isConnected = !!res.data.stravaAccessToken;
+          const isConnected = Boolean(res.data.stravaConnected || res.data.stravaAthleteId);
 
           if (isConnected) {
             clearInterval(pollIntervalRef.current);

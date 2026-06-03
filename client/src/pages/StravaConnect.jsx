@@ -28,7 +28,7 @@ const StravaConnect = () => {
   const checkStravaStatus = useCallback(async () => {
     try {
       const res = await api.get('/user');
-      setIsConnected(!!res.data.stravaAccessToken);
+      setIsConnected(Boolean(res.data.stravaConnected || res.data.stravaAthleteId));
       if (res.data.stravaAthlete) {
         setStravaAthlete(res.data.stravaAthlete);
       }

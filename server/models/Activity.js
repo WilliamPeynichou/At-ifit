@@ -9,7 +9,6 @@ const Activity = sequelize.define('Activity', {
   stravaId: {
     type: DataTypes.BIGINT,
     allowNull: false,
-    unique: true,
   },
   type: {
     type: DataTypes.STRING,
@@ -181,6 +180,12 @@ const Activity = sequelize.define('Activity', {
     type: DataTypes.JSON,
     allowNull: true,
   },
+}, {
+  indexes: [
+    { unique: true, fields: ['userId', 'stravaId'] },
+    { fields: ['userId', 'startDate'] },
+    { fields: ['userId', 'type'] },
+  ],
 });
 
 module.exports = Activity;

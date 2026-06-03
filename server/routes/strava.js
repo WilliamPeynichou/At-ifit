@@ -8,7 +8,7 @@ const ActivityStream = require('../models/ActivityStream');
 const stravaRunningRoutes = require('./stravaRunning.routes');
 const stravaSwimmingRoutes = require('./stravaSwimming.routes');
 const stravaCyclingRoutes = require('./stravaCycling.routes');
-const { syncUserActivities, syncSince, enrichUserActivities } = require('../services/stravaSync');
+const { syncUserActivities, syncSince, enrichUserActivities, getSyncStatus } = require('../services/stravaSync');
 const {
   getAnalyticsSummary,
   getTimeInZones,
@@ -163,8 +163,8 @@ router.post('/connect', auth, asyncHandler(async (req, res) => {
       stravaAthleteName: athlete?.firstname + ' ' + athlete?.lastname
     });
 
-    // Sync initiale en background (non bloquante)
-    syncUserActivities(req.userId).catch(err =>
+    // Sync initiale en background visible via /sync/status
+    syncUserActivities(req.userId, { mode: 'full' }).catch(err =>
       logger.error('[Strava] Erreur sync post-connect', { userId: req.userId, error: err.message })
     );
 
@@ -254,12 +254,28 @@ router.post('/resync', auth, asyncHandler(async (req, res) => {
     return sendError(res, 'Strava not connected. Please connect your Strava account first.', 400);
   }
 
-  syncUserActivities(req.userId, { enrich: true }).catch(err =>
+  const { mode = 'hybrid', scope = 'recent', waitMs = 12000 } = req.body || {};
+  const lastSync = user.lastSyncAt ? new Date(user.lastSyncAt) : null;
+  const since = scope === 'recent' && lastSync
+    ? Math.floor(lastSync.getTime() / 1000)
+    : Math.floor((Date.now() - 30 * 86400 * 1000) / 1000);
+  const promise = scope === 'full'
+    ? syncUserActivities(req.userId, { enrich: true, mode: 'full_manual' })
+    : syncSince(req.userId, since, { enrich: true });
+
+  logger.info('[Strava] Resync manuelle déclenchée', { userId: req.userId, scope, mode });
+
+  if (mode === 'hybrid') {
+    const timeout = new Promise(resolve => setTimeout(() => resolve(null), Math.min(parseInt(waitMs, 10) || 12000, 30000)));
+    const result = await Promise.race([promise, timeout]);
+    if (result) return sendSuccess(res, { ...result, inProgress: false }, 'Resync completed');
+  }
+
+  promise.catch(err =>
     logger.error('[Strava] Erreur resync manuelle', { userId: req.userId, error: err.message })
   );
 
-  logger.info('[Strava] Resync manuelle déclenchée', { userId: req.userId });
-  sendSuccess(res, { status: 'started' }, 'Resync started');
+  sendSuccess(res, { status: 'started', inProgress: true, sync: getSyncStatus(req.userId) }, 'Resync started');
 }));
 
 router.delete('/disconnect', auth, asyncHandler(async (req, res) => {
@@ -501,16 +517,27 @@ router.get('/analytics/gps-heatmap', auth, asyncHandler(async (req, res) => {
   sendSuccess(res, data);
 }));
 
-// Status de l'enrichissement : combien d'activités ont leur détail/streams
+// Status de synchronisation Strava observable utilisateur
 router.get('/sync/status', auth, asyncHandler(async (req, res) => {
-  const total = await Activity.count({ where: { userId: req.userId } });
-  const withDetail = await Activity.count({
-    where: { userId: req.userId, detailFetchedAt: { [Op.not]: null } }
+  const [total, withDetail, withStream, user] = await Promise.all([
+    Activity.count({ where: { userId: req.userId } }),
+    Activity.count({ where: { userId: req.userId, detailFetchedAt: { [Op.not]: null } } }),
+    Activity.count({ where: { userId: req.userId, streamFetchedAt: { [Op.not]: null } } }),
+    User.findByPk(req.userId, { attributes: ['id', 'lastSyncAt', 'fullSyncCompletedAt', 'stravaAthleteId', 'stravaExpiresAt'] }),
+  ]);
+  const sync = getSyncStatus(req.userId);
+  sendSuccess(res, {
+    connected: !!user?.stravaAthleteId,
+    athleteId: user?.stravaAthleteId || null,
+    lastSyncAt: user?.lastSyncAt || null,
+    fullSyncCompletedAt: user?.fullSyncCompletedAt || null,
+    total,
+    withDetail,
+    withStream,
+    tokenStatus: user?.stravaAthleteId ? (sync.authRequired ? 'reconnect_required' : 'present') : 'not_connected',
+    recommendation: sync.authRequired ? 'reconnect_strava' : (sync.inProgress ? 'wait' : (total === 0 ? 'sync' : (withDetail < total || withStream < total ? 'enrich' : 'ok'))),
+    sync,
   });
-  const withStream = await Activity.count({
-    where: { userId: req.userId, streamFetchedAt: { [Op.not]: null } }
-  });
-  sendSuccess(res, { total, withDetail, withStream });
 }));
 
 router.get('/routes', auth, asyncHandler(async (req, res) => {

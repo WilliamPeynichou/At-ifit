@@ -112,6 +112,14 @@ describe('super admin backend contract', () => {
     expect(combined).not.toMatch(/attributes:\s*\[[^\]]*['"]stravaRefreshToken['"][^\]]*\]/i);
   });
 
+  test('la route /api/user sanitise les tokens Strava et expose seulement un statut de connexion', () => {
+    const userRouteSource = readIfExists(path.join(serverRoot, 'routes', 'user.js'));
+
+    expect(userRouteSource).toMatch(/sanitizeUserForSuperAdmin/);
+    expect(userRouteSource).toMatch(/stravaConnected/);
+    expect(userRouteSource).not.toMatch(/sendSuccess\(res,\s*user\s*\)/);
+  });
+
   test('la rétrogradation du dernier super admin est bloquée et auditée', () => {
     const routeSource = readIfExists(path.join(serverRoot, 'routes', 'superAdmin.js'));
 

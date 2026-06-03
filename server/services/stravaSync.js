@@ -21,9 +21,69 @@ const STREAM_TYPES = [
 const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 4000;
 const INCREMENTAL_OVERLAP_DAYS = parseInt(process.env.STRAVA_INCREMENTAL_OVERLAP_DAYS || '14', 10);
+const STATUS_TTL_MS = 24 * 60 * 60 * 1000;
 
 // Mutex de sync : empêche les syncs parallèles pour un même user
 const syncInFlight = new Map(); // userId -> Promise
+const syncStatuses = new Map(); // userId -> dernier état observable
+
+function publicError(error) {
+  if (!error) return null;
+  const code = error.code || error.message;
+  if (code === 'STRAVA_TOKEN_REVOKED' || error.status === 401 || error.response?.status === 401) return 'STRAVA_AUTH_REQUIRED';
+  if (error.response?.status === 429 || error.status === 429) return 'STRAVA_RATE_LIMIT';
+  return String(code || 'STRAVA_SYNC_ERROR').slice(0, 180);
+}
+
+function setSyncStatus(userId, patch) {
+  const previous = syncStatuses.get(userId) || {};
+  const next = {
+    userId,
+    taskId: previous.taskId || `strava-${userId}-${Date.now()}`,
+    status: previous.status || 'idle',
+    mode: previous.mode || 'unknown',
+    startedAt: previous.startedAt || null,
+    updatedAt: new Date().toISOString(),
+    finishedAt: previous.finishedAt || null,
+    fetched: previous.fetched || 0,
+    synced: previous.synced || 0,
+    created: previous.created || 0,
+    updated: previous.updated || 0,
+    enriched: previous.enriched || 0,
+    streams: previous.streams || 0,
+    errors: previous.errors || [],
+    authRequired: previous.authRequired || false,
+    ...patch,
+  };
+  syncStatuses.set(userId, next);
+  return next;
+}
+
+function startSyncStatus(userId, patch = {}) {
+  return setSyncStatus(userId, {
+    taskId: `strava-${userId}-${Date.now()}`,
+    status: 'running',
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    fetched: 0,
+    synced: 0,
+    created: 0,
+    updated: 0,
+    enriched: 0,
+    streams: 0,
+    errors: [],
+    authRequired: false,
+    ...patch,
+  });
+}
+
+function getSyncStatus(userId) {
+  const current = syncStatuses.get(userId);
+  if (!current) return { userId, status: syncInFlight.has(userId) ? 'running' : 'idle', inProgress: syncInFlight.has(userId) };
+  const age = Date.now() - new Date(current.updatedAt || current.startedAt || Date.now()).getTime();
+  if (age > STATUS_TTL_MS && current.status !== 'running') syncStatuses.delete(userId);
+  return { ...current, inProgress: syncInFlight.has(userId) };
+}
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -138,19 +198,31 @@ function mapStravaStreams(streams, activityId, stravaId) {
  * Upsert un tableau d'activités Strava (résumé seulement) en base locale
  */
 async function upsertActivities(activities, userId) {
-  if (!activities || activities.length === 0) return 0;
+  if (!activities || activities.length === 0) return { total: 0, created: 0, updated: 0 };
 
-  let upserted = 0;
+  let total = 0;
+  let created = 0;
+  let updated = 0;
   for (const raw of activities) {
     try {
       const data = mapStravaActivity(raw, userId);
-      await Activity.upsert(data, { conflictFields: ['stravaId'] });
-      upserted++;
+      const existing = await Activity.findOne({ where: { userId, stravaId: raw.id } });
+      if (existing) {
+        await existing.update(data);
+        updated++;
+      } else if (typeof Activity.create === 'function') {
+        await Activity.create(data);
+        created++;
+      } else {
+        await Activity.upsert(data, { conflictFields: ['userId', 'stravaId'] });
+        created++;
+      }
+      total++;
     } catch (err) {
-      logger.warn('[StravaSync] Erreur upsert activité', { stravaId: raw.id, error: err.message });
+      logger.warn('[StravaSync] Erreur upsert activité', { stravaId: raw.id, userId, error: publicError(err) });
     }
   }
-  return upserted;
+  return { total, created, updated };
 }
 
 /**
@@ -170,7 +242,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
       await Activity.update(updates, { where: { id: activity.id } });
       detailCalled = true;
     } catch (err) {
-      logger.warn('[StravaSync] Échec fetch détail', { stravaId: activity.stravaId, error: err.message });
+      logger.warn('[StravaSync] Échec fetch détail', { stravaId: activity.stravaId, error: publicError(err) });
     }
   }
 
@@ -188,7 +260,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
       }
       streamCalled = true;
     } catch (err) {
-      logger.warn('[StravaSync] Échec fetch streams', { stravaId: activity.stravaId, error: err.message });
+      logger.warn('[StravaSync] Échec fetch streams', { stravaId: activity.stravaId, error: publicError(err) });
     }
   }
 
@@ -270,7 +342,8 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
   }
 
   logger.info('[StravaSync] Enrichissement terminé', { userId, totalDetail, totalStream });
-  return { success: true, totalDetail, totalStream };
+  setSyncStatus(userId, { enriched: totalDetail, streams: totalStream });
+  return { success: true, totalDetail, totalStream, enriched: totalDetail, streams: totalStream };
 }
 
 /**
@@ -281,14 +354,14 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
  * au lieu d'en lancer une seconde. Évite les doubles appels Strava en cas de double-clic
  * ou de navigation rapide.
  */
-async function syncUserActivities(userId, { enrich = true } = {}) {
+async function syncUserActivities(userId, { enrich = true, mode = 'full' } = {}) {
   // Mutex : si déjà en cours, retourne la promise existante
   if (syncInFlight.has(userId)) {
     logger.info('[StravaSync] Sync déjà en cours, retour de la promise existante', { userId });
     return syncInFlight.get(userId);
   }
 
-  const promise = _doSync(userId, { enrich }).finally(() => {
+  const promise = _doSync(userId, { enrich, mode }).finally(() => {
     syncInFlight.delete(userId);
   });
 
@@ -296,32 +369,41 @@ async function syncUserActivities(userId, { enrich = true } = {}) {
   return promise;
 }
 
-async function _doSync(userId, { enrich = true } = {}) {
+async function _doSync(userId, { enrich = true, mode = 'full' } = {}) {
+  startSyncStatus(userId, { mode });
   const user = await User.findByPk(userId);
   if (!user || !user.stravaAccessToken) {
     logger.warn('[StravaSync] User sans token Strava', { userId });
-    return { success: false, error: 'Strava non connecté' };
+    return setSyncStatus(userId, { status: 'blocked_auth', authRequired: true, finishedAt: new Date().toISOString(), success: false, error: 'Strava non connecté', errors: ['STRAVA_NOT_CONNECTED'] });
   }
 
   const accessToken = await getValidStravaToken(user);
   if (!accessToken) {
-    return { success: false, error: 'Token Strava invalide' };
+    return setSyncStatus(userId, { status: 'blocked_auth', authRequired: true, finishedAt: new Date().toISOString(), success: false, error: 'Token Strava invalide', errors: ['STRAVA_AUTH_REQUIRED'] });
   }
 
   let page = 1;
   let totalSynced = 0;
+  let totalFetched = 0;
+  let totalCreated = 0;
+  let totalUpdated = 0;
+  const errors = [];
   const PER_PAGE = 100;
 
   logger.info('[StravaSync] Début sync complète', { userId });
 
   while (true) {
     try {
-      const batch = await fetchStravaActivities(accessToken, { per_page: PER_PAGE, page });
+      const batch = await fetchStravaActivities(accessToken, { per_page: PER_PAGE, page }, { userId });
 
       if (!batch || batch.length === 0) break;
 
-      const synced = await upsertActivities(batch, userId);
-      totalSynced += synced;
+      totalFetched += batch.length;
+      const result = await upsertActivities(batch, userId);
+      totalSynced += result.total || result;
+      totalCreated += result.created || 0;
+      totalUpdated += result.updated || 0;
+      setSyncStatus(userId, { fetched: totalFetched, synced: totalSynced, created: totalCreated, updated: totalUpdated });
 
       logger.info('[StravaSync] Page synchronisée', { userId, page, count: batch.length, total: totalSynced });
 
@@ -329,40 +411,59 @@ async function _doSync(userId, { enrich = true } = {}) {
       page++;
 
     } catch (err) {
-      logger.error('[StravaSync] Erreur fetch page', { userId, page, error: err.message });
+      const safeError = publicError(err);
+      logger.error('[StravaSync] Erreur fetch page', { userId, page, error: safeError });
+      errors.push({ page, error: safeError });
+      setSyncStatus(userId, { errors, authRequired: safeError === 'STRAVA_AUTH_REQUIRED' });
       break;
     }
   }
 
   const now = new Date();
-  await User.update(
-    { lastSyncAt: now, fullSyncCompletedAt: now },
-    { where: { id: userId } }
-  );
-  logger.info('[StravaSync] Sync complète terminée', { userId, totalSynced });
+  const partial = errors.length > 0;
+  const status = partial
+    ? (errors.some(e => e.error === 'STRAVA_AUTH_REQUIRED') ? 'blocked_auth' : (totalSynced > 0 ? 'partial' : 'failed'))
+    : 'completed';
+  const updatePayload = partial ? (totalSynced > 0 ? { lastSyncAt: now } : {}) : { lastSyncAt: now, fullSyncCompletedAt: now };
+  if (Object.keys(updatePayload).length) await User.update(updatePayload, { where: { id: userId } });
+  logger.info('[StravaSync] Sync complète terminée', { userId, totalSynced, totalFetched, status, errors: errors.length });
 
-  // Enrichissement détail + streams en background
-  if (enrich) {
-    enrichUserActivities(userId).catch(err =>
-      logger.error('[StravaSync] Erreur enrichissement post-sync', { userId, error: err.message })
-    );
+  // Enrichissement détail + streams en background uniquement si la récupération n'est pas bloquée.
+  if (enrich && !partial) {
+    enrichUserActivities(userId).catch(err => {
+      const safeError = publicError(err);
+      setSyncStatus(userId, { status: 'partial', errors: [...(getSyncStatus(userId).errors || []), safeError] });
+      logger.error('[StravaSync] Erreur enrichissement post-sync', { userId, error: safeError });
+    });
   }
 
-  return { success: true, totalSynced };
+  return setSyncStatus(userId, {
+    success: !partial,
+    status,
+    fetched: totalFetched,
+    synced: totalSynced,
+    created: totalCreated,
+    updated: totalUpdated,
+    totalSynced,
+    errors,
+    finishedAt: new Date().toISOString(),
+    inProgress: false,
+  });
 }
 
 /**
  * Synchronise les activités Strava depuis une date donnée (pour webhooks ou refresh partiel)
  */
 async function syncSince(userId, afterTimestamp, { enrich = true, overlapDays = INCREMENTAL_OVERLAP_DAYS } = {}) {
+  startSyncStatus(userId, { mode: 'incremental' });
   const user = await User.findByPk(userId);
   if (!user || !user.stravaAccessToken) {
-    return { success: false, error: 'Strava non connecté' };
+    return setSyncStatus(userId, { status: 'blocked_auth', authRequired: true, finishedAt: new Date().toISOString(), success: false, error: 'Strava non connecté', errors: ['STRAVA_NOT_CONNECTED'] });
   }
 
   const accessToken = await getValidStravaToken(user);
   if (!accessToken) {
-    return { success: false, error: 'Token Strava invalide' };
+    return setSyncStatus(userId, { status: 'blocked_auth', authRequired: true, finishedAt: new Date().toISOString(), success: false, error: 'Token Strava invalide', errors: ['STRAVA_AUTH_REQUIRED'] });
   }
 
   try {
@@ -375,18 +476,24 @@ async function syncSince(userId, afterTimestamp, { enrich = true, overlapDays = 
     let page = 1;
     let totalSynced = 0;
     let totalFetched = 0;
+    let totalCreated = 0;
+    let totalUpdated = 0;
 
     while (true) {
       const batch = await fetchStravaActivities(accessToken, {
         per_page: PER_PAGE,
         page,
         ...(effectiveAfter ? { after: effectiveAfter } : {})
-      });
+      }, { userId });
 
       if (!batch || batch.length === 0) break;
 
       totalFetched += batch.length;
-      totalSynced += await upsertActivities(batch || [], userId);
+      const result = await upsertActivities(batch || [], userId);
+      totalSynced += result.total || result;
+      totalCreated += result.created || 0;
+      totalUpdated += result.updated || 0;
+      setSyncStatus(userId, { fetched: totalFetched, synced: totalSynced, created: totalCreated, updated: totalUpdated });
 
       if (batch.length < PER_PAGE) break;
       page++;
@@ -397,16 +504,17 @@ async function syncSince(userId, afterTimestamp, { enrich = true, overlapDays = 
     if (enrich && totalSynced > 0) {
       // Force l'enrichissement récent : utile quand Strava complète après coup gear/power/capteurs.
       enrichUserActivities(userId, { maxCount: Math.min(Math.max(totalSynced, 20), 100), force: true }).catch(err =>
-        logger.error('[StravaSync] Erreur enrichissement post-syncSince', { userId, error: err.message })
+        logger.error('[StravaSync] Erreur enrichissement post-syncSince', { userId, error: publicError(err) })
       );
     }
 
     logger.info('[StravaSync] Sync partielle terminée', { userId, afterTimestamp, effectiveAfter, overlapDays: safeOverlapDays, fetched: totalFetched, synced: totalSynced });
-    return { success: true, synced: totalSynced, fetched: totalFetched, effectiveAfter };
+    return setSyncStatus(userId, { status: 'completed', finishedAt: new Date().toISOString(), success: true, synced: totalSynced, fetched: totalFetched, created: totalCreated, updated: totalUpdated, effectiveAfter });
 
   } catch (err) {
-    logger.error('[StravaSync] Erreur sync partielle', { userId, error: err.message });
-    return { success: false, error: err.message };
+    const safeError = publicError(err);
+    logger.error('[StravaSync] Erreur sync partielle', { userId, error: safeError });
+    return setSyncStatus(userId, { status: safeError === 'STRAVA_AUTH_REQUIRED' ? 'blocked_auth' : 'failed', authRequired: safeError === 'STRAVA_AUTH_REQUIRED', finishedAt: new Date().toISOString(), success: false, error: safeError, errors: [...(getSyncStatus(userId).errors || []), safeError] });
   }
 }
 
@@ -420,4 +528,7 @@ module.exports = {
   mapStravaActivity,
   mapStravaActivityDetail,
   mapStravaStreams,
+  getSyncStatus,
+  syncInFlight,
+  publicError,
 };

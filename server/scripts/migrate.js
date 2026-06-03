@@ -196,6 +196,26 @@ async function runMigrations() {
   await addColumnIfMissing('Activities', 'detailFetchedAt',       'DATETIME NULL');
   await addColumnIfMissing('Activities', 'streamFetchedAt',       'DATETIME NULL');
 
+  // Supprime l'ancien index unique global stravaId s'il existe, puis garantit l'unicité par utilisateur.
+  try {
+    if (await indexExists('Activities', 'stravaId')) {
+      await sequelize.query('ALTER TABLE `Activities` DROP INDEX `stravaId`');
+      console.log('  ✅ Ancien index unique global Activities.stravaId supprimé');
+    }
+  } catch (e) {
+    console.warn('  ⚠️  Suppression index global Activities.stravaId:', e.message);
+  }
+  if (!(await indexExists('Activities', 'activities_user_strava_unique'))) {
+    try {
+      await sequelize.query('ALTER TABLE `Activities` ADD UNIQUE INDEX `activities_user_strava_unique` (`userId`, `stravaId`)');
+      console.log('  ✅ Index activities_user_strava_unique ajouté');
+    } catch (e) {
+      console.warn('  ⚠️  Index activities_user_strava_unique:', e.message);
+    }
+  } else {
+    console.log('  ✓ Index activities_user_strava_unique existe déjà');
+  }
+
   // ── ActivityStreams : table dédiée séries temporelles ─────────────────────
   const [streamTable] = await sequelize.query(`
     SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES

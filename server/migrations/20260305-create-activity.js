@@ -18,7 +18,6 @@ module.exports = {
       stravaId: {
         type: Sequelize.BIGINT,
         allowNull: false,
-        unique: true,
       },
       type: {
         type: Sequelize.STRING,
@@ -101,6 +100,7 @@ module.exports = {
     });
 
     await queryInterface.addIndex('Activities', ['userId']);
+    await queryInterface.addIndex('Activities', ['userId', 'stravaId'], { unique: true, name: 'activities_user_strava_unique' });
     await queryInterface.addIndex('Activities', ['userId', 'startDate']);
     await queryInterface.addIndex('Activities', ['userId', 'type']);
   },

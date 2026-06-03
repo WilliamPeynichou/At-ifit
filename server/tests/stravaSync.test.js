@@ -1,5 +1,6 @@
 jest.mock('../models/Activity', () => ({
   upsert: jest.fn(),
+  create: jest.fn(),
   update: jest.fn(),
   findAll: jest.fn(),
   findOne: jest.fn(),
@@ -32,6 +33,8 @@ const User = require('../models/User');
 const stravaHelpers = require('../utils/stravaHelpers');
 const {
   syncSince,
+  syncUserActivities,
+  upsertActivities,
   mapStravaActivityDetail,
 } = require('../services/stravaSync');
 
@@ -44,12 +47,16 @@ describe('stravaSync incremental', () => {
     stravaHelpers.fetchStravaActivities.mockReset();
     Activity.upsert.mockReset();
     Activity.findAll.mockReset();
+    Activity.findOne.mockReset();
+    Activity.create.mockReset();
 
     User.findByPk.mockResolvedValue({ id: 42, stravaAccessToken: 'token', stravaRefreshToken: 'refresh' });
     User.update.mockResolvedValue([1]);
     stravaHelpers.getValidStravaToken.mockResolvedValue('valid-token');
     Activity.upsert.mockResolvedValue([{}, true]);
     Activity.findAll.mockResolvedValue([]);
+    Activity.findOne.mockResolvedValue(null);
+    Activity.create.mockResolvedValue({});
   });
 
   test('syncSince utilise une fenêtre de recouvrement pour récupérer les activités antidatées/importées après coup', async () => {
@@ -67,10 +74,10 @@ describe('stravaSync incremental', () => {
       per_page: 100,
       page: 1,
       after: afterTimestamp - 14 * 86400,
-    });
-    expect(Activity.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 42, stravaId: 1001, type: 'Ride', distance: 42000 }),
-      { conflictFields: ['stravaId'] }
+    }, { userId: 42 });
+    expect(Activity.findOne).toHaveBeenCalledWith({ where: { userId: 42, stravaId: 1001 } });
+    expect(Activity.create).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 42, stravaId: 1001, type: 'Ride', distance: 42000 })
     );
     expect(User.update).toHaveBeenCalledWith({ lastSyncAt: expect.any(Date) }, { where: { id: 42 } });
   });
@@ -85,9 +92,38 @@ describe('stravaSync incremental', () => {
 
     expect(result.success).toBe(true);
     expect(result.fetched).toBe(101);
-    expect(Activity.upsert).toHaveBeenCalledTimes(101);
+    expect(Activity.create).toHaveBeenCalledTimes(101);
     expect(stravaHelpers.fetchStravaActivities).toHaveBeenCalledTimes(2);
-    expect(stravaHelpers.fetchStravaActivities).toHaveBeenNthCalledWith(2, 'valid-token', expect.objectContaining({ page: 2 }));
+    expect(stravaHelpers.fetchStravaActivities).toHaveBeenNthCalledWith(2, 'valid-token', expect.objectContaining({ page: 2 }), { userId: 42 });
+  });
+
+  test('upsertActivities met à jour uniquement la ligne du même utilisateur pour éviter l’écrasement inter-utilisateurs', async () => {
+    const existing = { update: jest.fn().mockResolvedValue({}) };
+    Activity.findOne.mockResolvedValue(existing);
+
+    const count = await upsertActivities([
+      { id: 1001, type: 'Run', start_date: '2026-05-31T08:00:00Z', distance: 5000 }
+    ], 84);
+
+    expect(count).toEqual({ total: 1, created: 0, updated: 1 });
+    expect(Activity.findOne).toHaveBeenCalledWith({ where: { userId: 84, stravaId: 1001 } });
+    expect(existing.update).toHaveBeenCalledWith(expect.objectContaining({ userId: 84, stravaId: 1001, type: 'Run' }));
+    expect(Activity.create).not.toHaveBeenCalled();
+    expect(Activity.upsert).not.toHaveBeenCalled();
+  });
+
+  test('syncUserActivities ne marque pas fullSyncCompletedAt si une page Strava échoue', async () => {
+    stravaHelpers.fetchStravaActivities
+      .mockResolvedValueOnce(Array.from({ length: 100 }, (_, i) => ({ id: i + 1, type: 'Ride', start_date: '2026-05-31T08:00:00Z' })))
+      .mockRejectedValueOnce(new Error('rate limit'));
+
+    const result = await syncUserActivities(42, { enrich: false });
+
+    expect(result.success).toBe(false);
+    expect(result.status).toBe('partial');
+    expect(result.errors).toEqual([expect.objectContaining({ page: 2, error: 'rate limit' })]);
+    expect(User.update).toHaveBeenCalledWith({ lastSyncAt: expect.any(Date) }, { where: { id: 42 } });
+    expect(User.update).not.toHaveBeenCalledWith(expect.objectContaining({ fullSyncCompletedAt: expect.any(Date) }), expect.anything());
   });
 });
 
