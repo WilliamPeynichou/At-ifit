@@ -6,6 +6,7 @@ const ModalTabs = ({ tabs, accent = '#0055ff', defaultIndex = 0 }) => {
   return (
     <div className="flex flex-col h-full">
       <div
+        role="tablist"
         className="flex items-center gap-1 px-6 py-3 overflow-x-auto custom-scrollbar"
         style={{
           borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -17,6 +18,8 @@ const ModalTabs = ({ tabs, accent = '#0055ff', defaultIndex = 0 }) => {
           const isActive = idx === active;
           return (
             <button
+              role="tab"
+              aria-selected={isActive}
               key={tab.label}
               onClick={() => setActive(idx)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold tracking-wider uppercase transition-all whitespace-nowrap"

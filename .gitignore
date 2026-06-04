@@ -5,6 +5,10 @@ node_modules/
 
 # Testing
 coverage/
+test-results/
+playwright-report/
+client/test-results/
+client/playwright-report/
 
 # Production
 build/
