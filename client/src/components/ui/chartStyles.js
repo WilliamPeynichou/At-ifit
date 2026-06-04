@@ -17,7 +17,19 @@ export const darkTooltipProps = {
   cursor: { stroke: 'rgba(255,255,255,0.18)', strokeWidth: 1 },
 };
 
-// Variante quand on veut surcharger la couleur de bordure (accent par graphe).
+export const lightTooltipProps = {
+  contentStyle: {
+    backgroundColor: '#ffffff',
+    border: '1px solid rgba(15,23,42,0.16)',
+    borderRadius: 8,
+    color: '#0f172a',
+    boxShadow: '0 12px 28px rgba(15,23,42,0.14)',
+  },
+  labelStyle: { color: '#0f172a', fontWeight: 700 },
+  itemStyle: { color: '#0f172a' },
+  cursor: { stroke: 'rgba(15,23,42,0.22)', strokeWidth: 1 },
+};
+
 export const darkTooltipWithBorder = (borderColor) => ({
   ...darkTooltipProps,
   contentStyle: { ...darkTooltipProps.contentStyle, border: `1px solid ${borderColor}` },

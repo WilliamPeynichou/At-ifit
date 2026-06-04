@@ -6,7 +6,7 @@ import {
 import { Bike, HeartPulse, TrendingUp, Mountain } from 'lucide-react';
 import api from '../../../api';
 import { useTemporal } from '../../../context/TemporalContext';
-import { darkTooltipProps } from '../../ui/chartStyles';
+import { lightTooltipProps } from '../../ui/chartStyles';
 
 const RIDE_TYPES = ['Ride', 'VirtualRide', 'EBikeRide', 'GravelRide'];
 
@@ -155,13 +155,13 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       {profile && (profile.level || profile.vo2max || profile.maxHeartrate) && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {profile.level && profile.level !== 'Untrained' && profile.level !== 'Indéterminé' && (
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)' }}>
+            <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Niveau Coggan</p>
               <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{profile.level}</p>
             </div>
           )}
           {profile.vo2max && (
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)' }}>
+            <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>VO2max estimée</p>
               <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
                 {profile.vo2max}<span className="text-sm opacity-70 ml-1">ml/kg/min</span>
@@ -171,7 +171,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
             </div>
           )}
           {profile.maxHeartrate && (
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)' }}>
+            <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>FC max</p>
               <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
                 {profile.maxHeartrate}<span className="text-sm opacity-70 ml-1">bpm</span>
@@ -184,7 +184,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
             </div>
           )}
           {profile.weight && (
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)' }}>
+            <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Poids</p>
               <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
                 {profile.weight}<span className="text-sm opacity-70 ml-1">kg</span>
@@ -212,8 +212,8 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       </>)}
 
       {/* Comparaison sorties : distance + vitesse + BPM (min/avg/max) */}
-      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)' }}>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+      <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0f172a' }}>
           <HeartPulse size={20} style={{ color: '#ef4444' }} /> Comparaison sorties — distance, vitesse, BPM
         </h3>
         {loadingExtra ? (
@@ -228,16 +228,16 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={ridesChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
-                  <XAxis dataKey="dateLabel" stroke="#a8a29e" tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="left" stroke="#a855f7" unit=" km" tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="right" orientation="right" stroke="#ef4444" unit=" bpm" tick={{ fontSize: 11 }} domain={['dataMin - 10', 'dataMax + 10']} />
-                  <Tooltip {...darkTooltipProps} />
-                  <Legend wrapperStyle={{ fontSize: 12, color: '#ffffff' }} />
-                  <Bar yAxisId="left" dataKey="distanceKm" fill="#a855f7" fillOpacity={0.55} name="Distance (km)" />
-                  <Line yAxisId="left" type="monotone" dataKey="averageSpeedKmh" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} name="Vitesse moy. (km/h)" />
-                  <Line yAxisId="right" type="monotone" dataKey="maxHeartrate" stroke="#ef4444" strokeWidth={2} dot={false} name="BPM max" />
-                  <Line yAxisId="right" type="monotone" dataKey="averageHeartrate" stroke="#f97316" strokeWidth={2} dot={false} name="BPM moy." />
-                  <Line yAxisId="right" type="monotone" dataKey="minHeartrate" stroke="#0055ff" strokeWidth={1.5} strokeDasharray="3 3" dot={false} name="BPM min" />
+                  <XAxis dataKey="dateLabel" stroke="#334155" tick={{ fontSize: 11, fill: '#334155' }} />
+                  <YAxis yAxisId="left" stroke="#6d28d9" unit=" km" tick={{ fontSize: 11, fill: '#334155' }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="#dc2626" unit=" bpm" tick={{ fontSize: 11, fill: '#334155' }} domain={['dataMin - 10', 'dataMax + 10']} />
+                  <Tooltip {...lightTooltipProps} />
+                  <Legend wrapperStyle={{ fontSize: 12, color: '#0f172a' }} />
+                  <Bar yAxisId="left" dataKey="distanceKm" fill="#6d28d9" fillOpacity={0.72} name="Distance (km)" />
+                  <Line yAxisId="left" type="monotone" dataKey="averageSpeedKmh" stroke="#0f766e" strokeWidth={2.5} dot={{ r: 3, fill: '#0f766e', stroke: '#ffffff', strokeWidth: 1 }} name="Vitesse moy. (km/h)" />
+                  <Line yAxisId="right" type="monotone" dataKey="maxHeartrate" stroke="#dc2626" strokeWidth={2.5} dot={false} name="BPM max" />
+                  <Line yAxisId="right" type="monotone" dataKey="averageHeartrate" stroke="#ea580c" strokeWidth={2.5} dot={false} name="BPM moy." />
+                  <Line yAxisId="right" type="monotone" dataKey="minHeartrate" stroke="#0055ff" strokeWidth={2} strokeDasharray="3 3" dot={false} name="BPM min" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -249,7 +249,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       </div>
 
       {/* Vitesse vs Dénivelé — corrélation */}
-      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(0,85,255,0.14)' }}>
+      <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
           <Mountain size={20} style={{ color: '#0055ff' }} /> Vitesse moyenne vs dénivelé
         </h3>
@@ -268,8 +268,8 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
                   <XAxis type="number" dataKey="elevationMeters" name="Dénivelé" unit=" m" stroke="#334155" tick={{ fontSize: 11, fill: '#334155' }} />
                   <YAxis type="number" dataKey="averageSpeedKmh" name="Vitesse moy." unit=" km/h" stroke="#0055ff" tick={{ fontSize: 11, fill: '#334155' }} />
                   <ZAxis type="number" dataKey="distanceKm" range={[40, 240]} name="Distance" unit=" km" />
-                  <Tooltip {...darkTooltipProps} cursor={{ strokeDasharray: '3 3', stroke: '#64748b' }} formatter={(value, name) => [value, name]} />
-                  <Scatter data={ridesChartData} fill="#0055ff" fillOpacity={0.78} stroke="#0b0a0d" strokeWidth={1} />
+                  <Tooltip {...lightTooltipProps} cursor={{ strokeDasharray: '3 3', stroke: '#64748b' }} formatter={(value, name) => [value, name]} />
+                  <Scatter data={ridesChartData} fill="#0055ff" fillOpacity={0.82} stroke="#0f172a" strokeWidth={1} />
                 </ScatterChart>
               </ResponsiveContainer>
             </div>
@@ -281,8 +281,8 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       </div>
 
       {/* TSS evolution */}
-      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)' }}>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+      <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0f172a' }}>
           <TrendingUp size={20} style={{ color: '#0055ff' }} /> Évolution TSS / IF
         </h3>
 
@@ -316,12 +316,12 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
                   dateLabel: s.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }),
                 }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
-                  <XAxis dataKey="dateLabel" stroke="#a8a29e" interval="preserveStartEnd" />
-                  <YAxis yAxisId="left" stroke="#fc4c02" />
-                  <YAxis yAxisId="right" orientation="right" stroke="#0055ff" domain={[0, 2]} />
-                  <Tooltip {...darkTooltipProps} />
-                  <Line yAxisId="left" type="monotone" dataKey="tss" stroke="#fc4c02" strokeWidth={2} dot={{ r: 3 }} name="TSS" />
-                  <Line yAxisId="right" type="monotone" dataKey="if_" stroke="#0055ff" strokeWidth={1.5} dot={false} name="IF" strokeDasharray="3 3" />
+                  <XAxis dataKey="dateLabel" stroke="#334155" tick={{ fill: '#334155', fontSize: 11 }} interval="preserveStartEnd" />
+                  <YAxis yAxisId="left" stroke="#ea580c" tick={{ fill: '#334155', fontSize: 11 }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="#0055ff" tick={{ fill: '#334155', fontSize: 11 }} domain={[0, 2]} />
+                  <Tooltip {...lightTooltipProps} />
+                  <Line yAxisId="left" type="monotone" dataKey="tss" stroke="#ea580c" strokeWidth={2.5} dot={{ r: 3, fill: '#ea580c', stroke: '#ffffff', strokeWidth: 1 }} name="TSS" />
+                  <Line yAxisId="right" type="monotone" dataKey="if_" stroke="#0055ff" strokeWidth={2} dot={false} name="IF" strokeDasharray="3 3" />
                 </LineChart>
               </ResponsiveContainer>
             </div>

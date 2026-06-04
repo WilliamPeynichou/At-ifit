@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Footprints, Trophy, Zap } from 'lucide-react';
-import { darkTooltipProps } from '../../ui/chartStyles';
+import { lightTooltipProps } from '../../ui/chartStyles';
 
 const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
 
@@ -137,34 +137,34 @@ const RunningPerf = ({ activities }) => {
       </div>
 
       {/* Pace evolution */}
-      <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
-        <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-secondary)' }}>Évolution de l'allure</h3>
+      <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+        <h3 className="text-lg font-bold mb-4" style={{ color: '#0f172a' }}>Évolution de l'allure</h3>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data.paceEvolution.map(d => ({
               ...d,
               dateLabel: d.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }),
             }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="dateLabel" stroke="#a8a29e" interval="preserveStartEnd" />
-              <YAxis stroke="#a855f7" reversed tickFormatter={(v) => {
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.10)" />
+              <XAxis dataKey="dateLabel" stroke="#334155" tick={{ fill: '#334155', fontSize: 11 }} interval="preserveStartEnd" />
+              <YAxis stroke="#6d28d9" tick={{ fill: '#334155', fontSize: 11 }} reversed tickFormatter={(v) => {
                 const min = Math.floor(v / 60);
                 const sec = Math.round(v % 60);
                 return `${min}:${String(sec).padStart(2, '0')}`;
               }} />
-              <Tooltip {...darkTooltipProps} formatter={(v, name, p) => name === 'secPerKm' ? p.payload.pace : v} />
-              <Line type="monotone" dataKey="secPerKm" stroke="#a855f7" strokeWidth={2} dot={{ r: 3 }} name="Allure" />
+              <Tooltip {...lightTooltipProps} formatter={(v, name, p) => name === 'secPerKm' ? p.payload.pace : v} />
+              <Line type="monotone" dataKey="secPerKm" stroke="#6d28d9" strokeWidth={2.5} dot={{ r: 3, fill: '#6d28d9', stroke: '#ffffff', strokeWidth: 1 }} name="Allure" />
             </LineChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs mt-3" style={{ color: '#475569' }}>
           Axe Y inversé : plus bas = plus rapide
         </p>
       </div>
 
       {/* Best efforts + predictions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
+        <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
             <Trophy size={20} style={{ color: '#eab308' }} /> Records personnels
           </h3>
@@ -185,7 +185,7 @@ const RunningPerf = ({ activities }) => {
                 {data.bestEfforts
                   .sort((a, b) => (a.distance || 0) - (b.distance || 0))
                   .map((eff, i) => (
-                    <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <tr key={i} style={{ borderTop: '1px solid rgba(15,23,42,0.10)' }}>
                       <td className="py-3 font-bold" style={{ color: 'var(--text-primary)' }}>{eff.name}</td>
                       <td className="py-3 text-right font-mono" style={{ color: '#a855f7' }}>{formatTime(eff.elapsed_time)}</td>
                       <td className="py-3 text-right font-mono" style={{ color: 'var(--text-muted)' }}>
@@ -198,7 +198,7 @@ const RunningPerf = ({ activities }) => {
           )}
         </div>
 
-        <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
+        <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
             <Zap size={20} style={{ color: '#fc4c02' }} /> Prédictions de course (Riegel)
           </h3>
@@ -217,7 +217,7 @@ const RunningPerf = ({ activities }) => {
               </thead>
               <tbody>
                 {data.predictions.map((p, i) => (
-                  <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <tr key={i} style={{ borderTop: '1px solid rgba(15,23,42,0.10)' }}>
                     <td className="py-3 font-bold" style={{ color: 'var(--text-primary)' }}>{p.name}</td>
                     <td className="py-3 text-right font-mono" style={{ color: '#fc4c02' }}>{formatTime(p.predicted)}</td>
                     <td className="py-3 text-right font-mono" style={{ color: 'var(--text-muted)' }}>
