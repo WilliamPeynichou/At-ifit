@@ -102,8 +102,8 @@ const RunningPerf = ({ activities }) => {
   if (!data) {
     return (
       <div className="text-center py-20">
-        <Footprints size={48} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
-        <p style={{ color: 'var(--text-muted)' }}>Pas d'activités de course à pied détectées.</p>
+        <Footprints size={48} className="mx-auto mb-4" style={{ color: '#475569' }} />
+        <p style={{ color: '#475569' }}>Pas d'activités de course à pied détectées.</p>
       </div>
     );
   }
@@ -114,24 +114,24 @@ const RunningPerf = ({ activities }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-2xl p-5" style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px solid #a855f740' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#a855f7' }}>Distance totale</p>
-          <p className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            {(data.totalDistance / 1000).toFixed(0)}<span className="text-base opacity-70 ml-1">km</span>
+          <p className="text-2xl font-black" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>
+            {(data.totalDistance / 1000).toFixed(0)}<span className="text-base ml-1" style={{ color: '#475569' }}>km</span>
           </p>
         </div>
         <div className="rounded-2xl p-5" style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px solid #a855f740' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#a855f7' }}>Allure moyenne</p>
-          <p className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            {paceFromSpeed(data.avgSpeed) || '—'}<span className="text-base opacity-70 ml-1">/km</span>
+          <p className="text-2xl font-black" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>
+            {paceFromSpeed(data.avgSpeed) || '—'}<span className="text-base ml-1" style={{ color: '#475569' }}>/km</span>
           </p>
         </div>
         <div className="rounded-2xl p-5" style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px solid #a855f740' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#a855f7' }}>Séances</p>
-          <p className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>{data.runs.length}</p>
+          <p className="text-2xl font-black" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{data.runs.length}</p>
         </div>
         <div className="rounded-2xl p-5" style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px solid #a855f740' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#a855f7' }}>VO₂max estimé</p>
-          <p className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            {data.vo2max || '—'}<span className="text-base opacity-70 ml-1">ml/kg/min</span>
+          <p className="text-2xl font-black" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>
+            {data.vo2max || '—'}<span className="text-base ml-1" style={{ color: '#475569' }}>ml/kg/min</span>
           </p>
         </div>
       </div>
@@ -153,7 +153,7 @@ const RunningPerf = ({ activities }) => {
                 return `${min}:${String(sec).padStart(2, '0')}`;
               }} />
               <Tooltip {...lightTooltipProps} formatter={(v, name, p) => name === 'secPerKm' ? p.payload.pace : v} />
-              <Line type="monotone" dataKey="secPerKm" stroke="#6d28d9" strokeWidth={2.5} dot={{ r: 3, fill: '#6d28d9', stroke: '#ffffff', strokeWidth: 1 }} name="Allure" />
+              <Line type="monotone" dataKey="secPerKm" stroke="#6d28d9" strokeWidth={2.5} dot={{ r: 3, fill: '#6d28d9', stroke: '#0f172a', strokeWidth: 1 }} name="Allure" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -165,17 +165,17 @@ const RunningPerf = ({ activities }) => {
       {/* Best efforts + predictions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1f2937' }}>
             <Trophy size={20} style={{ color: '#eab308' }} /> Records personnels
           </h3>
           {data.bestEfforts.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm" style={{ color: '#475569' }}>
               Pas encore de best_efforts. L'enrichissement des détails Strava doit être terminé.
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ color: 'var(--text-muted)' }}>
+                <tr style={{ color: '#475569' }}>
                   <th className="text-left py-2">Distance</th>
                   <th className="text-right py-2">Temps</th>
                   <th className="text-right py-2">Allure</th>
@@ -186,9 +186,9 @@ const RunningPerf = ({ activities }) => {
                   .sort((a, b) => (a.distance || 0) - (b.distance || 0))
                   .map((eff, i) => (
                     <tr key={i} style={{ borderTop: '1px solid rgba(15,23,42,0.10)' }}>
-                      <td className="py-3 font-bold" style={{ color: 'var(--text-primary)' }}>{eff.name}</td>
+                      <td className="py-3 font-bold" style={{ color: '#0f172a' }}>{eff.name}</td>
                       <td className="py-3 text-right font-mono" style={{ color: '#a855f7' }}>{formatTime(eff.elapsed_time)}</td>
-                      <td className="py-3 text-right font-mono" style={{ color: 'var(--text-muted)' }}>
+                      <td className="py-3 text-right font-mono" style={{ color: '#475569' }}>
                         {eff.distance ? paceFromSpeed(eff.distance / eff.elapsed_time) : '—'}/km
                       </td>
                     </tr>
@@ -199,17 +199,17 @@ const RunningPerf = ({ activities }) => {
         </div>
 
         <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1f2937' }}>
             <Zap size={20} style={{ color: '#fc4c02' }} /> Prédictions de course (Riegel)
           </h3>
           {data.predictions.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm" style={{ color: '#475569' }}>
               Besoin d'un best 5k ou 10k pour générer les prédictions.
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ color: 'var(--text-muted)' }}>
+                <tr style={{ color: '#475569' }}>
                   <th className="text-left py-2">Distance</th>
                   <th className="text-right py-2">Temps prédit</th>
                   <th className="text-right py-2">Allure cible</th>
@@ -217,10 +217,10 @@ const RunningPerf = ({ activities }) => {
               </thead>
               <tbody>
                 {data.predictions.map((p, i) => (
-                    <tr key={i} style={{ borderTop: '1px solid rgba(15,23,42,0.10)' }}>
-                    <td className="py-3 font-bold" style={{ color: 'var(--text-primary)' }}>{p.name}</td>
+                  <tr key={i} style={{ borderTop: '1px solid rgba(15,23,42,0.10)' }}>
+                    <td className="py-3 font-bold" style={{ color: '#0f172a' }}>{p.name}</td>
                     <td className="py-3 text-right font-mono" style={{ color: '#fc4c02' }}>{formatTime(p.predicted)}</td>
-                    <td className="py-3 text-right font-mono" style={{ color: 'var(--text-muted)' }}>
+                    <td className="py-3 text-right font-mono" style={{ color: '#475569' }}>
                       {paceFromSpeed(p.distance / p.predicted)}/km
                     </td>
                   </tr>

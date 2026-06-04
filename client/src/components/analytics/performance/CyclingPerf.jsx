@@ -100,8 +100,8 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
   if (!data) {
     return (
       <div className="text-center py-20">
-        <Bike size={48} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
-        <p style={{ color: 'var(--text-muted)' }}>Pas d'activités vélo détectées.</p>
+        <Bike size={48} className="mx-auto mb-4" style={{ color: '#475569' }} />
+        <p style={{ color: '#475569' }}>Pas d'activités vélo détectées.</p>
       </div>
     );
   }
@@ -112,16 +112,16 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-2xl p-5" style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px solid #a855f740' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#a855f7' }}>Distance vélo</p>
-          <p className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            {(data.totalDistance / 1000).toFixed(0)}<span className="text-base opacity-70 ml-1">km</span>
+          <p className="text-2xl font-black" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>
+            {(data.totalDistance / 1000).toFixed(0)}<span className="text-base ml-1" style={{ color: '#475569' }}>km</span>
           </p>
         </div>
         <div className="rounded-2xl p-5" style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px solid #a855f740' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#a855f7' }}>FTP plaine</p>
-          <p className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            {data.ftpEstimated || '—'}<span className="text-base opacity-70 ml-1">W</span>
+          <p className="text-2xl font-black" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>
+            {data.ftpEstimated || '—'}<span className="text-base ml-1" style={{ color: '#475569' }}>W</span>
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs mt-1" style={{ color: '#475569' }}>
             {FTP_SOURCE_LABELS[profile?.ftpSource] || (profile?.ftpSource ?? '95 % du best 20 min')}
             {profile?.ftpConfidence === 'low' && <span style={{ color: '#f97316' }}> · basse confiance</span>}
             {profile?.ftpConfidence === 'medium' && <span style={{ color: '#0055ff' }}> · confiance moyenne</span>}
@@ -130,20 +130,20 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
         </div>
         <div className="rounded-2xl p-5" style={{ background: 'rgba(34,197,94,0.08)', border: '1.5px solid #22c55e40' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#22c55e' }}>FTP col</p>
-          <p className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            {profile?.ftpRelative || '—'}<span className="text-base opacity-70 ml-1">W/kg</span>
+          <p className="text-2xl font-black" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>
+            {profile?.ftpRelative || '—'}<span className="text-base ml-1" style={{ color: '#475569' }}>W/kg</span>
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Puissance par kg — capacité grimpe</p>
+          <p className="text-xs mt-1" style={{ color: '#475569' }}>Puissance par kg — capacité grimpe</p>
         </div>
         <div className="rounded-2xl p-5" style={{ background: 'rgba(234,179,8,0.08)', border: '1.5px solid #eab30840' }}>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#eab308' }}>FTP sprint</p>
-          <p className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            {profile?.sprintPower || '—'}<span className="text-base opacity-70 ml-1">W</span>
+          <p className="text-2xl font-black" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>
+            {profile?.sprintPower || '—'}<span className="text-base ml-1" style={{ color: '#475569' }}>W</span>
             {profile?.sprintPowerRelative && (
-              <span className="text-sm font-bold ml-2 opacity-80">· {profile.sprintPowerRelative} W/kg</span>
+              <span className="text-sm font-bold ml-2" style={{ color: '#475569' }}>· {profile.sprintPowerRelative} W/kg</span>
             )}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs mt-1" style={{ color: '#475569' }}>
             {profile?.sprintPowerSource === 'peak_30s_power_curve' && 'Pic 30 s (streams watts)'}
             {profile?.sprintPowerSource === 'observed_max_watts' && 'Pic instantané (maxWatts Strava)'}
             {!profile?.sprintPowerSource && 'Puissance explosive — capacité sprint'}
@@ -156,15 +156,15 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {profile.level && profile.level !== 'Untrained' && profile.level !== 'Indéterminé' && (
             <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Niveau Coggan</p>
-              <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{profile.level}</p>
+              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#475569' }}>Niveau Coggan</p>
+              <p className="text-xl font-bold" style={{ color: '#0f172a' }}>{profile.level}</p>
             </div>
           )}
           {profile.vo2max && (
             <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>VO2max estimée</p>
-              <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {profile.vo2max}<span className="text-sm opacity-70 ml-1">ml/kg/min</span>
+              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#475569' }}>VO2max estimée</p>
+              <p className="text-xl font-bold" style={{ color: '#0f172a' }}>
+                {profile.vo2max}<span className="text-sm ml-1" style={{ color: '#475569' }}>ml/kg/min</span>
               </p>
               {profile.vo2maxConfidence === 'low' && <p className="text-[10px] mt-1" style={{ color: '#f97316' }}>hors plage de validité</p>}
               {profile.vo2maxConfidence === 'medium' && <p className="text-[10px] mt-1" style={{ color: '#0055ff' }}>confiance moyenne</p>}
@@ -172,11 +172,11 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
           )}
           {profile.maxHeartrate && (
             <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>FC max</p>
-              <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {profile.maxHeartrate}<span className="text-sm opacity-70 ml-1">bpm</span>
+              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#475569' }}>FC max</p>
+              <p className="text-xl font-bold" style={{ color: '#0f172a' }}>
+                {profile.maxHeartrate}<span className="text-sm ml-1" style={{ color: '#475569' }}>bpm</span>
               </p>
-              <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[10px] mt-1" style={{ color: '#475569' }}>
                 {profile.maxHeartrateSource === 'observed_max' && 'observé sur tes sorties'}
                 {profile.maxHeartrateSource === 'tanaka_formula' && 'formule Tanaka (âge)'}
                 {profile.maxHeartrateSource === 'default_floor' && 'plancher par défaut'}
@@ -185,9 +185,9 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
           )}
           {profile.weight && (
             <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Poids</p>
-              <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {profile.weight}<span className="text-sm opacity-70 ml-1">kg</span>
+              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#475569' }}>Poids</p>
+              <p className="text-xl font-bold" style={{ color: '#0f172a' }}>
+                {profile.weight}<span className="text-sm ml-1" style={{ color: '#475569' }}>kg</span>
               </p>
             </div>
           )}
@@ -198,12 +198,12 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       {(profile?.ftpNote || profile?.vo2maxNote) && (
         <div className="rounded-2xl p-4" style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.25)' }}>
           {profile.ftpNote && (
-            <p className="text-xs leading-relaxed mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs leading-relaxed mb-2" style={{ color: '#1f2937' }}>
               <span className="font-bold" style={{ color: '#f97316' }}>FTP — </span>{profile.ftpNote}
             </p>
           )}
           {profile.vo2maxNote && (
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs leading-relaxed" style={{ color: '#1f2937' }}>
               <span className="font-bold" style={{ color: '#f97316' }}>VO2max — </span>{profile.vo2maxNote}
             </p>
           )}
@@ -221,7 +221,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
             <div className="w-10 h-10 border-4 border-[#a855f7] border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         ) : ridesChartData.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pas encore de sorties vélo avec données de comparaison.</p>
+          <p className="text-sm" style={{ color: '#475569' }}>Pas encore de sorties vélo avec données de comparaison.</p>
         ) : (
           <>
             <div className="h-80">
@@ -234,14 +234,14 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
                   <Tooltip {...lightTooltipProps} />
                   <Legend wrapperStyle={{ fontSize: 12, color: '#0f172a' }} />
                   <Bar yAxisId="left" dataKey="distanceKm" fill="#6d28d9" fillOpacity={0.72} name="Distance (km)" />
-                  <Line yAxisId="left" type="monotone" dataKey="averageSpeedKmh" stroke="#0f766e" strokeWidth={2.5} dot={{ r: 3, fill: '#0f766e', stroke: '#ffffff', strokeWidth: 1 }} name="Vitesse moy. (km/h)" />
+                  <Line yAxisId="left" type="monotone" dataKey="averageSpeedKmh" stroke="#0f766e" strokeWidth={2.5} dot={{ r: 3, fill: '#0f766e', stroke: '#0f172a', strokeWidth: 1 }} name="Vitesse moy. (km/h)" />
                   <Line yAxisId="right" type="monotone" dataKey="maxHeartrate" stroke="#dc2626" strokeWidth={2.5} dot={false} name="BPM max" />
                   <Line yAxisId="right" type="monotone" dataKey="averageHeartrate" stroke="#ea580c" strokeWidth={2.5} dot={false} name="BPM moy." />
                   <Line yAxisId="right" type="monotone" dataKey="minHeartrate" stroke="#0055ff" strokeWidth={2} strokeDasharray="3 3" dot={false} name="BPM min" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mt-3" style={{ color: '#475569' }}>
               BPM min calculé depuis les streams Strava enrichis. Vitesse moyenne convertie en km/h. Axe gauche : km / km/h. Axe droit : bpm.
             </p>
           </>
@@ -250,7 +250,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
 
       {/* Vitesse vs Dénivelé — corrélation */}
       <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0f172a' }}>
           <Mountain size={20} style={{ color: '#0055ff' }} /> Vitesse moyenne vs dénivelé
         </h3>
         {loadingExtra ? (
@@ -258,7 +258,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
             <div className="w-10 h-10 border-4 border-[#0055ff] border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         ) : ridesChartData.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Aucune donnée à corréler.</p>
+          <p className="text-sm" style={{ color: '#475569' }}>Aucune donnée à corréler.</p>
         ) : (
           <>
             <div className="h-72">
@@ -273,7 +273,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
                 </ScatterChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mt-3" style={{ color: '#475569' }}>
               Chaque point = une sortie. La taille du point reflète la distance. Une corrélation négative est attendue : plus de D+ → vitesse moyenne plus basse.
             </p>
           </>
@@ -289,7 +289,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
           <div className="rounded-xl p-3" style={{ background: 'rgba(252,76,2,0.06)', border: '1px solid rgba(252,76,2,0.2)' }}>
             <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#fc4c02' }}>TSS · Training Stress Score</p>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs leading-relaxed" style={{ color: '#1f2937' }}>
               Charge totale d'une sortie (intensité × durée). Une heure à FTP = 100 TSS.
               <span className="block mt-1 opacity-80">
                 &lt;150 : facile · 150–300 : modérée · 300–450 : exigeante · &gt;450 : épique
@@ -298,7 +298,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
           </div>
           <div className="rounded-xl p-3" style={{ background: 'rgba(0,85,255,0.06)', border: '1px solid rgba(0,85,255,0.2)' }}>
             <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#0055ff' }}>IF · Intensity Factor</p>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs leading-relaxed" style={{ color: '#1f2937' }}>
               Intensité moyenne rapportée à la FTP (puissance normalisée ÷ FTP).
               <span className="block mt-1 opacity-80">
                 &lt;0.75 : endurance · 0.75–0.85 : tempo · 0.85–0.95 : seuil · &gt;0.95 : course / record
@@ -320,7 +320,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
                   <YAxis yAxisId="left" stroke="#ea580c" tick={{ fill: '#334155', fontSize: 11 }} />
                   <YAxis yAxisId="right" orientation="right" stroke="#0055ff" tick={{ fill: '#334155', fontSize: 11 }} domain={[0, 2]} />
                   <Tooltip {...lightTooltipProps} />
-                  <Line yAxisId="left" type="monotone" dataKey="tss" stroke="#ea580c" strokeWidth={2.5} dot={{ r: 3, fill: '#ea580c', stroke: '#ffffff', strokeWidth: 1 }} name="TSS" />
+                  <Line yAxisId="left" type="monotone" dataKey="tss" stroke="#ea580c" strokeWidth={2.5} dot={{ r: 3, fill: '#ea580c', stroke: '#0f172a', strokeWidth: 1 }} name="TSS" />
                   <Line yAxisId="right" type="monotone" dataKey="if_" stroke="#0055ff" strokeWidth={2} dot={false} name="IF" strokeDasharray="3 3" />
                 </LineChart>
               </ResponsiveContainer>
@@ -330,7 +330,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
               <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--accent-blue)' }}>
                 Comment lire ce graphique
               </p>
-              <ul className="text-xs leading-relaxed space-y-1.5" style={{ color: 'var(--text-secondary)' }}>
+              <ul className="text-xs leading-relaxed space-y-1.5" style={{ color: '#1f2937' }}>
                 <li>• <span className="font-bold">TSS qui monte semaine après semaine</span> → ta charge progresse. Bonne adaptation si la fatigue reste contenue, risque de surcharge si trop rapide.</li>
                 <li>• <span className="font-bold">TSS variable (alternance pics / creux)</span> → entraînement structuré : tu enchaînes sortie dure puis récupération. Pattern recherché pour progresser.</li>
                 <li>• <span className="font-bold">TSS plat et bas</span> → routine trop confortable, peu de stimulus pour progresser.</li>
@@ -342,7 +342,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
             </div>
           </>
         ) : (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>FTP requise pour calculer TSS/IF.</p>
+          <p className="text-sm" style={{ color: '#475569' }}>FTP requise pour calculer TSS/IF.</p>
         )}
       </div>
     </div>
