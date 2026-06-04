@@ -73,10 +73,37 @@ const stravaFetch = async (url, options = {}, { userId } = {}) => {
               { where: { id: userId } }
             );
             logger.info('[StravaFetch] Tokens Strava effacés en DB', { userId });
+            await logAuditEvent({
+              userId,
+              actorUserId: userId,
+              eventType: 'strava_tokens_invalidated',
+              status: 'failure',
+              riskLevel: 'medium',
+              category: 'strava',
+              message: 'Strava tokens cleared after provider 401',
+              metadata: {
+                endpoint: url.replace(/^https:\/\/www\.strava\.com\/api\/v3/, ''),
+                callType,
+                httpStatus: 401,
+                reason: 'STRAVA_TOKEN_REVOKED',
+              },
+            });
           } catch (dbErr) {
             logger.error('[StravaFetch] Erreur effacement tokens', { userId, error: dbErr.message });
           }
         }
+        await logStravaApiCall({
+          userId,
+          callType,
+          endpoint: url.replace(/^https:\/\/www\.strava\.com\/api\/v3/, ''),
+          method,
+          status: 'error',
+          httpStatus: 401,
+          durationMs: Date.now() - startedAt,
+          attempts,
+          errorMessage: 'STRAVA_TOKEN_REVOKED',
+          resourceId: resourceIdFromUrl(url),
+        });
         const err = new Error('STRAVA_TOKEN_REVOKED');
         err.code = 'STRAVA_TOKEN_REVOKED';
         err.status = 401;

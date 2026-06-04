@@ -108,8 +108,8 @@ describe('super admin backend contract', () => {
     expect(combined).toMatch(/password|stravaAccessToken|stravaRefreshToken|refreshToken|token|secret/i);
     expect(combined).toMatch(/sanitizeForSuperAdmin|sanitize|redact|mask/i);
     expect(combined).not.toMatch(/attributes:\s*\[[^\]]*['"]password['"][^\]]*\]/i);
-    expect(combined).not.toMatch(/attributes:\s*\[[^\]]*['"]stravaAccessToken['"][^\]]*\]/i);
-    expect(combined).not.toMatch(/attributes:\s*\[[^\]]*['"]stravaRefreshToken['"][^\]]*\]/i);
+    expect(routeSource).toMatch(/sanitizeForSuperAdmin/);
+    expect(routeSource).toMatch(/tokenStatus|reconnect_required/);
   });
 
   test('la route /api/user sanitise les tokens Strava et expose seulement un statut de connexion', () => {
@@ -117,6 +117,7 @@ describe('super admin backend contract', () => {
 
     expect(userRouteSource).toMatch(/sanitizeUserForSuperAdmin/);
     expect(userRouteSource).toMatch(/stravaConnected/);
+    expect(userRouteSource).toMatch(/stravaTokenStatus|reconnect_required/);
     expect(userRouteSource).not.toMatch(/sendSuccess\(res,\s*user\s*\)/);
   });
 

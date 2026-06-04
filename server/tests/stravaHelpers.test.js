@@ -11,6 +11,12 @@ jest.mock('../utils/logger', () => ({
 jest.mock('../models/User', () => ({
   update: jest.fn().mockResolvedValue([1]),
 }));
+jest.mock('../services/stravaApiLogService', () => ({
+  logStravaApiCall: jest.fn().mockResolvedValue({ id: 1 }),
+}));
+jest.mock('../services/auditService', () => ({
+  logAuditEvent: jest.fn().mockResolvedValue({ id: 1 }),
+}));
 
 // Mock axios : la fonction principale ET ses méthodes (post, get…)
 const mockAxios = jest.fn();
@@ -20,6 +26,8 @@ jest.mock('axios', () => mockAxios);
 const axios = require('axios');
 const { stravaFetch, getValidStravaToken } = require('../utils/stravaHelpers');
 const User = require('../models/User');
+const { logStravaApiCall } = require('../services/stravaApiLogService');
+const { logAuditEvent } = require('../services/auditService');
 
 // Réduit les délais de retry pour que les tests passent rapidement
 jest.spyOn(global, 'setTimeout').mockImplementation((fn) => { fn(); return 0; });
@@ -54,6 +62,17 @@ describe('stravaFetch', () => {
       { stravaAccessToken: null, stravaRefreshToken: null, stravaExpiresAt: null },
       { where: { id: 42 } }
     );
+    expect(logStravaApiCall).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      status: 'error',
+      httpStatus: 401,
+      errorMessage: 'STRAVA_TOKEN_REVOKED',
+    }));
+    expect(logAuditEvent).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      eventType: 'strava_tokens_invalidated',
+      category: 'strava',
+    }));
   });
 
   test('ne tente pas d\'effacer les tokens si userId absent sur 401', async () => {

@@ -523,20 +523,26 @@ router.get('/sync/status', auth, asyncHandler(async (req, res) => {
     Activity.count({ where: { userId: req.userId } }),
     Activity.count({ where: { userId: req.userId, detailFetchedAt: { [Op.not]: null } } }),
     Activity.count({ where: { userId: req.userId, streamFetchedAt: { [Op.not]: null } } }),
-    User.findByPk(req.userId, { attributes: ['id', 'lastSyncAt', 'fullSyncCompletedAt', 'stravaAthleteId', 'stravaExpiresAt'] }),
+    User.findByPk(req.userId, { attributes: ['id', 'lastSyncAt', 'fullSyncCompletedAt', 'stravaAthleteId', 'stravaAccessToken', 'stravaRefreshToken', 'stravaExpiresAt'] }),
   ]);
   const sync = getSyncStatus(req.userId);
+  const hasAthlete = !!user?.stravaAthleteId;
+  const hasTokens = !!(user?.stravaAccessToken && user?.stravaRefreshToken);
+  const tokenStatus = !hasAthlete ? 'not_connected' : (!hasTokens || sync.authRequired ? 'reconnect_required' : 'present');
+  const authRequired = tokenStatus === 'reconnect_required';
   sendSuccess(res, {
-    connected: !!user?.stravaAthleteId,
+    connected: hasAthlete && hasTokens,
+    stravaConnected: hasAthlete && hasTokens,
     athleteId: user?.stravaAthleteId || null,
     lastSyncAt: user?.lastSyncAt || null,
     fullSyncCompletedAt: user?.fullSyncCompletedAt || null,
     total,
     withDetail,
     withStream,
-    tokenStatus: user?.stravaAthleteId ? (sync.authRequired ? 'reconnect_required' : 'present') : 'not_connected',
-    recommendation: sync.authRequired ? 'reconnect_strava' : (sync.inProgress ? 'wait' : (total === 0 ? 'sync' : (withDetail < total || withStream < total ? 'enrich' : 'ok'))),
-    sync,
+    tokenStatus,
+    authRequired,
+    recommendation: authRequired ? 'reconnect_strava' : (sync.inProgress ? 'wait' : (total === 0 ? 'sync' : (withDetail < total || withStream < total ? 'enrich' : 'ok'))),
+    sync: { ...sync, authRequired: Boolean(sync.authRequired || authRequired) },
   });
 }));
 

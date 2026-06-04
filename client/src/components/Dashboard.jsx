@@ -94,7 +94,7 @@ const Dashboard = () => {
 
       const entry = {
         date: date.toISOString(),
-        displayDate: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        displayDate: date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
         weight: lastKnownWeight,
         actualWeight: weightEntry ? weightEntry.weight : null,
         distance: totalDistance > 0 ? (totalDistance / 1000).toFixed(2) : null,
@@ -136,7 +136,7 @@ const Dashboard = () => {
 
       const entry = {
         date: date.toISOString(),
-        displayDate: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        displayDate: date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
         weight: lastKnownWeight,
         actualWeight: weightEntry ? weightEntry.weight : null,
       };
@@ -393,7 +393,7 @@ const Dashboard = () => {
                     tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'monospace' }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(str) => new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    tickFormatter={(str) => new Date(str).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
                     dy={15}
                   />
                   <YAxis

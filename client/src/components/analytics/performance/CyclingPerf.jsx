@@ -249,13 +249,13 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       </div>
 
       {/* Vitesse vs Dénivelé — corrélation */}
-      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid var(--glass-border)' }}>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-          <Mountain size={20} style={{ color: '#84cc16' }} /> Vitesse moyenne vs dénivelé
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(0,85,255,0.14)' }}>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+          <Mountain size={20} style={{ color: '#0055ff' }} /> Vitesse moyenne vs dénivelé
         </h3>
         {loadingExtra ? (
           <div className="text-center py-12">
-            <div className="w-10 h-10 border-4 border-[#84cc16] border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="w-10 h-10 border-4 border-[#0055ff] border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         ) : ridesChartData.length === 0 ? (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Aucune donnée à corréler.</p>
@@ -264,12 +264,12 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
-                  <XAxis type="number" dataKey="elevationMeters" name="Dénivelé" unit=" m" stroke="#84cc16" tick={{ fontSize: 11 }} />
-                  <YAxis type="number" dataKey="averageSpeedKmh" name="Vitesse moy." unit=" km/h" stroke="#22c55e" tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.10)" />
+                  <XAxis type="number" dataKey="elevationMeters" name="Dénivelé" unit=" m" stroke="#334155" tick={{ fontSize: 11, fill: '#334155' }} />
+                  <YAxis type="number" dataKey="averageSpeedKmh" name="Vitesse moy." unit=" km/h" stroke="#0055ff" tick={{ fontSize: 11, fill: '#334155' }} />
                   <ZAxis type="number" dataKey="distanceKm" range={[40, 240]} name="Distance" unit=" km" />
-                  <Tooltip {...darkTooltipProps} cursor={{ strokeDasharray: '3 3' }} formatter={(value, name) => [value, name]} />
-                  <Scatter data={ridesChartData} fill="#84cc16" fillOpacity={0.6} />
+                  <Tooltip {...darkTooltipProps} cursor={{ strokeDasharray: '3 3', stroke: '#64748b' }} formatter={(value, name) => [value, name]} />
+                  <Scatter data={ridesChartData} fill="#0055ff" fillOpacity={0.78} stroke="#0b0a0d" strokeWidth={1} />
                 </ScatterChart>
               </ResponsiveContainer>
             </div>

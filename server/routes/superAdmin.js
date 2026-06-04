@@ -559,7 +559,7 @@ router.post('/users/:id/strava/reconnect-required', asyncHandler(async (req, res
 
 router.get('/users/:id/strava/diagnostic', asyncHandler(async (req, res) => {
   const userId = parseInt(req.params.id, 10);
-  const user = await User.findByPk(userId, { attributes: userPublicFields() });
+  const user = await User.findByPk(userId, { attributes: [...userPublicFields(), 'stravaAccessToken', 'stravaRefreshToken'] });
   if (!user) return sendError(res, 'User not found', 404);
 
   const [totalActivities, withDetail, withStreams, lastCalls, lastErrors] = await Promise.all([
@@ -571,9 +571,11 @@ router.get('/users/:id/strava/diagnostic', asyncHandler(async (req, res) => {
   ]);
 
   const sync = getSyncStatus(userId);
-  const tokenStatus = !user.stravaAthleteId
+  const hasAthlete = !!user.stravaAthleteId;
+  const hasTokens = !!(user.stravaAccessToken && user.stravaRefreshToken);
+  const tokenStatus = !hasAthlete
     ? 'not_connected'
-    : (sync.authRequired || lastErrors.some(e => e.errorMessage === 'STRAVA_TOKEN_REVOKED' || e.httpStatus === 401) ? 'reconnect_required' : 'present');
+    : (!hasTokens || sync.authRequired || lastErrors.some(e => e.errorMessage === 'STRAVA_TOKEN_REVOKED' || e.httpStatus === 401) ? 'reconnect_required' : 'present');
   const recommendation = tokenStatus === 'reconnect_required'
     ? 'reconnect_strava'
     : (sync.inProgress ? 'wait' : (totalActivities === 0 ? 'sync_full' : (withDetail < totalActivities || withStreams < totalActivities ? 'enrich' : 'ok')));
@@ -589,8 +591,8 @@ router.get('/users/:id/strava/diagnostic', asyncHandler(async (req, res) => {
 
   sendSuccess(res, sanitizeForSuperAdmin({
     user,
-    connection: { connected: !!user.stravaAthleteId, athleteId: user.stravaAthleteId || null, tokenStatus },
-    sync: { lastSyncAt: user.lastSyncAt, fullSyncCompletedAt: user.fullSyncCompletedAt, current: sync },
+    connection: { connected: hasAthlete && hasTokens, athleteId: user.stravaAthleteId || null, tokenStatus, hasAccessToken: hasTokens ? 'present' : 'missing', hasRefreshToken: hasTokens ? 'present' : 'missing' },
+    sync: { lastSyncAt: user.lastSyncAt, fullSyncCompletedAt: user.fullSyncCompletedAt, current: { ...sync, authRequired: Boolean(sync.authRequired || tokenStatus === 'reconnect_required') } },
     counts: { totalActivities, withDetail, withStreams },
     recentCalls: lastCalls,
     recentErrors: lastErrors,

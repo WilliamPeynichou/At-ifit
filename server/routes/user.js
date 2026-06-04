@@ -75,7 +75,7 @@ const calculateCalorieAdjustment = (goal, delta) => {
 // Get User Profile
 router.get('/', auth, asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.userId, {
-    attributes: { exclude: ['password', 'stravaAccessToken', 'stravaRefreshToken', 'stravaApiKey'] }
+    attributes: { exclude: ['password', 'stravaApiKey'] }
   });
   
   if (!user) {
@@ -83,7 +83,10 @@ router.get('/', auth, asyncHandler(async (req, res) => {
   }
   
   const safeUser = sanitizeUserForSuperAdmin(user);
-  safeUser.stravaConnected = Boolean(safeUser.stravaConnected || safeUser.stravaAthleteId);
+  safeUser.stravaConnected = Boolean(user.stravaAthleteId && user.stravaAccessToken && user.stravaRefreshToken);
+  safeUser.stravaTokenStatus = user.stravaAthleteId
+    ? (safeUser.stravaConnected ? 'present' : 'reconnect_required')
+    : 'not_connected';
   sendSuccess(res, safeUser);
 }));
 
