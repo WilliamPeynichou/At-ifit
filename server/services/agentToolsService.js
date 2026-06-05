@@ -10,6 +10,7 @@ const {
   buildAdvancedSportsAnalysisContext,
   getMedicalSafetyGuidance,
 } = require('./advancedSportsAnalysisSkill');
+const { buildDateContext } = require('../utils/dateFrance');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_RANGE_DAYS = 370;
@@ -254,7 +255,7 @@ async function buildTargetedAgentContext(userId, message) {
   const sportType = sportFromIntents(intents);
   const dataUsed = [];
   const [status, profile] = await Promise.all([getStravaStatus(userId), getProfileAndGoals(userId)]);
-  const context = { generatedAt: new Date().toISOString(), intents, strava: status, profile: profile.profile, weights: profile.weights, goals: profile.goals };
+  const context = { generatedAt: new Date().toISOString(), now: buildDateContext(), intents, strava: status, profile: profile.profile, weights: profile.weights, goals: profile.goals };
   dataUsed.push('profile_without_secrets', 'active_goals', 'strava_connection_status');
 
   if (shouldUseAdvancedSportsAnalysis(message)) {
