@@ -28,6 +28,7 @@ const {
   summarizeLargeActivitySet,
   summarizeActivityStreams,
   getMedicalSafetyGuidance,
+  detectPeriodFromMessage,
 } = require('../services/advancedSportsAnalysisSkill');
 
 const user42Activities = [
@@ -109,6 +110,10 @@ describe('advancedSportsAnalysisSkill', () => {
     ActivityStream.findOne.mockResolvedValue(streamFor101);
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   test('demande des précisions quand la demande sportive est vague', () => {
     const decision = assessClarificationNeed('Analyse mes sorties');
 
@@ -123,6 +128,18 @@ describe('advancedSportsAnalysisSkill', () => {
 
     expect(decision.needsClarification).toBe(false);
     expect(decision.missing).not.toEqual(expect.arrayContaining(['period', 'sport', 'objective']));
+  });
+
+  test('détecte les périodes relatives avec les bornes Europe/Paris autour de minuit', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-14T22:30:00Z')); // mercredi 15/07 00:30 à Paris
+
+    const week = detectPeriodFromMessage('Analyse cette semaine');
+    const month = detectPeriodFromMessage('Analyse ce mois');
+
+    expect(week.from.toISOString()).toBe('2026-07-12T22:00:00.000Z');
+    expect(week.to.toISOString()).toBe('2026-07-14T22:30:00.000Z');
+    expect(month.from.toISOString()).toBe('2026-06-30T22:00:00.000Z');
+    expect(month.to.toISOString()).toBe('2026-07-14T22:30:00.000Z');
   });
 
   test('limite l’accès aux données de l’utilisateur connecté et accepte une période ancienne explicite', async () => {

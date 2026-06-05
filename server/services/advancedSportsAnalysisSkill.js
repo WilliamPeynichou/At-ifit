@@ -3,6 +3,15 @@ const Activity = require('../models/Activity');
 const ActivityStream = require('../models/ActivityStream');
 const { logAuditEvent } = require('./auditService');
 const { sanitizeMetadata } = require('../utils/sensitiveData');
+const {
+  getParisDateISO,
+  parisDateTimeToUtcDate,
+  addParisDays,
+  startOfParisDayUtc,
+  endOfParisDayUtc,
+  startOfParisMonthUtc,
+  startOfParisWeekUtc,
+} = require('../utils/dateFrance');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_ANALYSIS_DAYS = 90;
@@ -26,20 +35,17 @@ function toDate(value) {
 
 function startOfDay(value) {
   const d = toDate(value) || new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  return startOfParisDayUtc(d);
 }
 
 function endOfDay(value) {
   const d = toDate(value) || new Date();
-  d.setHours(23, 59, 59, 999);
-  return d;
+  return endOfParisDayUtc(d);
 }
 
 function addDays(value, days) {
   const d = toDate(value) || new Date();
-  d.setDate(d.getDate() + days);
-  return d;
+  return addParisDays(d, days);
 }
 
 function normalizeSportType(sportType) {
@@ -48,19 +54,35 @@ function normalizeSportType(sportType) {
   return SPORT_ALIASES[raw.toLowerCase()] || raw;
 }
 
+function parisMonthRange(year, month) {
+  const from = parisDateTimeToUtcDate({ year, month, day: 1 });
+  const nextMonthStart = parisDateTimeToUtcDate({ year, month: month + 1, day: 1 });
+  return { from, to: new Date(nextMonthStart.getTime() - 1) };
+}
+
+function parisYearRange(year) {
+  const from = parisDateTimeToUtcDate({ year, month: 1, day: 1 });
+  const nextYearStart = parisDateTimeToUtcDate({ year: year + 1, month: 1, day: 1 });
+  return { from, to: new Date(nextYearStart.getTime() - 1) };
+}
+
 function detectPeriodFromMessage(message = '') {
   const m = String(message).toLowerCase();
   const now = new Date();
   const year = m.match(/\b(20\d{2})\b/);
-  if (/janvier.*f[eé]vrier|january.*february/.test(m) && year) return { from: new Date(`${year[1]}-01-01T00:00:00Z`), to: new Date(`${year[1]}-02-28T23:59:59Z`), explicit: true };
-  if (/janvier|january/.test(m) && year) return { from: new Date(`${year[1]}-01-01T00:00:00Z`), to: new Date(`${year[1]}-01-31T23:59:59Z`), explicit: true };
-  if (year) return { from: new Date(`${year[1]}-01-01T00:00:00Z`), to: new Date(`${year[1]}-12-31T23:59:59Z`), explicit: true };
+  if (/janvier.*f[eé]vrier|january.*february/.test(m) && year) {
+    const from = parisDateTimeToUtcDate({ year: Number(year[1]), month: 1, day: 1 });
+    const marchStart = parisDateTimeToUtcDate({ year: Number(year[1]), month: 3, day: 1 });
+    return { from, to: new Date(marchStart.getTime() - 1), explicit: true };
+  }
+  if (/janvier|january/.test(m) && year) return { ...parisMonthRange(Number(year[1]), 1), explicit: true };
+  if (year) return { ...parisYearRange(Number(year[1])), explicit: true };
   const explicitMonths = m.match(/(?:derniers?|dernières?|last)\s+(\d{1,2})\s+mois|(?:sur|depuis)\s+(\d{1,2})\s+mois/);
   if (explicitMonths) return { from: addDays(now, -30 * Number(explicitMonths[1] || explicitMonths[2])), to: now, explicit: true };
   const explicitWeeks = m.match(/(?:dernières?|derniers?|last)\s+(\d{1,2})\s+semaines?|(?:sur|depuis)\s+(\d{1,2})\s+semaines?/);
   if (explicitWeeks) return { from: addDays(now, -7 * Number(explicitWeeks[1] || explicitWeeks[2])), to: now, explicit: true };
-  if (/cette semaine|semaine en cours/.test(m)) return { from: addDays(now, -7), to: now, explicit: true };
-  if (/ce mois|mois en cours/.test(m)) return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now, explicit: true };
+  if (/cette semaine|semaine en cours/.test(m)) return { from: startOfParisWeekUtc(now), to: now, explicit: true };
+  if (/ce mois|mois en cours/.test(m)) return { from: startOfParisMonthUtc(now), to: now, explicit: true };
   if (/trois derniers mois|3 derniers mois|trimestre/.test(m)) return { from: addDays(now, -90), to: now, explicit: true };
   if (/historique complet|tout l'historique|toute l’historique|global|globale|compl[eè]te/.test(m)) return { from: null, to: now, explicit: true, fullHistory: true };
   return { from: addDays(now, -DEFAULT_ANALYSIS_DAYS), to: now, explicit: false };
@@ -195,7 +217,7 @@ function summarizeLargeActivitySet(activities = [], options = {}) {
 
   rows.forEach(a => {
     const sport = a.type || 'Other';
-    const month = a.startDate ? new Date(a.startDate).toISOString().slice(0, 7) : 'unknown';
+    const month = a.startDate ? getParisDateISO(a.startDate)?.slice(0, 7) || 'unknown' : 'unknown';
     bySport[sport] ||= { count: 0, distanceKm: 0, movingHours: 0, elevationM: 0 };
     byMonth[month] ||= { count: 0, distanceKm: 0, movingHours: 0, elevationM: 0 };
     const distanceKm = (Number(a.distance) || 0) / 1000;
@@ -330,8 +352,7 @@ function summarizeActivityStreams(streams = [], options = {}) {
 
 function dateOnly(value) {
   if (!value) return null;
-  if (typeof value === 'string') return value.slice(0, 10);
-  return new Date(value).toISOString().slice(0, 10);
+  return getParisDateISO(value);
 }
 
 function buildWhere(userId, options = {}) {

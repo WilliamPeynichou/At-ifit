@@ -31,7 +31,7 @@ describe('aiCoachService agentique', () => {
     jest.clearAllMocks();
 
     getUserContext.mockResolvedValue({
-      pseudo: 'Alex',
+      pseudo: 'Alex Legacy',
       email: 'alex@example.test',
       password: 'hashed-password',
       stravaAccessToken: 'secret-access-token',
@@ -47,13 +47,47 @@ describe('aiCoachService agentique', () => {
       context: {
         generatedAt: '2026-03-02T10:00:00.000Z',
         intents: ['profile', 'weekly_volume', 'compare_periods'],
-        strava: { connected: true, lastSyncAt: '2026-03-02T09:00:00.000Z' },
-        profile: { pseudo: 'Alex', estimatedDailyCalories: 2400 },
-        currentWeek: { summary: { count: 3, distanceKm: 82.4, durationHours: 4.1 } },
-        weekComparison: { diff: { sessions: 1, distanceKm: 12.5 } },
+        temporalReference: {
+          generatedAt: '2026-03-02T10:00:00.000Z',
+          timeZone: 'Europe/Paris',
+          today: '2026-03-02',
+          todayHuman: 'lundi 2 mars 2026',
+          time: '11:00',
+        },
+        userProfile: {
+          pseudo: 'Alex',
+          age: 34,
+          targetWeight: 72,
+          estimatedDailyCalories: 2400,
+        },
+        activeGoals: [
+          { id: 9, type: 'sessions_weekly', targetValue: 3, period: 'week', active: true },
+        ],
+        weightTracking: {
+          latest: { date: '2026-03-01', weightKg: 72.5 },
+          trend: 'stable',
+        },
+        sportConnectionStatus: {
+          provider: 'strava',
+          connected: true,
+          lastSyncAt: '2026-03-02T09:00:00.000Z',
+          dataSynced: true,
+        },
+        relevantSportsData: {
+          currentWeek: { summary: { count: 3, distanceKm: 82.4, durationHours: 4.1 } },
+          weekComparison: { diff: { sessions: 1, distanceKm: 12.5 } },
+        },
+        advancedAnalysis: null,
+        dataLimits: {
+          maxRangeDays: 370,
+          rawSecretsExcluded: true,
+          activitiesAreSummarized: true,
+          unavailable: [],
+        },
+        dataConsulted: ['profile_without_secrets', 'active_goals', 'strava_connection_status', 'current_week_volume', 'current_vs_previous_week'],
         debugSecretToken: 'must-not-reach-ai',
       },
-      dataUsed: ['profile_without_secrets', 'current_week_volume', 'current_vs_previous_week'],
+      dataUsed: ['profile_without_secrets', 'active_goals', 'strava_connection_status', 'current_week_volume', 'current_vs_previous_week'],
     });
 
     agentTools.buildPendingAction.mockReturnValue(null);
@@ -109,12 +143,13 @@ describe('aiCoachService agentique', () => {
       message: 'Ta semaine est solide et en progression.',
       agentStatus: 'informational_response',
       intents: ['profile', 'weekly_volume', 'compare_periods'],
-      dataUsed: ['profile_without_secrets', 'current_week_volume', 'current_vs_previous_week'],
+      dataUsed: ['profile_without_secrets', 'active_goals', 'strava_connection_status', 'current_week_volume', 'current_vs_previous_week'],
       pendingAction: null,
     });
 
+    expect(agentTools.buildTargetedAgentContext).toHaveBeenCalledTimes(1);
     expect(agentTools.buildTargetedAgentContext).toHaveBeenCalledWith(42, 'Compare ma semaine avec la précédente');
-    expect(getUserContext).toHaveBeenCalledWith(42);
+    expect(getUserContext).not.toHaveBeenCalled();
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
     const [, request] = global.fetch.mock.calls[0];
@@ -126,7 +161,12 @@ describe('aiCoachService agentique', () => {
     const body = JSON.parse(request.body);
     expect(body.model).toBe('claude-test-model');
     expect(body.system).toMatch(/assistant sportif agentique sécurisé/i);
+    expect(body.system).toMatch(/Date et heure actuelles/i);
+    expect(body.system).toMatch(/Europe\/Paris/i);
+    expect(body.system).toMatch(/N'invente JAMAIS une date/i);
     expect(body.system).toMatch(/validation explicite/i);
+    expect(body.system).toMatch(/source de vérité/i);
+    expect(body.system).toMatch(/Alex/);
     expect(body.messages).toEqual(expect.arrayContaining([
       { role: 'user', content: 'Ancienne question' },
       { role: 'assistant', content: 'Ancienne réponse' },
@@ -134,8 +174,19 @@ describe('aiCoachService agentique', () => {
     ]));
 
     const serializedPayload = JSON.stringify(body);
+    expect(serializedPayload).toMatch(/Contexte utilisateur unique|contexte utilisateur unique/i);
+    expect(serializedPayload).toMatch(/temporalReference/);
+    expect(serializedPayload).toMatch(/userProfile/);
+    expect(serializedPayload).toMatch(/activeGoals/);
+    expect(serializedPayload).toMatch(/weightTracking/);
+    expect(serializedPayload).toMatch(/sportConnectionStatus/);
+    expect(serializedPayload).toMatch(/relevantSportsData/);
+    expect(serializedPayload).toMatch(/dataLimits/);
+    expect(serializedPayload).toMatch(/dataConsulted/);
     expect(serializedPayload).toMatch(/current_week_volume/);
+    expect(serializedPayload).toMatch(/current_vs_previous_week/);
     expect(serializedPayload).toMatch(/Compare ma semaine/);
+    expect(serializedPayload).not.toMatch(/Alex Legacy/);
     expect(serializedPayload).not.toMatch(/secret-access-token|secret-refresh-token|hashed-password|alex@example\.test|must-not-reach-ai|secret interne/i);
     expect(serializedPayload).not.toMatch(/role":"system|role":"tool/i);
   });
@@ -184,6 +235,7 @@ describe('aiCoachService agentique', () => {
       error: 'Le service IA est temporairement indisponible. Réessayez dans quelques instants.',
     });
     expect(agentTools.buildTargetedAgentContext).toHaveBeenCalled();
+    expect(getUserContext).not.toHaveBeenCalled();
   });
 
   test('gère une réponse Anthropic vide avec un message explicite', async () => {

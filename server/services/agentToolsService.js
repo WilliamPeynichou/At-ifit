@@ -10,9 +10,17 @@ const {
   buildAdvancedSportsAnalysisContext,
   getMedicalSafetyGuidance,
 } = require('./advancedSportsAnalysisSkill');
-const { buildDateContext } = require('../utils/dateFrance');
+const {
+  buildDateContext,
+  addParisDays,
+  startOfParisDayUtc,
+  endOfParisDayUtc,
+  startOfParisWeekUtc,
+  startOfParisMonthUtc,
+  diffParisCalendarDays,
+  formatParisDateTime,
+} = require('../utils/dateFrance');
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_RANGE_DAYS = 370;
 const MAX_RECENT_ACTIVITIES = 12;
 
@@ -20,33 +28,23 @@ const VALID_GOAL_TYPES = ['distance_monthly', 'sessions_weekly', 'calories_weekl
 const VALID_PERIODS = ['week', 'month'];
 
 function startOfDay(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
+  return startOfParisDayUtc(date);
 }
 
 function endOfDay(date) {
-  const d = new Date(date);
-  d.setHours(23, 59, 59, 999);
-  return d;
+  return endOfParisDayUtc(date);
 }
 
 function startOfWeek(date = new Date()) {
-  const d = startOfDay(date);
-  const day = d.getDay();
-  const daysFromMonday = (day + 6) % 7;
-  d.setDate(d.getDate() - daysFromMonday);
-  return d;
+  return startOfParisWeekUtc(date);
 }
 
 function addDays(date, days) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+  return addParisDays(date, days);
 }
 
-function clampDateRange({ from, to, defaultDays = 28 } = {}) {
-  const now = new Date();
+function clampDateRange({ from, to, defaultDays = 28, now: referenceNow = new Date() } = {}) {
+  const now = referenceNow;
   let end = to ? endOfDay(to) : endOfDay(now);
   let start = from ? startOfDay(from) : startOfDay(addDays(end, -defaultDays + 1));
 
@@ -54,7 +52,7 @@ function clampDateRange({ from, to, defaultDays = 28 } = {}) {
   if (Number.isNaN(end.getTime())) end = endOfDay(now);
   if (start > end) [start, end] = [startOfDay(end), endOfDay(start)];
 
-  const spanDays = Math.ceil((end - start) / DAY_MS) + 1;
+  const spanDays = Math.abs(diffParisCalendarDays(start, end)) + 1;
   if (spanDays > MAX_RANGE_DAYS) {
     start = startOfDay(addDays(end, -MAX_RANGE_DAYS + 1));
   }
@@ -67,6 +65,71 @@ function formatKm(meters) {
 
 function formatHours(seconds) {
   return Number(((Number(seconds) || 0) / 3600).toFixed(1));
+}
+
+function numberOrNull(value, digits = 1) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return Number(number.toFixed(digits));
+}
+
+function formatDateForContext(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    iso: date.toISOString(),
+    paris: formatParisDateTime(date),
+    timeZone: 'Europe/Paris',
+  };
+}
+
+function formatRangeForContext(range = {}) {
+  return {
+    from: formatDateForContext(range.from),
+    to: formatDateForContext(range.to),
+    timeZone: 'Europe/Paris',
+  };
+}
+
+function buildWeightTracking(weights = [], profile = {}) {
+  const history = (Array.isArray(weights) ? weights : [])
+    .map(weight => ({
+      date: formatDateForContext(weight.date),
+      weightKg: numberOrNull(weight.weight, 1),
+    }))
+    .filter(weight => weight.date || weight.weightKg !== null);
+
+  const values = history.map(weight => weight.weightKg).filter(value => value !== null);
+  const currentWeightKg = values[0] ?? null;
+  const targetWeightKg = numberOrNull(profile?.targetWeight, 1);
+  const averageKg = values.length ? numberOrNull(values.reduce((sum, value) => sum + value, 0) / values.length, 1) : null;
+  const minKg = values.length ? numberOrNull(Math.min(...values), 1) : null;
+  const maxKg = values.length ? numberOrNull(Math.max(...values), 1) : null;
+  let trend = null;
+
+  if (values.length >= 2) {
+    const diff = currentWeightKg - values[values.length - 1];
+    if (Math.abs(diff) <= 0.1) trend = 'stable';
+    else trend = diff > 0 ? 'augmentation' : 'diminution';
+  }
+
+  return {
+    currentWeightKg,
+    targetWeightKg,
+    history,
+    stats: {
+      averageKg,
+      minKg,
+      maxKg,
+      trend,
+      totalEntries: values.length,
+    },
+    missing: {
+      currentWeight: currentWeightKg === null,
+      targetWeight: targetWeightKg === null,
+    },
+  };
 }
 
 function summarizeActivities(rows) {
@@ -114,7 +177,7 @@ function publicActivity(a) {
     id: a.id,
     type: a.type,
     name: a.name,
-    date: a.startDate,
+    date: formatDateForContext(a.startDate),
     distanceKm: formatKm(a.distance),
     durationMinutes: Math.round((Number(a.movingTime) || 0) / 60),
     elevationM: Math.round(Number(a.totalElevationGain) || 0),
@@ -154,10 +217,11 @@ function sportFromIntents(intents) {
 
 async function getStravaStatus(userId) {
   const user = await User.findByPk(userId, { attributes: ['id', 'stravaAccessToken', 'lastSyncAt', 'fullSyncCompletedAt'] });
+  const lastSyncAt = user?.lastSyncAt || user?.fullSyncCompletedAt || null;
   return {
     connected: Boolean(user?.stravaAccessToken),
-    lastSyncAt: user?.lastSyncAt || user?.fullSyncCompletedAt || null,
-    dataSynced: Boolean(user?.lastSyncAt || user?.fullSyncCompletedAt),
+    lastSyncAt: formatDateForContext(lastSyncAt),
+    dataSynced: Boolean(lastSyncAt),
   };
 }
 
@@ -167,7 +231,7 @@ async function getActivitiesForPeriod(userId, { from, to, sportType = null } = {
   if (sportType) where.type = sportType;
   const rows = await Activity.findAll({ where, order: [['startDate', 'DESC']], limit: 500 });
   return {
-    range,
+    range: formatRangeForContext(range),
     sportType,
     summary: summarizeActivities(rows),
     topActivities: rows
@@ -203,7 +267,7 @@ async function compareRecentWeeks(userId, sportType = null) {
 
 async function getMonthlyVolume(userId, sportType = null) {
   const now = new Date();
-  return getActivitiesForPeriod(userId, { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now, sportType });
+  return getActivitiesForPeriod(userId, { from: startOfParisMonthUtc(now), to: now, sportType });
 }
 
 async function getProfileAndGoals(userId) {
@@ -255,12 +319,18 @@ async function buildTargetedAgentContext(userId, message) {
   const sportType = sportFromIntents(intents);
   const dataUsed = [];
   const [status, profile] = await Promise.all([getStravaStatus(userId), getProfileAndGoals(userId)]);
-  const context = { generatedAt: new Date().toISOString(), now: buildDateContext(), intents, strava: status, profile: profile.profile, weights: profile.weights, goals: profile.goals };
+  const now = buildDateContext();
+  const userProfile = profile.profile || null;
+  const activeGoals = profile.goals || [];
+  const weightTracking = buildWeightTracking(profile.weights, userProfile);
+  const relevantSportsData = {};
+  let advancedAnalysis = null;
+
   dataUsed.push('profile_without_secrets', 'active_goals', 'strava_connection_status');
 
   if (shouldUseAdvancedSportsAnalysis(message)) {
     const clarification = assessClarificationNeed(message);
-    context.advancedSportsAnalysis = {
+    advancedAnalysis = {
       clarification,
       instructions: {
         askClarificationBeforeDeepAnalysis: clarification.needsClarification,
@@ -277,41 +347,71 @@ async function buildTargetedAgentContext(userId, message) {
         sportType,
         includeStreams: /(stream|détail|detail|intervalles?|derni[eè]re sortie|cardio|puissance|cadence|allure|vitesse)/i.test(message),
       });
-      context.advancedSportsAnalysis = {
-        ...context.advancedSportsAnalysis,
-        ...advanced.context,
+      const { scope, ...advancedContextWithoutInternalScope } = advanced.context || {};
+      advancedAnalysis = {
+        ...advancedAnalysis,
+        ...advancedContextWithoutInternalScope,
+        scope: { connectedUserOnly: true },
       };
       dataUsed.push(...advanced.dataUsed.filter(item => !dataUsed.includes(item)));
     }
   }
 
   if (intents.includes('recent_activities')) {
-    context.recent = await getActivitiesForPeriod(userId, { from: addDays(new Date(), -30), to: new Date(), sportType });
+    relevantSportsData.recentActivities = await getActivitiesForPeriod(userId, { from: addDays(new Date(), -30), to: new Date(), sportType });
     dataUsed.push('recent_activities_30d');
   }
   if (intents.includes('weekly_volume') || intents.includes('weekly_report')) {
-    context.currentWeek = await getCurrentWeek(userId, sportType);
+    relevantSportsData.currentWeek = await getCurrentWeek(userId, sportType);
     dataUsed.push('current_week_volume');
   }
   if (intents.includes('monthly_volume')) {
-    context.currentMonth = await getMonthlyVolume(userId, sportType);
+    relevantSportsData.currentMonth = await getMonthlyVolume(userId, sportType);
     dataUsed.push('current_month_volume');
   }
   if (intents.includes('compare_periods')) {
-    context.weekComparison = await compareRecentWeeks(userId, sportType);
+    relevantSportsData.weekComparison = await compareRecentWeeks(userId, sportType);
     dataUsed.push('current_vs_previous_week');
   }
   if (/record|meilleur|meilleure|pr\b|performance|fatigu|charg/.test(message.toLowerCase())) {
-    context.records = await getPersonalRecords(userId, sportType);
+    relevantSportsData.records = await getPersonalRecords(userId, sportType);
     dataUsed.push('personal_records_summary');
   }
 
-  context.limits = {
-    maxRangeDays: MAX_RANGE_DAYS,
-    rawSecretsExcluded: true,
-    activitiesAreSummarized: true,
+  const unavailable = [];
+  if (!userProfile) unavailable.push('user_profile');
+  if (weightTracking.missing.currentWeight) unavailable.push('current_weight');
+  if (weightTracking.missing.targetWeight) unavailable.push('target_weight');
+  if (!status.connected) unavailable.push('sport_connection');
+  if (!Object.keys(relevantSportsData).length) unavailable.push('specific_sports_data_not_required_for_intent');
+
+  const context = {
+    generatedAt: new Date().toISOString(),
+    intents,
+    temporalReference: {
+      ...now,
+      generatedAt: new Date().toISOString(),
+    },
+    userProfile,
+    activeGoals,
+    weightTracking,
+    sportConnectionStatus: {
+      provider: 'strava',
+      ...status,
+    },
+    relevantSportsData,
+    advancedAnalysis,
+    dataLimits: {
+      maxRangeDays: MAX_RANGE_DAYS,
+      rawSecretsExcluded: true,
+      activitiesAreSummarized: true,
+      rawStreamsExcluded: true,
+      unavailable,
+    },
   };
-  return { context, dataUsed };
+  context.dataConsulted = [...dataUsed];
+
+  return { context, dataUsed: context.dataConsulted };
 }
 
 function detectUnsafeRequest(message = '') {
@@ -335,7 +435,9 @@ function buildPendingAction(message = '', agentContext = {}) {
   }
 
   if (/objectif|goal/.test(m)) {
-    const weeklySessions = agentContext.currentWeek?.summary?.count || 0;
+    const weeklySessions = agentContext.relevantSportsData?.currentWeek?.summary?.count
+      ?? agentContext.currentWeek?.summary?.count
+      ?? 0;
     const target = Math.max(2, Math.min(6, weeklySessions + 1));
     return {
       type: 'create_goal',

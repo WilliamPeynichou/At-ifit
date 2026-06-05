@@ -109,25 +109,51 @@ describe('agentGuardrailsService', () => {
 });
 
 describe('aiCoachService guardrails', () => {
-  test('construit un prompt agentique sans exposer tokens, email ou mots de passe', () => {
+  test('construit un prompt agentique depuis le contexte unique sans exposer tokens, email ou mots de passe', () => {
     const prompt = buildSystemPrompt({
-      pseudo: 'Camille',
-      email: 'camille@example.test',
-      password: 'hashed',
-      stravaAccessToken: 'secret-access',
-      stravaRefreshToken: 'secret-refresh',
-      stravaConnected: true,
-      weightStats: { current: '72.5', trend: 'stable' },
-      recentActivities: [
-        { type: 'Ride', distance: '42.00 km', duration: '1h 30min', date: '2026-03-01T10:00:00Z' },
+      temporalReference: {
+        timeZone: 'Europe/Paris',
+        today: '2026-03-02',
+        todayHuman: 'lundi 2 mars 2026',
+        time: '11:00',
+      },
+      userProfile: {
+        pseudo: 'Camille',
+        email: 'camille@example.test',
+        password: 'hashed',
+        stravaAccessToken: 'secret-access',
+        stravaRefreshToken: 'secret-refresh',
+        age: 31,
+        targetWeight: 68,
+        estimatedDailyCalories: 2200,
+      },
+      activeGoals: [
+        { id: 3, type: 'distance_monthly', targetValue: 300, period: 'month', active: true },
       ],
+      weightTracking: {
+        latest: { date: '2026-03-01', weightKg: 72.5 },
+        trend: 'stable',
+      },
+      sportConnectionStatus: { provider: 'strava', connected: true, lastSyncAt: '2026-03-02T09:00:00Z' },
+      relevantSportsData: {
+        recentActivities: [
+          { type: 'Ride', distanceKm: 42, durationMinutes: 90, date: '2026-03-01T10:00:00Z' },
+        ],
+      },
+      dataLimits: { rawSecretsExcluded: true, activitiesAreSummarized: true },
+      dataConsulted: ['profile_without_secrets', 'active_goals', 'recent_activities_30d'],
     });
 
     expect(prompt).toMatch(/assistant sportif agentique sécurisé/i);
+    expect(prompt).toMatch(/source de vérité/i);
     expect(prompt).toMatch(/validation explicite/i);
     expect(prompt).toMatch(/donnée sportive manque/i);
+    expect(prompt).toMatch(/Europe\/Paris/);
     expect(prompt).toMatch(/Camille/);
-    expect(prompt).toMatch(/42\.00 km/);
+    expect(prompt).toMatch(/72\.5 kg/);
+    expect(prompt).toMatch(/300/);
+    expect(prompt).toMatch(/42(?:\.0)? km/);
+    expect(prompt).toMatch(/Données consultées/i);
     expect(prompt).not.toMatch(/secret-access|secret-refresh|hashed|camille@example\.test/i);
   });
 });
