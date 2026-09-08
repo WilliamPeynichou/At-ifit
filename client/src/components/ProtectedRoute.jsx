@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
         setNeedsOnboarding(false);
       } else {
         const profileIncomplete = !user.height || !user.age || !user.gender;
-        const stravaNotConnected = !user.stravaAccessToken;
+        const stravaNotConnected = !user.stravaConnected;
         setNeedsOnboarding(profileIncomplete || stravaNotConnected);
       }
       setCheckingOnboarding(false);

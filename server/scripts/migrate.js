@@ -94,8 +94,8 @@ async function runMigrations() {
   await addColumnIfMissing('Users', 'stravaRefreshToken',   'VARCHAR(600) NULL');
   await addColumnIfMissing('Users', 'stravaExpiresAt',      'INT NULL');
 
-  await sequelize.query("UPDATE `Users` SET `role` = 'super_admin' WHERE LOWER(`pseudo`) = 'wili' OR LOWER(SUBSTRING_INDEX(`email`, '@', 1)) = 'wili' OR LOWER(`email`) LIKE 'wili@%'");
-  console.log('  ✅ Compte wili promu super_admin si présent');
+  // Les rôles privilégiés ne sont jamais attribués automatiquement par une migration.
+  // Utiliser une procédure administrative explicite et auditée pour promouvoir un compte.
 
   // ── Observabilité super admin ───────────────────────────────────────────────
   await createObservabilityTableIfMissing('AuditLogs', `

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../api';
 import UserProfile from './UserProfile';
@@ -8,7 +7,6 @@ import { X, CheckCircle2, Circle, ArrowRight } from 'lucide-react';
 
 const Onboarding = () => {
   const { t } = useLanguage();
-  const { user, loadUser } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [profileComplete, setProfileComplete] = useState(false);
@@ -17,7 +15,6 @@ const Onboarding = () => {
 
   useEffect(() => {
     checkStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkStatus = async () => {
@@ -29,7 +26,7 @@ const Onboarding = () => {
 
       const hasProfile = freshUser && freshUser.height && freshUser.age && freshUser.gender;
       setProfileComplete(!!hasProfile);
-      setStravaConnected(!!freshUser.stravaAccessToken);
+      setStravaConnected(Boolean(freshUser.stravaConnected));
     } catch (error) {
       console.error('Error checking status:', error);
       setProfileComplete(false);
@@ -85,7 +82,8 @@ const Onboarding = () => {
       if (code) {
         try {
           setLoading(true);
-          await api.post('/strava/connect', { code });
+          const state = urlParams.get('state');
+          await api.post('/strava/connect', { code, state });
           await checkStatus();
           setCurrentStep(2);
           // Clean URL

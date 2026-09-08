@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
@@ -27,7 +28,7 @@ const generateAccessToken = (userId) => {
  */
 const generateRefreshToken = (userId) => {
   return jwt.sign(
-    { id: userId, type: 'refresh' },
+    { id: userId, type: 'refresh', jti: crypto.randomUUID() },
     process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRE || '5d' }
   );
@@ -47,7 +48,16 @@ const formatUserResponse = (user) => ({
   targetWeight: user.targetWeight,
   consoKcal: user.consoKcal,
   weeksToGoal: user.weeksToGoal,
-  country: user.country
+  country: user.country,
+  imc: user.imc,
+  restHeartrate: user.restHeartrate,
+  bikeType: user.bikeType,
+  cyclingGoal: user.cyclingGoal,
+  stravaAthleteId: user.stravaAthleteId || null,
+  stravaConnected: Boolean(user.stravaAthleteId && user.stravaAccessToken && user.stravaRefreshToken),
+  stravaTokenStatus: user.stravaAthleteId
+    ? (user.stravaAccessToken && user.stravaRefreshToken ? 'present' : 'reconnect_required')
+    : 'not_connected'
 });
 
 // Register
@@ -220,7 +230,7 @@ router.get('/me', auth, asyncHandler(async (req, res) => {
     return sendError(res, 'User not found', 404);
   }
   
-  sendSuccess(res, user);
+  sendSuccess(res, formatUserResponse(user));
 }));
 
 // Refresh access token

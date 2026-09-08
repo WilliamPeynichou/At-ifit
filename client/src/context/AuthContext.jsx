@@ -36,17 +36,19 @@ export const AuthProvider = ({ children }) => {
     initLoad();
     
     // Écouter les changements du localStorage (quand l'intercepteur supprime les tokens)
-    const handleStorageChange = () => {
-      const currentToken = localStorage.getItem('accessToken');
-      if (!currentToken && accessToken) {
-        setAccessToken(null);
-        setRefreshToken(null);
+    const handleTokenUpdate = () => {
+      const currentAccessToken = localStorage.getItem('accessToken');
+      const currentRefreshToken = localStorage.getItem('refreshToken');
+      setAccessToken(currentAccessToken);
+      setRefreshToken(currentRefreshToken);
+      if (!currentAccessToken) {
         setUser(null);
         setLoading(false);
       }
     };
-    
-    window.addEventListener('storage', handleStorageChange);
+
+    window.addEventListener('storage', handleTokenUpdate);
+    window.addEventListener('auth-tokens-updated', handleTokenUpdate);
     
     // Timeout de sécurité pour éviter le blocage infini
     const timeout = setTimeout(() => {
@@ -59,7 +61,8 @@ export const AuthProvider = ({ children }) => {
     return () => {
       mounted = false;
       clearTimeout(timeout);
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage', handleTokenUpdate);
+      window.removeEventListener('auth-tokens-updated', handleTokenUpdate);
     };
   }, [accessToken]);
 
@@ -140,8 +143,14 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.post('/auth/refresh', { refreshToken: refresh });
       const newAccessToken = res.data.accessToken;
+      const newRefreshToken = res.data.refreshToken;
+      if (!newAccessToken || !newRefreshToken) {
+        throw new Error('Invalid token refresh response');
+      }
       setAccessToken(newAccessToken);
+      setRefreshToken(newRefreshToken);
       localStorage.setItem('accessToken', newAccessToken);
+      localStorage.setItem('refreshToken', newRefreshToken);
       return newAccessToken;
     } catch (error) {
       logout();

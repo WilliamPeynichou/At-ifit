@@ -24,6 +24,7 @@ const superAdminRoutes = require('./routes/superAdmin');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
 const { errorHandler, notFoundHandler, asyncHandler, sendSuccess, sendError } = require('./middleware/errorHandler');
+const { generalLimiter } = require('./middleware/rateLimiter');
 const { updateUserIMCAndCalories } = require('./utils/userCalculations');
 const logger = require('./utils/logger');
 
@@ -86,6 +87,10 @@ app.use(cors({
 // Limite la taille des payloads JSON
 app.use(express.json({ limit: '10kb' }));
 
+// Limitation générale de l'API. Les endpoints qui ont une politique plus stricte
+// (auth, IA, webhook) conservent également leur limiteur dédié.
+app.use('/api', generalLimiter);
+
 // Database Associations
 User.hasMany(Weight, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Weight.belongsTo(User, { foreignKey: 'userId' });
@@ -113,24 +118,17 @@ StravaApiLog.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(AiUsageLog, { foreignKey: 'userId', onDelete: 'SET NULL' });
 AiUsageLog.belongsTo(User, { foreignKey: 'userId' });
 
-// Test Database Connection, Sync and Migrate
+// Database bootstrap. Le service n'écoute qu'une fois MySQL et les migrations prêts.
 const { runMigrations } = require('./scripts/migrate');
-sequelize.authenticate()
-  .then(() => {
-    logger.info('✅ Connexion à MySQL établie avec succès');
-    return sequelize.sync({ force: false, alter: false });
-  })
-  .then(() => {
-    logger.info('✅ Tables synchronisées');
-    return runMigrations();
-  })
-  .then(() => {
-    logger.info('✅ Migrations appliquées');
-  })
-  .catch((error) => {
-    logger.error('❌ Erreur de connexion/synchronisation MySQL:', error.message);
-    logger.warn('⚠️  Le serveur continuera malgré l\'erreur de base de données');
-  });
+
+async function initializeDatabase() {
+  await sequelize.authenticate();
+  logger.info('✅ Connexion à MySQL établie avec succès');
+  await sequelize.sync({ force: false, alter: false });
+  logger.info('✅ Tables synchronisées');
+  await runMigrations();
+  logger.info('✅ Migrations appliquées');
+}
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -288,14 +286,26 @@ app.use(notFoundHandler);
 // Global Error Handler (must be last)
 app.use(errorHandler);
 
-// Start Server
-app.listen(PORT, () => {
-  logger.info(`Server running on http://localhost:${PORT}`);
-});
+// Start Server only after the database is ready
+let server;
+initializeDatabase()
+  .then(() => {
+    server = app.listen(PORT, () => {
+      logger.info(`Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch(async (error) => {
+    logger.error('❌ Démarrage annulé : base de données ou migrations indisponibles', { error: error.message });
+    try { await sequelize.close(); } catch { /* connexion déjà fermée */ }
+    process.exit(1);
+  });
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM signal received: closing HTTP server');
+  if (server) {
+    await new Promise(resolve => server.close(resolve));
+  }
   await sequelize.close();
   process.exit(0);
 });

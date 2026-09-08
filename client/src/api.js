@@ -10,6 +10,13 @@ const api = axios.create({
   baseURL: apiBaseURL,
 });
 
+// Client sans intercepteur d'auth : évite qu'un échec de /refresh ne tente
+// lui-même un nouveau refresh et ne crée une boucle/file bloquée.
+const refreshClient = axios.create({
+  baseURL: apiBaseURL,
+  timeout: 5000,
+});
+
 // Flag to prevent multiple simultaneous refresh attempts
 let isRefreshing = false;
 let failedQueue = [];
@@ -82,13 +89,16 @@ api.interceptors.response.use(
       }
 
       try {
-        const response = await Promise.race([
-          api.post('/auth/refresh', { refreshToken }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Refresh timeout after 5s')), 5000))
-        ]);
-        const { accessToken } = response.data;
-        
+        const response = await refreshClient.post('/auth/refresh', { refreshToken });
+        const { accessToken, refreshToken: rotatedRefreshToken } = response.data;
+
+        if (!accessToken || !rotatedRefreshToken) {
+          throw new Error('Invalid token refresh response');
+        }
+
         localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', rotatedRefreshToken);
+        window.dispatchEvent(new Event('auth-tokens-updated'));
         processQueue(null, accessToken);
         isRefreshing = false;
         

@@ -109,7 +109,8 @@ function Badge({ children, tone = 'neutral' }) {
   );
 }
 
-function StatCard({ label, value, icon: Icon, tone = 'info' }) {
+function StatCard({ label, value, icon, tone = 'info' }) {
+  const IconComponent = icon;
   return (
     <Card>
       <div className="flex items-start justify-between gap-3">
@@ -118,7 +119,7 @@ function StatCard({ label, value, icon: Icon, tone = 'info' }) {
           <p className="text-2xl font-black mt-2" style={{ color: 'var(--text-primary)' }}>{formatNumber(value)}</p>
         </div>
         <div className="rounded-xl p-2" style={{ background: tone === 'bad' ? 'rgba(220,38,38,0.10)' : 'var(--accent-blue-light)' }}>
-          <Icon className="w-5 h-5" style={{ color: tone === 'bad' ? '#dc2626' : 'var(--accent-blue)' }} />
+          <IconComponent className="w-5 h-5" style={{ color: tone === 'bad' ? '#dc2626' : 'var(--accent-blue)' }} />
         </div>
       </div>
     </Card>

@@ -51,6 +51,7 @@ const StravaCallback = () => {
   const navigate = useNavigate();
   const { loadUser } = useAuth();
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
   const callbackError = searchParams.get('error');
   const handledRef = useRef(false);
   const [status, setStatus] = useState('loading');
@@ -111,7 +112,7 @@ const StravaCallback = () => {
 
       try {
         if (!pendingOAuthConnections.has(code)) {
-          pendingOAuthConnections.set(code, api.post('/strava/connect', { code }));
+          pendingOAuthConnections.set(code, api.post('/strava/connect', { code, state }));
         }
 
         await pendingOAuthConnections.get(code);
@@ -140,7 +141,7 @@ const StravaCallback = () => {
     };
 
     handleCallback();
-  }, [code, callbackError, loadUser, navigate]);
+  }, [code, state, callbackError, loadUser, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900">

@@ -30,7 +30,7 @@ describe('super admin backend contract', () => {
     expect(allowedValues).toEqual(expect.arrayContaining(['user', 'admin', 'super_admin']));
   });
 
-  test('la migration ajoute les rôles, promeut wili et crée les journaux observabilité', () => {
+  test('la migration ajoute les rôles sans promotion nominative et crée les journaux observabilité', () => {
     const migrationSources = readAllFiles(path.join(serverRoot, 'migrations'), (file) => file.endsWith('.js'))
       .map(readIfExists)
       .join('\n');
@@ -38,7 +38,7 @@ describe('super admin backend contract', () => {
     expect(migrationSources).toMatch(/(?:addColumn|addColumnIfMissing)\(['"]Users['"],\s*['"]role['"]/);
     expect(migrationSources).toMatch(/defaultValue:\s*['"]user['"]/);
     expect(migrationSources).toMatch(/super_admin/);
-    expect(migrationSources).toMatch(/wili/i);
+    expect(migrationSources).not.toMatch(/UPDATE\s+`?Users`?[\s\S]*SET\s+`?role`?\s*=\s*['"]super_admin/i);
     expect(migrationSources).toMatch(/createTable\(['"]AuditLogs['"]/);
     expect(migrationSources).toMatch(/createTable\(['"]StravaApiLogs['"]/);
     expect(migrationSources).toMatch(/createTable\(['"]AiUsageLogs['"]/);

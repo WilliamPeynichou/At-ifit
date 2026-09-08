@@ -32,7 +32,7 @@ const FilterBtn = ({ active, onClick, children }) => (
 );
 
 const YearlyProgress = ({ activities: providedActivities, hideRunning = false }) => {
-  const { queryParams, fromISO, toISO } = useTemporal();
+  const { queryParams } = useTemporal();
   const [fetchedActivities, setFetchedActivities] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false })
         setFetchedActivities(Array.isArray(actRes?.data) ? actRes.data : []);
       }
     }).finally(() => setLoading(false));
-  }, [fromISO, toISO, providedActivities]);
+  }, [queryParams, providedActivities]);
 
   // Années disponibles dans les données
   const availableYears = useMemo(() => {

@@ -37,11 +37,11 @@ const StravaConnect = () => {
     }
   }, []);
 
-  const handleConnect = useCallback(async (code) => {
+  const handleConnect = useCallback(async (code, state) => {
     setLoading(true);
     setError('');
     try {
-      const response = await api.post('/strava/connect', { code });
+      const response = await api.post('/strava/connect', { code, state });
       setSuccess(true);
       setIsConnected(true);
       if (response.data?.athlete) {
@@ -60,6 +60,7 @@ const StravaConnect = () => {
   useEffect(() => {
     checkStravaStatus();
     const code = searchParams.get('code');
+    const state = searchParams.get('state');
     const errorParam = searchParams.get('error');
     const redirectedError = location.state?.stravaError;
 
@@ -70,7 +71,7 @@ const StravaConnect = () => {
       setError('Strava authentication failed. Please try again.');
     } else if (code && processedCodeRef.current !== code) {
       processedCodeRef.current = code;
-      handleConnect(code);
+      handleConnect(code, state);
     }
 
     // Nettoyage d'éventuels résidus de l'ancien flux (login → OAuth via sessionStorage)

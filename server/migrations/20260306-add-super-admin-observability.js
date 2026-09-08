@@ -20,10 +20,6 @@ module.exports = {
       defaultValue: 'user',
     });
 
-    await queryInterface.sequelize.query(
-      "UPDATE `Users` SET `role` = 'super_admin' WHERE LOWER(`pseudo`) = 'wili' OR LOWER(SUBSTRING_INDEX(`email`, '@', 1)) = 'wili'"
-    );
-
     if (!(await hasTable('AuditLogs'))) {
       await queryInterface.createTable('AuditLogs', {
         id: { type: Sequelize.INTEGER, allowNull: false, autoIncrement: true, primaryKey: true },

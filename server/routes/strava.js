@@ -109,10 +109,24 @@ router.get('/callback', (req, res) => {
 });
 
 router.post('/connect', auth, asyncHandler(async (req, res) => {
-  const { code } = req.body;
+  const { code, state } = req.body;
   
   if (!code) {
     return sendError(res, 'Authorization code is required', 400);
+  }
+
+  if (!state) {
+    return sendError(res, 'OAuth state is required', 400);
+  }
+
+  try {
+    const decodedState = jwt.verify(state, process.env.JWT_SECRET);
+    if (decodedState.type !== OAUTH_STATE_TYPE || Number(decodedState.userId) !== Number(req.userId)) {
+      return sendError(res, 'Invalid OAuth state', 401);
+    }
+  } catch (error) {
+    logger.warn('Strava connect rejected: invalid OAuth state', { userId: req.userId, reason: error.message });
+    return sendError(res, 'Invalid or expired OAuth state', 401);
   }
   
   const { clientId, clientSecret, redirectUri } = getStravaCredentials(req.userId);

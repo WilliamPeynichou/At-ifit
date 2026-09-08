@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area
 } from 'recharts';
@@ -16,7 +16,6 @@ const Dashboard = () => {
   const { t } = useLanguage();
   const [weights, setWeights] = useState([]);
   const [combinedData, setCombinedData] = useState([]);
-  const [intensityData, setIntensityData] = useState([]);
   const [metric, setMetric] = useState('distance');
   const [activityTypes, setActivityTypes] = useState([]);
   const [user, setUser] = useState(null);
@@ -32,7 +31,7 @@ const Dashboard = () => {
     'Default': '#94a3b8'
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [weightsRes, userRes, stravaRes] = await Promise.allSettled([
         api.get('/weight'),
@@ -50,7 +49,6 @@ const Dashboard = () => {
 
       if (weightsRes.status === 'fulfilled') {
         processCombinedData(weightsRes.value.data, activities);
-        processIntensityData(weightsRes.value.data, activities);
       }
 
     } catch (error) {
@@ -58,7 +56,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const processCombinedData = (weightData, activityData) => {
     const dateMap = new Set();
@@ -116,49 +114,9 @@ const Dashboard = () => {
     setCombinedData(merged);
   };
 
-  const processIntensityData = (weightData, activityData) => {
-    const dateMap = new Set();
-    weightData.forEach(w => dateMap.add(new Date(w.date).toDateString()));
-    activityData.forEach(a => dateMap.add(new Date(a.startDate || a.start_date).toDateString()));
-
-    const sortedDates = Array.from(dateMap)
-      .map(d => new Date(d))
-      .sort((a, b) => a - b);
-
-    let lastKnownWeight = null;
-    const merged = sortedDates.map(date => {
-      const dateStr = date.toDateString();
-
-      const weightEntry = weightData.find(w => new Date(w.date).toDateString() === dateStr);
-      if (weightEntry) lastKnownWeight = weightEntry.weight;
-
-      const dayActivities = activityData.filter(a => new Date(a.startDate || a.start_date).toDateString() === dateStr);
-
-      const entry = {
-        date: date.toISOString(),
-        displayDate: date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
-        weight: lastKnownWeight,
-        actualWeight: weightEntry ? weightEntry.weight : null,
-      };
-
-      dayActivities.forEach(a => {
-        const type = a.type || 'Unknown';
-        const sufferScore = a.sufferScore ?? a.suffer_score;
-        if (sufferScore !== null && sufferScore !== undefined) {
-          const effortKey = `${type}_effort`;
-          entry[effortKey] = parseFloat(((entry[effortKey] || 0) + sufferScore).toFixed(1));
-        }
-      });
-
-      return entry;
-    });
-
-    setIntensityData(merged);
-  };
-
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const currentWeight = weights.length > 0 ? weights[weights.length - 1].weight : 0;
   const startWeight = weights.length > 0 ? weights[0].weight : 0;

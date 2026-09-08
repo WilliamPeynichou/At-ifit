@@ -31,17 +31,18 @@ const authLimiter = rateLimit({
 
 /**
  * Rate limiter général pour les routes protégées
- * Limite à 100 requêtes par 15 minutes par IP
+ * Limite configurable (300 requêtes par défaut) par 15 minutes et par IP
  */
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requêtes max par fenêtre
+  max: parseInt(process.env.GENERAL_RATE_LIMIT_MAX || '300', 10),
   message: {
     success: false,
     error: 'Too many requests, please try again later'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => req.path === '/health'
 });
 
 /**

@@ -22,7 +22,7 @@ const tooltipItemStyle = { color: '#ffffff' };
 const tooltipLabelStyle = { color: '#ffffff', fontWeight: 600 };
 
 const HeartRateZones = ({ activities: providedActivities }) => {
-  const { queryParams, fromISO, toISO } = useTemporal();
+  const { queryParams } = useTemporal();
   const [zones, setZones] = useState(null);
   const [distribution, setDistribution] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ const HeartRateZones = ({ activities: providedActivities }) => {
         })).filter(d => d.value > 0)
       );
     }).finally(() => setLoading(false));
-  }, [fromISO, toISO, providedActivities]);
+  }, [queryParams, providedActivities]);
 
   const hasData = distribution.length > 0;
 

@@ -1,29 +1,30 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import StravaConnect from './pages/StravaConnect';
-import StravaStats from './pages/StravaStats';
-import CyclingDashboard from './pages/CyclingDashboard';
-import RunningDashboard from './pages/RunningDashboard';
-import SwimmingDashboard from './pages/SwimmingDashboard';
-import KcalCalculator from './components/KcalCalculator';
-import Onboarding from './components/Onboarding';
-import StatsExplanation from './pages/StatsExplanation';
-import NewUserProfile from './pages/NewUserProfile';
-import NewUserWeight from './pages/NewUserWeight';
-import NewUserStrava from './pages/NewUserStrava';
-import StravaCallback from './pages/StravaCallback';
-import Chatbot from './components/Chatbot';
-import Assistant from './pages/Assistant';
-import SuperAdmin from './pages/SuperAdmin';
 import ParticlesBackground from './components/ParticlesBackground';
 import CyclistLoader from './components/CyclistLoader';
+
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const StravaConnect = lazy(() => import('./pages/StravaConnect'));
+const StravaStats = lazy(() => import('./pages/StravaStats'));
+const CyclingDashboard = lazy(() => import('./pages/CyclingDashboard'));
+const RunningDashboard = lazy(() => import('./pages/RunningDashboard'));
+const SwimmingDashboard = lazy(() => import('./pages/SwimmingDashboard'));
+const KcalCalculator = lazy(() => import('./components/KcalCalculator'));
+const Onboarding = lazy(() => import('./components/Onboarding'));
+const StatsExplanation = lazy(() => import('./pages/StatsExplanation'));
+const NewUserProfile = lazy(() => import('./pages/NewUserProfile'));
+const NewUserWeight = lazy(() => import('./pages/NewUserWeight'));
+const NewUserStrava = lazy(() => import('./pages/NewUserStrava'));
+const StravaCallback = lazy(() => import('./pages/StravaCallback'));
+const Chatbot = lazy(() => import('./components/Chatbot'));
+const Assistant = lazy(() => import('./pages/Assistant'));
+const SuperAdmin = lazy(() => import('./pages/SuperAdmin'));
 
 function AppInner() {
   const { loading, user } = useAuth();
@@ -34,7 +35,8 @@ function AppInner() {
     <div className="min-h-screen antialiased overflow-x-hidden relative" style={{ color: 'var(--text-primary)' }}>
       <ParticlesBackground />
       <div className="relative z-10">
-        <Routes>
+        <Suspense fallback={<CyclistLoader />}>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
@@ -181,9 +183,10 @@ function AppInner() {
           />
           <Route path="/strava-callback" element={<StravaCallback />} />
           <Route path="/api/strava/callback" element={<StravaCallback />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </div>
-      {user && <div className="hidden md:block"><Chatbot isOpen={isChatOpen} setIsOpen={setIsChatOpen} /></div>}
+      {user && <div className="hidden md:block"><Suspense fallback={null}><Chatbot isOpen={isChatOpen} setIsOpen={setIsChatOpen} /></Suspense></div>}
     </div>
   );
 }

@@ -10,7 +10,7 @@ const ZONE_LABELS = ['Z1 Récup', 'Z2 Endurance', 'Z3 Tempo', 'Z4 Seuil', 'Z5 VO
 const formatMin = (s) => Math.round((s || 0) / 60);
 
 const TimeInZones = () => {
-  const { queryParams, fromISO, toISO } = useTemporal();
+  const { queryParams } = useTemporal();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,7 +24,7 @@ const TimeInZones = () => {
       .then(res => setData(res.data))
       .catch(err => setError(err.response?.data?.error || err.message))
       .finally(() => setLoading(false));
-  }, [hrMax, hrRest, fromISO, toISO]);
+  }, [hrMax, hrRest, queryParams]);
 
   if (loading) {
     return (

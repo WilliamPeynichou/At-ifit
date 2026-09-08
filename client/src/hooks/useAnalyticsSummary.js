@@ -58,7 +58,7 @@ export default function useAnalyticsSummary() {
     }
 
     return () => { cancelled = true; };
-  }, [key]); // re-run uniquement quand la clé change
+  }, [key, queryParams]);
 
   return { data, loading, error };
 }

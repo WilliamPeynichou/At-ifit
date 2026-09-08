@@ -58,7 +58,7 @@ const TrainingLoad = () => {
       .then(res => setData(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [fromISO, toISO]);
+  }, [from, to, fromISO, toISO]);
 
   const latest = data[data.length - 1];
   const currentStatus = latest ? STATUS[latest.status] : null;

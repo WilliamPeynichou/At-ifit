@@ -7,7 +7,7 @@ const CATEGORY_ICON = { bike: '🚴', shoe: '👟' };
 const CATEGORY_LABEL = { bike: 'Vélo', shoe: 'Chaussures' };
 
 const GearTracker = () => {
-  const { queryParams, fromISO, toISO } = useTemporal();
+  const { queryParams } = useTemporal();
   const [gear, setGear] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,7 +17,7 @@ const GearTracker = () => {
       .then(res => setGear(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [fromISO, toISO]);
+  }, [queryParams]);
 
   if (loading) {
     return (

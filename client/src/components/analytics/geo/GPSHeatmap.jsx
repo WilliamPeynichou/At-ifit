@@ -30,7 +30,7 @@ const FitBounds = ({ paths }) => {
 };
 
 const GPSHeatmap = () => {
-  const { queryParams, fromISO, toISO } = useTemporal();
+  const { queryParams } = useTemporal();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -41,7 +41,7 @@ const GPSHeatmap = () => {
       .then(res => setActivities(res.data || []))
       .catch(() => setActivities([]))
       .finally(() => setLoading(false));
-  }, [fromISO, toISO]);
+  }, [queryParams]);
 
   const paths = useMemo(() => {
     return activities

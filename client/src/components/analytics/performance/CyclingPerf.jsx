@@ -19,7 +19,7 @@ const FTP_SOURCE_LABELS = {
 };
 
 const CyclingPerf = ({ activities, hideKpis = false }) => {
-  const { queryParams, fromISO, toISO } = useTemporal();
+  const { fromISO, toISO } = useTemporal();
   const [profile, setProfile] = useState(null);
   const [rides, setRides] = useState([]);
   const [loadingExtra, setLoadingExtra] = useState(true);
@@ -27,8 +27,8 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
   useEffect(() => {
     setLoadingExtra(true);
     Promise.all([
-      api.get('/cycling/profile'),
-      api.get('/cycling/rides?limit=20'),
+      api.get(`/cycling/profile?from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}`),
+      api.get(`/cycling/rides?limit=20&from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}`),
     ])
       .then(([profileRes, ridesRes]) => {
         setProfile(profileRes.data || null);
