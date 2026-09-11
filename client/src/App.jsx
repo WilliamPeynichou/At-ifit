@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const StravaConnect = lazy(() => import('./pages/StravaConnect'));
 const StravaStats = lazy(() => import('./pages/StravaStats'));
 const CyclingDashboard = lazy(() => import('./pages/CyclingDashboard'));
+const Nutrition = lazy(() => import('./pages/Nutrition'));
 const RunningDashboard = lazy(() => import('./pages/RunningDashboard'));
 const SwimmingDashboard = lazy(() => import('./pages/SwimmingDashboard'));
 const KcalCalculator = lazy(() => import('./components/KcalCalculator'));
@@ -85,6 +86,16 @@ function AppInner() {
               <ProtectedRoute>
                 <Layout>
                   <CyclingDashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/nutrition"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Nutrition />
                 </Layout>
               </ProtectedRoute>
             }

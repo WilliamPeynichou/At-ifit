@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert } from 'lucide-react';
+import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import Footer from './Footer';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { path: '/running-dashboard', label: 'Running', icon: Route },
   { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
   { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
+  { path: '/nutrition', label: 'Nutrition', icon: Apple },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
   SUPER_ADMIN_NAV_ITEM,
 ];
@@ -23,6 +24,7 @@ const MOBILE_NAV_ITEMS = [
   { path: '/running-dashboard', label: 'Running', icon: Route },
   { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
   { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
+  { path: '/nutrition', label: 'Nutrition', icon: Apple },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
   SUPER_ADMIN_NAV_ITEM,
   { path: '/new-user-profile', label: 'Profil', icon: User },

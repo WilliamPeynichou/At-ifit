@@ -1,0 +1,40 @@
+{
+  "knowledgeVersion": "1.0.0",
+  "updatedAt": "2026-09-11",
+  "scope": "during-effort carbohydrate, fluid and sodium targets for endurance sport",
+  "population": "healthy adults aged 18 and over",
+  "excluded": [
+    "minors",
+    "pregnancy",
+    "diagnosed metabolic, renal or cardiac disease",
+    "eating disorders"
+  ],
+  "disclaimer": "Recommandations générales de nutrition sportive. Ne remplacent ni un médecin ni un diététicien. Aucune carence n'est diagnostiquée.",
+  "references": [
+    {
+      "id": "jeukendrup2014",
+      "citation": "Jeukendrup A. A step towards personalized sports nutrition: carbohydrate intake during exercise. Sports Med. 2014;44(S1):25-33.",
+      "usedFor": ["carbohydrates.duringExercise"]
+    },
+    {
+      "id": "acsm2016",
+      "citation": "Thomas DT, Erdman KA, Burke LM. ACSM Position Stand: Nutrition and Athletic Performance. Med Sci Sports Exerc. 2016;48(3):543-568.",
+      "usedFor": ["carbohydrates.duringExercise", "protein.recovery", "hydration.general"]
+    },
+    {
+      "id": "sawka2007",
+      "citation": "Sawka MN et al. ACSM Position Stand: Exercise and Fluid Replacement. Med Sci Sports Exerc. 2007;39(2):377-390.",
+      "usedFor": ["hydration.duringExercise", "sodium.duringExercise"]
+    },
+    {
+      "id": "hew-butler2015",
+      "citation": "Hew-Butler T et al. Statement of the 3rd International Exercise-Associated Hyponatremia Consensus. Clin J Sport Med. 2015;25(4):303-320.",
+      "usedFor": ["hydration.safetyCap", "sodium.duringExercise"]
+    },
+    {
+      "id": "burke2011",
+      "citation": "Burke LM, Hawley JA, Wong SH, Jeukendrup AE. Carbohydrates for training and competition. J Sports Sci. 2011;29(S1):S17-27.",
+      "usedFor": ["carbohydrates.preExercise", "carbohydrates.recovery"]
+    }
+  ]
+}

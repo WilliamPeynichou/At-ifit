@@ -20,6 +20,7 @@ const statsRoutes = require('./routes/stats');
 const stravaWebhookRoutes = require('./routes/stravaWebhook');
 const goalsRoutes = require('./routes/goals');
 const cyclingRoutes = require('./routes/cycling');
+const nutritionRoutes = require('./routes/nutrition');
 const superAdminRoutes = require('./routes/superAdmin');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
@@ -139,6 +140,7 @@ app.use('/api/ai-coach', aiCoachRoutes);
 app.use('/ai-coach', aiCoachRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/cycling', cyclingRoutes);
+app.use('/api/nutrition', nutritionRoutes);
 // Webhook Strava — route publique (pas d'auth JWT, Strava appelle directement)
 app.use('/api/webhook', stravaWebhookRoutes);
 app.use('/api/goals', goalsRoutes);
