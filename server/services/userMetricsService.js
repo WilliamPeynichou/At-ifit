@@ -3,11 +3,22 @@ const Activity = require('../models/Activity');
 const User = require('../models/User');
 
 const DEFAULT_HR_REST = 60;
-const HR_MAX_FLOOR_FALLBACK = 180;
+const DEFAULT_HR_MAX = 180;
 
 async function resolveMaxHeartrate(userId) {
-  // Priorité 1 : FC max observée sur activités. Une mesure réelle prime toujours sur une formule de population.
-  // Seuil 140 bpm pour éviter qu'une sortie d'endurance basse ne soit prise comme "vraie" FC max.
+  // Priorité 1 : valeur mesurée/testée explicitement saisie par l’athlète.
+  const user = await User.findByPk(userId, { attributes: ['maxHeartrate', 'age'] });
+  const userInput = Number(user?.maxHeartrate);
+  if (Number.isFinite(userInput) && userInput >= 100 && userInput <= 230) {
+    return {
+      value: userInput,
+      source: 'user_input',
+      confidence: 'high',
+    };
+  }
+
+  // Priorité 2 : FC max observée sur activités. Le seuil bas filtre les sorties
+  // qui ne se rapprochent manifestement pas d'un maximum physiologique.
   const maxHrRow = await Activity.findOne({
     where: { userId, maxHeartrate: { [Op.not]: null } },
     attributes: [[fn('MAX', col('maxHeartrate')), 'maxHr']],
@@ -18,12 +29,11 @@ async function resolveMaxHeartrate(userId) {
     return {
       value: observed,
       source: 'observed_max',
-      confidence: 'high',
+      confidence: 'medium',
     };
   }
 
-  // Priorité 2 : formule de Tanaka (2001) si âge dispo.
-  const user = await User.findByPk(userId, { attributes: ['age'] });
+  // Priorité 3 : formule de Tanaka (2001) si âge disponible.
   if (user?.age && user.age > 0 && user.age < 110) {
     return {
       value: Math.round(208 - 0.7 * user.age),
@@ -32,10 +42,10 @@ async function resolveMaxHeartrate(userId) {
     };
   }
 
-  // Priorité 3 : plancher arbitraire.
+  // Priorité 4 : défaut explicite, uniquement faute de donnée individuelle.
   return {
-    value: HR_MAX_FLOOR_FALLBACK,
-    source: 'default_floor',
+    value: DEFAULT_HR_MAX,
+    source: 'default',
     confidence: 'low',
   };
 }
@@ -56,19 +66,32 @@ async function resolveRestHeartrate(userId) {
   };
 }
 
+function validOverride(value, min, max) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
+}
+
 async function resolveHrLimits(userId, overrides = {}) {
+  const maxOverride = validOverride(overrides.hrMax, 100, 230);
+  const restOverride = validOverride(overrides.hrRest, 30, 100);
   const [maxResolved, restResolved] = await Promise.all([
-    overrides.hrMax ? Promise.resolve({ value: Number(overrides.hrMax), source: 'override', confidence: 'high' }) : resolveMaxHeartrate(userId),
-    overrides.hrRest ? Promise.resolve({ value: Number(overrides.hrRest), source: 'override', confidence: 'high' }) : resolveRestHeartrate(userId),
+    maxOverride !== null ? Promise.resolve({ value: maxOverride, source: 'override', confidence: 'high' }) : resolveMaxHeartrate(userId),
+    restOverride !== null ? Promise.resolve({ value: restOverride, source: 'override', confidence: 'high' }) : resolveRestHeartrate(userId),
   ]);
+
+  // Des limites incohérentes rendent Karvonen/TRIMP invalides. On conserve la
+  // FC max résolue et remplace uniquement la FC de repos fautive par le défaut.
+  const safeRest = restResolved.value < maxResolved.value
+    ? restResolved
+    : { value: DEFAULT_HR_REST, source: 'default_invalid_pair', confidence: 'low' };
 
   return {
     hrMax: maxResolved.value,
-    hrRest: restResolved.value,
+    hrRest: safeRest.value,
     hrMaxSource: maxResolved.source,
-    hrRestSource: restResolved.source,
+    hrRestSource: safeRest.source,
     hrMaxConfidence: maxResolved.confidence,
-    hrRestConfidence: restResolved.confidence,
+    hrRestConfidence: safeRest.confidence,
   };
 }
 
@@ -77,5 +100,5 @@ module.exports = {
   resolveRestHeartrate,
   resolveHrLimits,
   DEFAULT_HR_REST,
-  HR_MAX_FLOOR_FALLBACK,
+  DEFAULT_HR_MAX,
 };

@@ -1,6 +1,6 @@
 {
   "name": "projetapplisport",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Application de suivi sportif et nutritionnel intelligent, connectée à Strava.",
   "main": "index.js",
   "scripts": {

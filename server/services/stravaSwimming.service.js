@@ -89,14 +89,14 @@ async function getAllSwimmingActivities(userId, { triggerSync = false } = {}) {
 
   const activities = filterSwimmingActivities(rows);
   activities.forEach(activity => {
-    activity.trainingLoad = calculateSwimTrainingLoad(activity, { estimatedMaxHeartRate: hrMaxResolved.value || 190 });
+    activity.trainingLoad = calculateSwimTrainingLoad(activity, { estimatedMaxHeartRate: hrMaxResolved.value });
     activity.trainingLoadSource = activity.averageHeartRate ? 'heart_rate' : 'estimated_without_hr';
   });
 
   return {
     user,
     hrMax: {
-      value: hrMaxResolved.value || 190,
+      value: hrMaxResolved.value,
       source: hrMaxResolved.source || 'default',
       confidence: hrMaxResolved.confidence || 'low',
     },

@@ -14,10 +14,18 @@ const {
   buildPowerZones,
   calculateZoneDurations,
   classifyCyclist,
+  getCyclingProfile,
   median,
 } = require('../services/cyclingProfileService');
+const Activity = require('../models/Activity');
+const User = require('../models/User');
+const Weight = require('../models/Weight');
+const { getPowerCurve } = require('../services/stravaAnalytics');
+const { resolveMaxHeartrate } = require('../services/userMetricsService');
 
 describe('cyclingProfileService helpers', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   test('classifie le niveau Coggan depuis les W/kg', () => {
     expect(classifyCyclist(1.9)).toBe('Untrained');
     expect(classifyCyclist(2.4)).toBe('Recreational');
@@ -56,6 +64,44 @@ describe('cyclingProfileService helpers', () => {
     expect(durations.find(zone => zone.key === 'z2').seconds).toBe(20);
     expect(durations.find(zone => zone.key === 'z4').seconds).toBe(10);
     expect(durations.find(zone => zone.key === 'z7').seconds).toBe(10);
+  });
+
+  test('expose une plage FTP basse confiance sans courbe 20 min', async () => {
+    getPowerCurve.mockResolvedValue([]);
+    Activity.findAll = jest.fn().mockResolvedValue([
+      { id: 1, stravaId: 10, name: 'Endurance', startDate: '2026-03-01', averageWatts: 200, movingTime: 3600, distance: 40000 },
+      { id: 2, stravaId: 11, name: 'Tempo', startDate: '2026-03-02', averageWatts: 220, movingTime: 3600, distance: 40000 },
+    ]);
+    Activity.findOne = jest.fn().mockResolvedValue({ maxWatts: 800 });
+    User.findByPk = jest.fn().mockResolvedValue({ restHeartrate: 55 });
+    Weight.findOne = jest.fn().mockResolvedValue({ weight: 70, date: '2026-03-01' });
+    resolveMaxHeartrate.mockResolvedValue({ value: 175, source: 'user_input', confidence: 'high' });
+
+    const profile = await getCyclingProfile(1);
+    expect(profile).toMatchObject({
+      ftp: 231,
+      ftpConfidence: 'low',
+      ftpRange: { min: 220, max: 275 },
+      peakAverageWatts: 220,
+    });
+    expect(profile.ftpNote).toContain('très approximative');
+  });
+
+  test('utilise la courbe 20 min comme source FTP haute confiance', async () => {
+    getPowerCurve.mockResolvedValue([{ duration: 1200, power: 300 }]);
+    Activity.findOne = jest.fn().mockResolvedValue(null);
+    User.findByPk = jest.fn().mockResolvedValue({ restHeartrate: 55 });
+    Weight.findOne = jest.fn().mockResolvedValue({ weight: 75, date: '2026-03-01' });
+    resolveMaxHeartrate.mockResolvedValue({ value: 175, source: 'user_input', confidence: 'high' });
+
+    const profile = await getCyclingProfile(1);
+    expect(profile).toMatchObject({
+      ftp: 285,
+      ftpSource: 'power_curve_20min',
+      ftpConfidence: 'high',
+      ftpRange: null,
+    });
+    expect(Activity.findAll).not.toHaveBeenCalled();
   });
 
   test('aucun gap entre zones — watts à la frontière sont classés', () => {

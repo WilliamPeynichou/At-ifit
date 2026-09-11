@@ -97,6 +97,7 @@ const pickProfilePayload = (body) => ({
   gender: body.gender,
   targetWeight: body.targetWeight,
   country: body.country,
+  maxHeartrate: body.maxHeartrate === '' ? null : body.maxHeartrate,
   restHeartrate: body.restHeartrate === '' ? null : body.restHeartrate,
   bikeType: body.bikeType || null,
   cyclingGoal: body.cyclingGoal || null
@@ -110,6 +111,7 @@ const serializeProfile = (user) => ({
   age: user.age,
   gender: user.gender,
   targetWeight: user.targetWeight,
+  maxHeartrate: user.maxHeartrate,
   restHeartrate: user.restHeartrate,
   bikeType: user.bikeType,
   cyclingGoal: user.cyclingGoal,

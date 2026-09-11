@@ -87,6 +87,7 @@ async function runMigrations() {
   await addColumnIfMissing('Users', 'consoKcal',            'INT NULL');
   await addColumnIfMissing('Users', 'weeksToGoal',          'FLOAT NULL');
   await addColumnIfMissing('Users', 'targetWeight',         'FLOAT NULL');
+  await addColumnIfMissing('Users', 'maxHeartrate',          "INT NULL COMMENT 'Fréquence cardiaque maximale mesurée ou testée'");
   await addColumnIfMissing('Users', 'restHeartrate',         "INT NULL COMMENT 'Fréquence cardiaque de repos'");
   await addColumnIfMissing('Users', 'bikeType',              "VARCHAR(255) NULL COMMENT 'Type de pratique cycliste'");
   await addColumnIfMissing('Users', 'cyclingGoal',           "VARCHAR(255) NULL COMMENT 'Objectif cycliste'");

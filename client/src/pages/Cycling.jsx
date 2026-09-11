@@ -261,7 +261,7 @@ const CyclingContent = () => {
                 {FTP_SOURCE_LABELS[profile.ftpSource] || profile.ftpSource}
                 {profile.peakAverageWatts && <span> · pic {profile.peakAverageWatts} W</span>}
                 {profile.ftpConfidence === 'low' && <span style={{ color: '#f97316' }}> · estimation basse confiance</span>}
-                {profile.ftpConfidence === 'medium' && <span style={{ color: '#0055ff' }}> · estimation stable</span>}
+                {profile.ftpRange?.min && profile.ftpRange?.max && <span> · plage plausible {profile.ftpRange.min}–{profile.ftpRange.max} W</span>}
               </p>
             </div>
             {profile.ftpSourceRide ? (

@@ -79,14 +79,14 @@ async function getAllRunningActivities(userId, { triggerSync = false } = {}) {
 
   const normalized = filterRunningActivities(activities);
   normalized.forEach(activity => {
-    activity.trainingLoad = calculateTrainingLoad(activity, hrMaxResolved.value || 190);
+    activity.trainingLoad = calculateTrainingLoad(activity, hrMaxResolved.value);
     activity.trainingLoadSource = activity.averageHeartRate ? 'heart_rate' : 'estimated_without_hr';
   });
 
   return {
     user,
     hrMax: {
-      value: hrMaxResolved.value || 190,
+      value: hrMaxResolved.value,
       source: hrMaxResolved.source || 'default',
       confidence: hrMaxResolved.confidence || 'low',
     },

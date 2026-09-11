@@ -177,9 +177,12 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
                 {profile.maxHeartrate}<span className="text-sm ml-1" style={{ color: '#475569' }}>bpm</span>
               </p>
               <p className="text-[10px] mt-1" style={{ color: '#475569' }}>
-                {profile.maxHeartrateSource === 'observed_max' && 'observé sur tes sorties'}
-                {profile.maxHeartrateSource === 'tanaka_formula' && 'formule Tanaka (âge)'}
-                {profile.maxHeartrateSource === 'default_floor' && 'plancher par défaut'}
+                 {profile.maxHeartrateSource === 'user_input' && 'mesurée/testée par toi'}
+                 {profile.maxHeartrateSource === 'observed_max' && 'observée sur tes sorties'}
+                 {profile.maxHeartrateSource === 'tanaka_formula' && 'formule Tanaka (âge)'}
+                 {profile.maxHeartrateSource === 'default' && 'valeur par défaut · faible confiance'}
+                 {profile.maxHeartrateSource === 'override' && 'valeur personnalisée pour cette analyse'}
+
               </p>
             </div>
           )}

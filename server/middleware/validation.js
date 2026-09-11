@@ -104,6 +104,7 @@ const validations = {
     height: { required: false, type: 'number', min: 100, max: 250 },
     age: { required: false, type: 'number', min: 10, max: 110 },
     targetWeight: { required: false, type: 'number', min: 30, max: 250 },
+    maxHeartrate: { required: false, type: 'number', min: 100, max: 230 },
     restHeartrate: { required: false, type: 'number', min: 30, max: 100 }
   },
 

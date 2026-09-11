@@ -3,75 +3,31 @@ const ActivityStream = require('../models/ActivityStream');
 const User = require('../models/User');
 const { Op } = require('sequelize');
 const { resolveHrLimits } = require('./userMetricsService');
+const {
+  PMC_BOOTSTRAP_DAYS,
+  activityLoad,
+  computePerformanceManagementChart,
+  isoDate,
+  startOfUtcDay: startOfDay,
+} = require('./trainingMetricsService');
 
 const SEC_PER_DAY = 86400;
-
-const startOfDay = (d) => {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-};
-
-const isoDate = (d) => startOfDay(d).toISOString().slice(0, 10);
+const FORM_BOOTSTRAP_DAYS = PMC_BOOTSTRAP_DAYS;
 
 /**
- * Calcule le TRIMP (équivalent suffer_score) si manquant, sinon retourne suffer_score
- * Méthode Banister : TRIMP = duration * avgHR_ratio * 0.64 * e^(1.92 * avgHR_ratio)
+ * CTL/ATL/TSB via le moteur PMC canonique 42j / 7j.
  */
-function activityLoad(act, hrMax = 190, hrRest = 60) {
-  if (act.sufferScore) return act.sufferScore;
-  if (!act.averageHeartrate || !act.movingTime) return null;
-
-  const hrRatio = (act.averageHeartrate - hrRest) / (hrMax - hrRest);
-  if (hrRatio <= 0) return 0;
-
-  const durMin = act.movingTime / 60;
-  const trimp = durMin * hrRatio * 0.64 * Math.exp(1.92 * hrRatio);
-  return Math.round(trimp);
-}
-
-/**
- * CTL/ATL/TSB sur 90 jours : moyenne mobile exponentielle 42j / 7j
- */
-function computeFormCurve(activities, days = 90, hrMax = 190, hrRest = 60) {
-  const today = startOfDay(new Date());
+function computeFormCurve(activities, days = 90, hrMax, hrRest, endDate = new Date()) {
+  const today = startOfDay(endDate);
   const startDate = new Date(today.getTime() - days * SEC_PER_DAY * 1000);
+  const bootstrapStart = new Date(startDate.getTime() - FORM_BOOTSTRAP_DAYS * SEC_PER_DAY * 1000);
 
-  // Charge par jour
-  const dailyLoad = new Map();
-  for (const a of activities) {
-    if (!a.startDate) continue;
-    const d = isoDate(a.startDate);
-    const load = activityLoad(a, hrMax, hrRest) || 0;
-    dailyLoad.set(d, (dailyLoad.get(d) || 0) + load);
-  }
-
-  const ctlDecay = Math.exp(-1 / 42);
-  const atlDecay = Math.exp(-1 / 7);
-  let ctl = 0;
-  let atl = 0;
-  const curve = [];
-
-  // Itère du début à aujourd'hui pour bootstraper avec les 30j précédents
-  const bootstrapStart = new Date(today.getTime() - (days + 42) * SEC_PER_DAY * 1000);
-  for (let d = new Date(bootstrapStart); d <= today; d.setDate(d.getDate() + 1)) {
-    const key = isoDate(d);
-    const load = dailyLoad.get(key) || 0;
-    ctl = ctl * ctlDecay + load * (1 - ctlDecay);
-    atl = atl * atlDecay + load * (1 - atlDecay);
-
-    if (d >= startDate) {
-      curve.push({
-        date: key,
-        ctl: Math.round(ctl * 10) / 10,
-        atl: Math.round(atl * 10) / 10,
-        tsb: Math.round((ctl - atl) * 10) / 10,
-        load,
-      });
-    }
-  }
-
-  return curve;
+  return computePerformanceManagementChart(activities, {
+    startDate: bootstrapStart,
+    endDate: today,
+    hrMax,
+    hrRest,
+  }).filter(point => point.date >= isoDate(startDate));
 }
 
 /**

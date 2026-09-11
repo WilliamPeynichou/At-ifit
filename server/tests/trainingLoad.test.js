@@ -15,8 +15,13 @@ jest.mock('../utils/logger', () => ({
 jest.mock('../services/userMetricsService', () => ({
   resolveHrLimits: jest.fn().mockResolvedValue({ hrMax: 190, hrRest: 60 }),
 }));
-jest.mock('../services/stravaAnalytics', () => ({
+jest.mock('../services/trainingMetricsService', () => ({
+  ATL_DECAY: Math.exp(-1 / 7),
+  CTL_DECAY: Math.exp(-1 / 42),
+  CTL_TIME_CONSTANT_DAYS: 42,
+  PMC_BOOTSTRAP_DAYS: 126,
   activityLoad: jest.fn((act) => act.sufferScore || 0),
+  computePerformanceManagementChart: jest.requireActual('../services/trainingMetricsService').computePerformanceManagementChart,
 }));
 
 const Activity = require('../models/Activity');

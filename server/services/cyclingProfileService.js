@@ -24,6 +24,7 @@ const POWER_ZONE_DEFS = [
 const RECENT_RIDE_SAMPLE_SIZE = 10;
 const MIN_RIDE_DURATION_SEC = 20 * 60;
 const MAX_AVG_WATTS_FTP_COEFFICIENT = 1.05;
+const MAX_AVG_WATTS_FTP_RANGE = { low: 1.0, high: 1.25 };
 const VO2MAX_MIN_WKG_VALIDITY = 2.0;
 
 function round(value, digits = 1) {
@@ -197,7 +198,7 @@ async function getEstimatedFtp(userId, range = {}) {
     where: {
       userId,
       type: { [Op.in]: RIDE_TYPES },
-      averageWatts: { [Op.not]: null },
+      averageWatts: { [Op.gt]: 0 },
       movingTime: { [Op.gte]: MIN_RIDE_DURATION_SEC },
     },
     attributes: ['id', 'stravaId', 'name', 'startDate', 'averageWatts', 'movingTime', 'distance'],
@@ -213,8 +214,12 @@ async function getEstimatedFtp(userId, range = {}) {
     ? Math.round(peakAverageWatts * MAX_AVG_WATTS_FTP_COEFFICIENT)
     : null;
 
+  const ftpRange = peakAverageWatts ? {
+    min: Math.round(peakAverageWatts * MAX_AVG_WATTS_FTP_RANGE.low),
+    max: Math.round(peakAverageWatts * MAX_AVG_WATTS_FTP_RANGE.high),
+  } : null;
   const note = recentRides.length
-    ? `FTP estimée depuis la sortie la plus intense de tes ${recentRides.length} dernières sorties vélo (averageWatts max × ${MAX_AVG_WATTS_FTP_COEFFICIENT}). C'est une approximation : la précision dépend du fait qu'au moins une sortie récente s'approche d'un effort soutenu de ~1 h. Pour un calcul fiable, fais un test FTP 20 min avec capteur de puissance.`
+    ? `FTP très approximative depuis la puissance moyenne maximale de tes ${recentRides.length} dernières sorties vélo. La valeur centrale (× ${MAX_AVG_WATTS_FTP_COEFFICIENT}) ne remplace pas un test : selon l'intensité réelle de la sortie, une plage plausible est ${ftpRange.min}–${ftpRange.max} W. Fais un test FTP 20 min avec capteur de puissance pour fiabiliser les recommandations.`
     : null;
 
   return {
@@ -222,7 +227,8 @@ async function getEstimatedFtp(userId, range = {}) {
     best20min: null,
     powerCurve: curve,
     source: recentRides.length ? 'max_recent_average_watts' : 'missing_power_data',
-    confidence: recentRides.length >= 5 ? 'medium' : 'low',
+    confidence: 'low',
+    range: ftpRange,
     note,
     peakAverageWatts: peakAverageWatts ? round(peakAverageWatts, 1) : null,
     sourceRide: peakRide ? {
@@ -302,6 +308,7 @@ async function getCyclingProfile(userId) {
     best20min: ftpData.best20min,
     ftpSource: ftpData.source,
     ftpConfidence: ftpData.confidence,
+    ftpRange: ftpData.range || null,
     ftpNote: ftpData.note || null,
     ftpSourceRide: ftpData.sourceRide || null,
     ftpSourceRides: ftpData.sourceRides || [],

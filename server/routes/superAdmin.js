@@ -34,7 +34,7 @@ function dateFilter(query) {
 }
 
 function userPublicFields() {
-  return ['id', 'email', 'pseudo', 'role', 'country', 'age', 'gender', 'height', 'targetWeight', 'consoKcal', 'weeksToGoal', 'imc', 'restHeartrate', 'bikeType', 'cyclingGoal', 'lastSyncAt', 'fullSyncCompletedAt', 'stravaAthleteId', 'stravaExpiresAt', 'failedLoginAttempts', 'lockedUntil', 'lastLoginAt', 'createdAt', 'updatedAt'];
+  return ['id', 'email', 'pseudo', 'role', 'country', 'age', 'gender', 'height', 'targetWeight', 'consoKcal', 'weeksToGoal', 'imc', 'maxHeartrate', 'restHeartrate', 'bikeType', 'cyclingGoal', 'lastSyncAt', 'fullSyncCompletedAt', 'stravaAthleteId', 'stravaExpiresAt', 'failedLoginAttempts', 'lockedUntil', 'lastLoginAt', 'createdAt', 'updatedAt'];
 }
 
 const RESOURCE_CONFIG = {
@@ -58,7 +58,7 @@ const RESOURCE_CONFIG = {
       }
       return where;
     },
-    writable: ['email', 'password', 'pseudo', 'role', 'country', 'age', 'gender', 'height', 'targetWeight', 'restHeartrate', 'bikeType', 'cyclingGoal'],
+    writable: ['email', 'password', 'pseudo', 'role', 'country', 'age', 'gender', 'height', 'targetWeight', 'maxHeartrate', 'restHeartrate', 'bikeType', 'cyclingGoal'],
     requiredOnCreate: ['email', 'password'],
   },
   weights: {

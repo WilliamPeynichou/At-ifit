@@ -16,6 +16,7 @@ const UserProfile = ({ onUpdate }) => {
     gender: 'male',
     targetWeight: '',
     country: 'FR',
+    maxHeartrate: '',
     restHeartrate: '',
     bikeType: '',
     cyclingGoal: '',
@@ -39,6 +40,7 @@ const UserProfile = ({ onUpdate }) => {
           gender: res.data.gender || 'male',
           targetWeight: res.data.targetWeight || '',
           country: res.data.country || 'FR',
+          maxHeartrate: res.data.maxHeartrate || '',
           restHeartrate: res.data.restHeartrate || '',
           bikeType: res.data.bikeType || '',
           cyclingGoal: res.data.cyclingGoal || '',
@@ -174,7 +176,20 @@ const UserProfile = ({ onUpdate }) => {
               <Bike className="w-4 h-4" style={{ color: 'var(--accent-blue)' }} />
               <h3 className="text-base font-bold tracking-wider" style={{ color: 'var(--text-primary)' }}>Profil cycliste</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+              <div>
+                <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">FC max</label>
+                <input
+                  type="number"
+                  name="maxHeartrate"
+                  value={formData.maxHeartrate || ''}
+                  onChange={handleChange}
+                  className="input-cyber"
+                  min="100"
+                  max="230"
+                  placeholder="bpm"
+                />
+              </div>
               <div>
                 <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">FC repos</label>
                 <input
@@ -223,7 +238,7 @@ const UserProfile = ({ onUpdate }) => {
             </div>
             <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
               <Target className="w-3.5 h-3.5" />
-              Ces champs alimentent la page Cyclisme, la récupération et les analyses automatiques.
+              Une FC max mesurée/testée est prioritaire ; sinon l’analyse utilise Strava, puis une estimation liée à l’âge. Ces champs alimentent la page Cyclisme, la récupération et les analyses automatiques.
             </div>
           </div>
           {formData.consoKcal && (

@@ -44,6 +44,15 @@ const User = sequelize.define('User', {
     type: DataTypes.FLOAT,
     allowNull: true
   },
+  maxHeartrate: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      min: 100,
+      max: 230,
+    },
+    comment: 'Fréquence cardiaque maximale mesurée ou testée, saisie par l’utilisateur'
+  },
   restHeartrate: {
     type: DataTypes.INTEGER,
     allowNull: true,
