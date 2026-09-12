@@ -118,7 +118,7 @@ const Layout = ({ children }) => {
           <div
             className="absolute left-3 right-3 top-16 rounded-2xl shadow-2xl overflow-y-auto overscroll-contain"
             style={{
-              background: 'rgba(255,255,255,0.96)',
+              background: 'rgba(255,255,255,0)',
               backdropFilter: 'blur(18px)',
               border: '1px solid var(--glass-border)',
               maxHeight: 'calc(100dvh - 5rem - env(safe-area-inset-bottom))',
@@ -126,7 +126,7 @@ const Layout = ({ children }) => {
           >
             <div className="p-3 space-y-1" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
               {user && (
-                <div className="px-3 py-2 mb-2 rounded-xl text-xs flex items-center gap-2" style={{ background: 'rgba(34,197,94,0.08)', color: 'var(--text-muted)' }}>
+                <div className="px-3 py-2 mb-2 rounded-xl text-xs flex items-center gap-2" style={{ background: 'rgba(34,197,94,0.08)', color: '#000000' }}>
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                   {user.pseudo || user.email}
                 </div>
@@ -141,7 +141,7 @@ const Layout = ({ children }) => {
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-3.5 min-h-[44px] rounded-xl text-sm font-medium transition-all"
                     style={{
-                      color: active ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                      color: '#000000',
                       background: active ? 'var(--accent-blue-light)' : 'transparent',
                     }}
                   >
@@ -157,7 +157,7 @@ const Layout = ({ children }) => {
                   logout();
                 }}
                 className="w-full flex items-center gap-3 px-3 py-3.5 min-h-[44px] rounded-xl text-sm font-medium transition-all mt-2"
-                style={{ color: '#b91c1c', background: 'rgba(239,68,68,0.07)' }}
+                style={{ color: '#000000', background: 'rgba(239,68,68,0.07)' }}
               >
                 <LogOut className="w-4 h-4" />
                 Déconnexion
