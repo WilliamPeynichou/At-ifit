@@ -196,6 +196,33 @@ test('thème, sélection Tous et modale restent accessibles', async ({ page }) =
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(20, 20, 19)');
 });
 
+test('guide nutrition cite Nicolas Aubineau et ouvre la préparation de course', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/nutrition');
+  await expect(page.getByRole('heading', { name: /Manger pour soutenir l’effort/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Documentation de Nicolas Aubineau/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Voir son site/i })).toHaveAttribute('href', 'https://www.nicolas-aubineau.com/');
+  await expect(page.getByRole('tab', { name: /Natation/i })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Trail long/i })).toBeVisible();
+  await page.getByRole('tab', { name: /^Marathon$/i }).click();
+  await expect(page.getByText(/fiole de 125 ml de boisson de récupération/i)).toBeVisible();
+  await expect(page.getByText(/régime dissocié modifié/i).first()).toBeVisible();
+
+  await expect(page.getByText(/Decathlon Energy Gel\+/)).toBeVisible();
+  await expect(page.getByText(/Clif Bar Energy Bar myrtilles-amandes/)).toBeVisible();
+  await expect(page.getByText(/Aptonia Iso\+ Pêche/)).toBeVisible();
+
+  await page.getByRole('link', { name: /Préparer une course/i }).click();
+  await expect(page.getByRole('heading', { name: /^Préparer une course$/i })).toBeVisible();
+  await expect(page.getByLabel(/Objectif heures/i)).toBeVisible();
+});
+
 test('menus Nutrition gardent texte et fond contrastés', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
@@ -203,7 +230,7 @@ test('menus Nutrition gardent texte et fond contrastés', async ({ page }) => {
     window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
     window.localStorage.setItem('onboarding_completed', 'true');
   });
-  await page.goto('/nutrition');
+  await page.goto('/nutrition/strategie');
   const sweat = page.getByLabel('Sueur');
   await expect(sweat).toHaveCSS('color', 'rgb(20, 20, 19)');
   await expect(sweat).toHaveCSS('background-color', 'rgb(255, 255, 255)');

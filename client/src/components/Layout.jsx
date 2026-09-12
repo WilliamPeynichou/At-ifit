@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon } from 'lucide-react';
+import { Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon, Flag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, useLocation } from 'react-router-dom';
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
   { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
   { path: '/nutrition', label: 'Nutrition', icon: Apple },
+  { path: '/preparer-course', label: 'Préparer course', icon: Flag },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
   SUPER_ADMIN_NAV_ITEM,
 ];
@@ -26,6 +27,7 @@ const MOBILE_NAV_ITEMS = [
   { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
   { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
   { path: '/nutrition', label: 'Nutrition', icon: Apple },
+  { path: '/preparer-course', label: 'Préparer course', icon: Flag },
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
   SUPER_ADMIN_NAV_ITEM,
   { path: '/new-user-profile', label: 'Profil', icon: User },
@@ -37,7 +39,9 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => path === '/nutrition'
+    ? location.pathname.startsWith('/nutrition')
+    : location.pathname === path;
   const visibleNavItems = NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
   const visibleMobileNavItems = MOBILE_NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
 

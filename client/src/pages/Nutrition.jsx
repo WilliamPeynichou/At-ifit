@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Apple, Bike, Droplets, Zap, Clock, AlertTriangle, Info, Loader2, Salad, PersonStanding, Waves, Activity } from 'lucide-react';
+import { Apple, Bike, Droplets, Zap, Clock, AlertTriangle, Info, Loader2, Salad, PersonStanding, Waves, Activity, ArrowUpRight, BookOpen } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AUBINEAU_SOURCE } from '../data/nutritionKnowledge';
 import api from '../api';
 
 const SPORTS = [
@@ -134,7 +136,8 @@ const Nutrition = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      <div className="mb-8">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
         <h1 className="text-4xl font-black flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
           <Apple className="w-9 h-9" style={{ color: 'var(--accent-blue)' }} />
           Nutrition
@@ -142,8 +145,9 @@ const Nutrition = () => {
         <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
           Stratégie glucides, hydratation et sodium calculée depuis tes données Strava.
         </p>
+        </div>
+        <Link to="/nutrition" className="btn-ghost flex items-center gap-2 self-start"> <BookOpen size={16} /> Guide alimentaire</Link>
       </div>
-
       <section className="glass-panel p-6 mb-8">
         <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
           Nutrition pour mon effort
@@ -151,7 +155,6 @@ const Nutrition = () => {
         <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
           Décris ton effort à venir : Atifit estime sa durée depuis tes sorties comparables puis en déduit tes besoins.
         </p>
-
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Sport</label>
@@ -298,6 +301,11 @@ const Nutrition = () => {
           </div>
         )}
       </section>
+
+      <aside className="glass-panel p-5 mb-8 flex flex-col sm:flex-row justify-between gap-4" style={{ borderColor: '#d97757' }}>
+        <div><p className="font-mono text-xs uppercase" style={{ color: '#d97757' }}>Source documentaire complémentaire</p><p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Conseils pratiques et comparatifs produits de {AUBINEAU_SOURCE.author}, {AUBINEAU_SOURCE.role}. Calculs quantitatifs issus du référentiel scientifique versionné Atifit.</p></div>
+        <a href={AUBINEAU_SOURCE.url} target="_blank" rel="noreferrer" className="btn-ghost flex items-center gap-2 shrink-0 self-start">Site Nicolas Aubineau <ArrowUpRight size={16} /></a>
+      </aside>
 
       {plan && (
         <>
