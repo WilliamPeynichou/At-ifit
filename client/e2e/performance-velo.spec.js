@@ -172,3 +172,39 @@ test('performance vélo utilise des fonds blancs et des typos foncées', async (
   const darkLegend = page.getByText('Vitesse moy. (km/h)').first();
   await expect(darkLegend).toBeVisible();
 });
+
+test('thème, sélection Tous et modale restent accessibles', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+  await page.goto('/strava-stats');
+  const allSports = page.getByRole('button', { name: /Tous · 3/ });
+  await allSports.click();
+  await expect(allSports).toHaveCSS('background-color', 'rgb(106, 155, 204)');
+  await page.getByRole('button', { name: /Ouvrir TRAINING SCIENCE/i }).focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: /TRAINING SCIENCE/i });
+  await expect(dialog).toBeVisible();
+  await expect(page.getByRole('button', { name: /Fermer TRAINING SCIENCE/i })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await page.getByRole('button', { name: /Activer le mode sombre/i }).first().click();
+  await expect(page.locator('html')).toHaveClass(/theme-dark/);
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(20, 20, 19)');
+});
+
+test('menus Nutrition gardent texte et fond contrastés', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+  await page.goto('/nutrition');
+  const sweat = page.getByLabel('Sueur');
+  await expect(sweat).toHaveCSS('color', 'rgb(20, 20, 19)');
+  await expect(sweat).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+});

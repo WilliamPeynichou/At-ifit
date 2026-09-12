@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Activity, TrendingUp, Map, ArrowRight } from 'lucide-react';
+import { Sparkles, Activity, TrendingUp, Map, ArrowRight, ExternalLink } from 'lucide-react';
 import FullscreenModal from '../ui/FullscreenModal';
 import ModalTabs from '../ui/ModalTabs';
 
@@ -23,24 +23,24 @@ const cards = [
     title: 'TRAINING SCIENCE',
     subtitle: 'Charge, forme, zones cardio',
     icon: <Activity size={28} />,
-    accent: '#0055ff',
-    gradient: 'linear-gradient(135deg, #0055ff 0%, #00f3ff 100%)',
+    accent: '#6a9bcc',
+    gradient: 'linear-gradient(135deg, #6a9bcc 0%, #e8e6dc 100%)',
   },
   {
     id: 'performance',
     title: 'PERFORMANCE',
     subtitle: 'Records, puissance, prédictions',
     icon: <TrendingUp size={28} />,
-    accent: '#a855f7',
-    gradient: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+    accent: '#d97757',
+    gradient: 'linear-gradient(135deg, #d97757 0%, #e8e6dc 100%)',
   },
   {
     id: 'geo',
     title: 'GÉOGRAPHIE',
     subtitle: 'Heatmap GPS, itinéraires, climbing',
     icon: <Map size={28} />,
-    accent: '#22c55e',
-    gradient: 'linear-gradient(135deg, #22c55e 0%, #84cc16 100%)',
+    accent: '#788c5d',
+    gradient: 'linear-gradient(135deg, #788c5d 0%, #e8e6dc 100%)',
   },
 ];
 
@@ -96,17 +96,20 @@ const DataAnalysisHub = ({ activities }) => {
           <button
             key={card.id}
             onClick={() => setOpenId(card.id)}
-            className="text-left rounded-2xl p-6 relative overflow-hidden group transition-all hover:scale-[1.02]"
+            aria-haspopup="dialog"
+            aria-label={`Ouvrir ${card.title} : ${card.subtitle}`}
+            className="analysis-card text-left rounded-2xl p-6 relative overflow-hidden group transition-all"
             style={{
-              background: 'rgba(255,255,255,0.05)',
+              background: 'var(--surface-subtle)',
               border: '1.5px solid var(--glass-border)',
               backdropFilter: 'blur(12px)',
             }}
           >
             <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="analysis-card-glow absolute inset-0 opacity-0 transition-opacity"
               style={{ background: card.gradient }}
             />
+            <ExternalLink className="analysis-card-action absolute right-4 top-4 z-20 h-5 w-5" aria-hidden="true" style={{ color: card.accent }} />
             <div className="relative z-10">
               <div
                 className="inline-flex p-3 rounded-xl mb-4 transition-all"
@@ -115,7 +118,7 @@ const DataAnalysisHub = ({ activities }) => {
                 {card.icon}
               </div>
               <h3
-                className="text-xl font-black tracking-wider mb-1"
+                className="text-xl font-black tracking-wider mb-1 transition-colors"
                 style={{ color: 'var(--text-primary)' }}
               >
                 {card.title}

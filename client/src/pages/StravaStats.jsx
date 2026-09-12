@@ -311,12 +311,12 @@ const StravaStatsContent = () => {
     });
   }, [globalProgression, selectedSport]);
 
-  // Set default selected sport if not set or if current selection doesn't exist
+  // Garde « Tous » comme sélection valide; choisit un sport uniquement si sélection obsolète.
   useEffect(() => {
-    if (sportsList.length > 0 && (!selectedSport || !sportProgression[selectedSport])) {
-      setSelectedSport(sportsList[0]);
+    if (sportsList.length > 0 && selectedSport !== 'All' && !sportProgression[selectedSport]) {
+      setSelectedSport('All');
     }
-  }, [sportsList, sportProgression]);
+  }, [sportsList, sportProgression, selectedSport]);
 
   if (loading) {
     return (
@@ -430,14 +430,14 @@ const StravaStatsContent = () => {
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-sm">
-          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}>
+          <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
             <p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Statut</p>
             <p className="font-black mt-1" style={{ color: syncTone(syncStatus?.status || syncStatus?.state) }}>{syncStatus?.status || syncStatus?.state || (syncStatus?.authRequired ? 'auth_required' : 'observable')}</p>
           </div>
-          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Activités</p><p className="font-black mt-1">{(syncStatus?.total ?? activities.length).toLocaleString('fr-FR')}</p></div>
-          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Avec détails</p><p className="font-black mt-1">{(syncStatus?.withDetail ?? syncStatus?.details ?? 0).toLocaleString('fr-FR')}</p></div>
-          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Avec streams</p><p className="font-black mt-1">{(syncStatus?.withStream ?? syncStatus?.streams ?? 0).toLocaleString('fr-FR')}</p></div>
-          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Dernière sync</p><p className="font-black mt-1">{syncStatus?.lastSyncAt ? new Date(syncStatus.lastSyncAt).toLocaleString('fr-FR') : '—'}</p></div>
+          <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Activités</p><p className="font-black mt-1">{(syncStatus?.total ?? activities.length).toLocaleString('fr-FR')}</p></div>
+          <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Avec détails</p><p className="font-black mt-1">{(syncStatus?.withDetail ?? syncStatus?.details ?? 0).toLocaleString('fr-FR')}</p></div>
+          <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Avec streams</p><p className="font-black mt-1">{(syncStatus?.withStream ?? syncStatus?.streams ?? 0).toLocaleString('fr-FR')}</p></div>
+          <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Dernière sync</p><p className="font-black mt-1">{syncStatus?.lastSyncAt ? new Date(syncStatus.lastSyncAt).toLocaleString('fr-FR') : '—'}</p></div>
         </div>
         {(syncStatus?.lastError || syncStatus?.error || syncStatus?.recommendation || syncStatus?.authRequired) && (
           <div className="mt-4 rounded-lg p-3 text-sm flex items-start gap-2" style={{ background: syncStatus?.authRequired ? 'rgba(220,38,38,0.08)' : 'rgba(234,179,8,0.10)', border: '1px solid rgba(234,179,8,0.20)' }}>

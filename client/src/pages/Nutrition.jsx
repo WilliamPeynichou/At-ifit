@@ -255,18 +255,18 @@ const Nutrition = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Tolérance digestive</label>
-              <select name="gutTolerance" value={form.gutTolerance} onChange={handleChange} className="input-cyber">
+              <label htmlFor="gutTolerance" className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Tolérance digestive</label>
+              <select id="gutTolerance" name="gutTolerance" value={form.gutTolerance} onChange={handleChange} className="input-cyber">
                 {GUT_TOLERANCE_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value} style={{ background: 'var(--bg-secondary)' }}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Sueur</label>
-              <select name="sweatSodiumProfile" value={form.sweatSodiumProfile} onChange={handleChange} className="input-cyber">
+              <label htmlFor="sweatSodiumProfile" className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Sueur</label>
+              <select id="sweatSodiumProfile" name="sweatSodiumProfile" value={form.sweatSodiumProfile} onChange={handleChange} className="input-cyber">
                 {SWEAT_PROFILE_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value} style={{ background: 'var(--bg-secondary)' }}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>

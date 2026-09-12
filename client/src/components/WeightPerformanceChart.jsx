@@ -9,9 +9,11 @@ import { TrendingDown, Activity } from 'lucide-react';
 const tooltipStyle = {
   backgroundColor: 'rgba(19,16,20,0.97)',
   backdropFilter: 'blur(12px)',
-  border: '1px solid var(--glass-border)',
-  borderRadius: '12px',
+  border: '1px solid rgba(255,255,255,0.22)',
+  borderLeft: '4px solid #6a9bcc',
+  borderRadius: '10px',
   color: '#ffffff',
+  boxShadow: '0 16px 40px rgba(0,0,0,0.42)',
   padding: '10px 14px',
   fontSize: '13px',
 };
@@ -22,9 +24,13 @@ const CustomTooltip = ({ active, payload, label }) => {
     <div style={tooltipStyle}>
       <p className="font-semibold mb-1" style={{ color: '#ffffff' }}>{label}</p>
       {payload.map((p) => (
-        <p key={p.dataKey} style={{ color: p.color }}>
-          {p.name} : <strong>{p.value ?? '—'}{p.unit}</strong>
-        </p>
+        <div key={p.dataKey} className="flex items-center justify-between gap-5 py-0.5">
+          <span className="flex items-center gap-2" style={{ color: '#e5e7eb' }}>
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />
+            {p.name}
+          </span>
+          <strong style={{ color: '#fff' }}>{p.value ?? '—'}{p.unit}</strong>
+        </div>
       ))}
     </div>
   );
@@ -108,11 +114,11 @@ const WeightPerformanceChart = () => {
             <ComposedChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="distanceBarGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0055ff" stopOpacity={0.85} />
-                  <stop offset="100%" stopColor="#0055ff" stopOpacity={0.35} />
+                  <stop offset="0%" stopColor="#6a9bcc" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#788c5d" stopOpacity={0.48} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" vertical={false} />
+              <CartesianGrid strokeDasharray="4 5" stroke="var(--glass-border)" vertical={false} />
               <XAxis
                 dataKey="weekLabel"
                 tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
@@ -124,7 +130,7 @@ const WeightPerformanceChart = () => {
                 yAxisId="weight"
                 orientation="left"
                 domain={[minW, maxW]}
-                tick={{ fontSize: 11, fill: '#a855f7' }}
+                tick={{ fontSize: 11, fill: '#d97757', fontWeight: 600 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={v => `${v}kg`}
@@ -134,13 +140,13 @@ const WeightPerformanceChart = () => {
               <YAxis
                 yAxisId="distance"
                 orientation="right"
-                tick={{ fontSize: 11, fill: '#0055ff' }}
+                tick={{ fontSize: 11, fill: '#6a9bcc', fontWeight: 600 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={v => `${v}km`}
                 width={42}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,85,255,0.06)' }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(106,155,204,0.14)', stroke: '#6a9bcc', strokeWidth: 1 }} />
               <Legend
                 wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
                 formatter={(value) => <span style={{ color: 'var(--text-secondary)' }}>{value}</span>}
@@ -150,7 +156,7 @@ const WeightPerformanceChart = () => {
                 dataKey="totalDistance"
                 name="Distance (km)"
                 fill="url(#distanceBarGradient)"
-                stroke="#0055ff"
+                stroke="#6a9bcc"
                 strokeWidth={1}
                 radius={[4, 4, 0, 0]}
                 unit=" km"
@@ -160,10 +166,10 @@ const WeightPerformanceChart = () => {
                 type="monotone"
                 dataKey="avgWeight"
                 name="Poids (kg)"
-                stroke="#a855f7"
-                strokeWidth={2.5}
-                dot={{ fill: '#a855f7', r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 6, stroke: '#a855f7', strokeWidth: 2, fill: '#fff' }}
+                stroke="#d97757"
+                strokeWidth={3}
+                dot={{ fill: '#d97757', r: 4, stroke: 'var(--bg-secondary)', strokeWidth: 2 }}
+                activeDot={{ r: 7, stroke: '#faf9f5', strokeWidth: 3, fill: '#d97757' }}
                 connectNulls
                 unit=" kg"
               />

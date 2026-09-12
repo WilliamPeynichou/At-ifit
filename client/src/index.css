@@ -18,9 +18,10 @@
   --font-body:    'Outfit', system-ui, sans-serif;
   --font-mono:    'Geist Mono', 'GeistMono', monospace;
 
-  /* ── Fonds sombres ── */
-  --bg-primary:   #0b0a0d;
-  --bg-secondary: #131014;
+  /* ── Fonds de page ── */
+  --bg-primary:   #faf9f5;
+  --bg-secondary: #ffffff;
+  --surface-subtle: rgba(232, 230, 220, 0.62);
 
   /* ── Glass sombre ── */
   --glass-white:       rgba(255, 255, 255, 0.90);
@@ -29,13 +30,13 @@
   --glass-border-hover: rgba(0, 85, 255, 0.42);
 
   /* ── Accent bleu — identique au loader ── */
-  --accent-blue:       #0055ff;
-  --accent-blue-light: rgba(0, 85, 255, 0.1);
+  --accent-blue:       #6a9bcc;
+  --accent-blue-light: rgba(106, 155, 204, 0.12);
 
   /* ── Texte — dark par défaut (fond blanc/clair partout sauf nav) ── */
-  --text-primary:   #131014;
-  --text-secondary: rgba(19, 16, 20, 0.65);
-  --text-muted:     rgba(19, 16, 20, 0.42);
+  --text-primary:   #141413;
+  --text-secondary: rgba(20, 20, 19, 0.68);
+  --text-muted:     rgba(20, 20, 19, 0.48);
 
   /* ── Texte clair — réservé aux surfaces sombres (glass-nav, bottom nav) ── */
   --text-light-primary:   #e8e8e8;
@@ -55,7 +56,7 @@
 @layer base {
   body {
     @apply antialiased overflow-x-hidden;
-    background-color: var(--bg-primary);
+    background-color: var(--bg-primary) !important;
     /* Grille pixel 4px — écho du cyclist loader + radial bleu aux coins */
     background-image:
       radial-gradient(ellipse at 12% 8%,   rgba(0, 85, 255, 0.07), transparent 45%),
@@ -88,6 +89,9 @@
 
 /* ── Dark mode global — bascule via .theme-dark sur <html> ── */
 :root.theme-dark {
+  --bg-primary:   #141413;
+  --bg-secondary: #1d1d1b;
+  --surface-subtle: rgba(232, 230, 220, 0.07);
   --glass-white:       rgba(19, 16, 20, 0.85);
   --glass-white-hover: rgba(19, 16, 20, 0.92);
   --glass-border:       rgba(0, 85, 255, 0.22);
@@ -98,9 +102,29 @@
   --text-muted:     rgba(232, 232, 232, 0.48);
 }
 
+select.input-clean,
+select.input-cyber {
+  color-scheme: light;
+  background-color: var(--bg-secondary);
+}
+
+select.input-clean option,
+select.input-cyber option {
+  background-color: #ffffff;
+  color: #131014;
+}
+
 :root.theme-dark select.input-clean,
 :root.theme-dark select.input-cyber {
   color-scheme: dark;
+  background-color: #17191f;
+  color: #f3f4f6;
+}
+
+:root.theme-dark select.input-clean option,
+:root.theme-dark select.input-cyber option {
+  background-color: #17191f;
+  color: #f3f4f6;
 }
 
 :root.theme-dark .input-clean,
@@ -155,14 +179,16 @@
     pointer-events: none;
   }
 
-  .glass-card:hover {
+  .glass-card:hover,
+  .glass-card:focus-within {
     background: var(--glass-white-hover);
     border-color: var(--glass-border-hover);
     transform: translateY(-2px);
     box-shadow: var(--shadow-blue);
   }
 
-  .glass-card:hover::before {
+  .glass-card:hover::before,
+  .glass-card:focus-within::before {
     opacity: 0.75;
   }
 
@@ -277,11 +303,57 @@
     outline: none;
   }
 
-  /* ── Select — light scheme par défaut (fond blanc) ── */
-  select.input-clean,
-  select.input-cyber {
-    color-scheme: light;
+  .analysis-card {
+    isolation: isolate;
+    min-height: 178px;
   }
+
+  .analysis-card-glow {
+    opacity: 0.08;
+  }
+
+  .analysis-card-action {
+    opacity: 0.65;
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+
+  .analysis-card:hover,
+  .analysis-card:focus-visible {
+    border-color: var(--glass-border-hover) !important;
+    box-shadow: 0 12px 32px rgba(106, 155, 204, 0.24);
+    transform: translateY(-4px);
+  }
+
+  .analysis-card:hover .analysis-card-glow,
+  .analysis-card:focus-visible .analysis-card-glow {
+    opacity: 0.22;
+  }
+
+  .analysis-card:hover .analysis-card-action,
+  .analysis-card:focus-visible .analysis-card-action {
+    opacity: 1;
+    transform: translate(2px, -2px);
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  select:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 3px solid #d97757;
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ── Select — schéma défini globalement pour les listes natives Chrome/Windows ── */
 
   /* ── Animations ── */
   @keyframes float {
