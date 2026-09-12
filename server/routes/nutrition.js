@@ -6,22 +6,33 @@ const Weight = require('../models/Weight');
 const { predictCyclingEffort } = require('../services/effortPrediction/cyclingPredictor');
 const { predictRunningEffort } = require('../services/effortPrediction/runningPredictor');
 const { predictSwimmingEffort } = require('../services/effortPrediction/swimmingPredictor');
+const { predictTriathlonEffort } = require('../services/effortPrediction/triathlonPredictor');
 const { generateNutritionAnalysis } = require('../services/nutrition/nutritionEngine');
 const { getWeatherContext } = require('../services/providers/weatherProvider');
 
 const router = express.Router();
 
-const SUPPORTED_SPORTS = ['cycling', 'running', 'swimming'];
+const SUPPORTED_SPORTS = ['cycling', 'running', 'swimming', 'triathlon'];
 const SPORT_LIMITS = {
   cycling: { minDistanceKm: 1, maxDistanceKm: 1000, maxElevationM: 20000 },
   running: { minDistanceKm: 1, maxDistanceKm: 250, maxElevationM: 10000 },
   swimming: { minDistanceKm: 0.1, maxDistanceKm: 50, maxElevationM: 0 },
+  triathlon: { minDistanceKm: 0.1, maxDistanceKm: 1000, maxElevationM: 20000 },
 };
 const SPORT_PREDICTORS = {
   cycling: predictCyclingEffort,
   running: predictRunningEffort,
   swimming: predictSwimmingEffort,
+  triathlon: predictTriathlonEffort,
 };
+
+function parseBoundedNumber(value, field, min, max, errors) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max) {
+    errors.push(`${field} must be between ${min} and ${max}`);
+  }
+  return number;
+}
 
 function validatePreviewInput(body) {
   const errors = [];
@@ -31,17 +42,34 @@ function validatePreviewInput(body) {
     errors.push(`sport must be one of: ${SUPPORTED_SPORTS.join(', ')}`);
   }
 
-  const limits = SPORT_LIMITS[sport] || SPORT_LIMITS.cycling;
-  const distanceKm = Number(body.distanceKm);
-  if (!Number.isFinite(distanceKm) || distanceKm < limits.minDistanceKm || distanceKm > limits.maxDistanceKm) {
-    errors.push(`distanceKm must be between ${limits.minDistanceKm} and ${limits.maxDistanceKm}`);
-  }
+  let distanceKm;
+  let elevationGainM;
+  let triathlon = null;
 
-  // Le D+ n'a pas de sens en natation : toujours ramené à 0 plutôt que rejeté.
-  const elevationRaw = body.elevationGainM === undefined || body.elevationGainM === '' ? 0 : Number(body.elevationGainM);
-  const elevationGainM = sport === 'swimming' ? 0 : elevationRaw;
-  if (sport !== 'swimming' && (!Number.isFinite(elevationGainM) || elevationGainM < 0 || elevationGainM > limits.maxElevationM)) {
-    errors.push(`elevationGainM must be between 0 and ${limits.maxElevationM}`);
+  if (sport === 'triathlon') {
+    triathlon = {
+      swimmingDistanceKm: parseBoundedNumber(body.swimmingDistanceKm, 'swimmingDistanceKm', 0.1, 50, errors),
+      cyclingDistanceKm: parseBoundedNumber(body.cyclingDistanceKm, 'cyclingDistanceKm', 1, 1000, errors),
+      cyclingElevationGainM: parseBoundedNumber(body.cyclingElevationGainM ?? 0, 'cyclingElevationGainM', 0, 20000, errors),
+      runningDistanceKm: parseBoundedNumber(body.runningDistanceKm, 'runningDistanceKm', 1, 250, errors),
+      runningElevationGainM: parseBoundedNumber(body.runningElevationGainM ?? 0, 'runningElevationGainM', 0, 10000, errors),
+      transitionMinutes: parseBoundedNumber(body.transitionMinutes ?? 0, 'transitionMinutes', 0, 180, errors),
+    };
+    distanceKm = triathlon.swimmingDistanceKm + triathlon.cyclingDistanceKm + triathlon.runningDistanceKm;
+    elevationGainM = triathlon.cyclingElevationGainM + triathlon.runningElevationGainM;
+  } else {
+    const limits = SPORT_LIMITS[sport] || SPORT_LIMITS.cycling;
+    distanceKm = Number(body.distanceKm);
+    if (!Number.isFinite(distanceKm) || distanceKm < limits.minDistanceKm || distanceKm > limits.maxDistanceKm) {
+      errors.push(`distanceKm must be between ${limits.minDistanceKm} and ${limits.maxDistanceKm}`);
+    }
+
+    // Le D+ n'a pas de sens en natation : toujours ramené à 0 plutôt que rejeté.
+    const elevationRaw = body.elevationGainM === undefined || body.elevationGainM === '' ? 0 : Number(body.elevationGainM);
+    elevationGainM = sport === 'swimming' ? 0 : elevationRaw;
+    if (sport !== 'swimming' && (!Number.isFinite(elevationGainM) || elevationGainM < 0 || elevationGainM > limits.maxElevationM)) {
+      errors.push(`elevationGainM must be between 0 and ${limits.maxElevationM}`);
+    }
   }
 
   let plannedStartAt = null;
@@ -58,7 +86,7 @@ function validatePreviewInput(body) {
 
   if (body.locationLabel && !locationLabel) errors.push('locationLabel must not be empty');
 
-  return { errors, sport, distanceKm, elevationGainM, plannedStartAt, objectiveText, locationLabel };
+  return { errors, sport, distanceKm, elevationGainM, triathlon, plannedStartAt, objectiveText, locationLabel };
 }
 
 function sanitizeNutritionProfile(input = {}) {
@@ -110,13 +138,15 @@ router.post('/effort/preview', auth, asyncHandler(async (req, res) => {
   ]);
 
   const predict = SPORT_PREDICTORS[input.sport];
-  const predictedEffort = await predict({
-    userId: req.userId,
-    distanceKm: input.distanceKm,
-    elevationGainM: input.elevationGainM,
-    weather,
-    athlete,
-  });
+  const predictedEffort = input.sport === 'triathlon'
+    ? await predict({ userId: req.userId, ...input.triathlon, weather, athlete })
+    : await predict({
+      userId: req.userId,
+      distanceKm: input.distanceKm,
+      elevationGainM: input.elevationGainM,
+      weather,
+      athlete,
+    });
 
   const hoursBeforeStart = input.plannedStartAt
     ? Math.max(0, (input.plannedStartAt.getTime() - Date.now()) / 3600000)
@@ -146,9 +176,11 @@ router.post('/effort/preview', auth, asyncHandler(async (req, res) => {
       plannedStartAt: input.plannedStartAt,
       locationLabel: input.locationLabel,
       objectiveText: input.objectiveText,
+      ...(input.triathlon || {}),
     },
     ...analysis,
   });
 }));
 
 module.exports = router;
+module.exports.validatePreviewInput = validatePreviewInput;

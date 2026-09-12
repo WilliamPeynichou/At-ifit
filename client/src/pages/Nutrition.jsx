@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Apple, Bike, Droplets, Zap, Clock, AlertTriangle, Info, Loader2, Salad, PersonStanding, Waves } from 'lucide-react';
+import { Apple, Bike, Droplets, Zap, Clock, AlertTriangle, Info, Loader2, Salad, PersonStanding, Waves, Activity } from 'lucide-react';
 import api from '../api';
 
 const SPORTS = [
   { id: 'cycling', label: 'Vélo', icon: Bike, available: true },
   { id: 'running', label: 'Course à pied', icon: PersonStanding, available: true },
   { id: 'swimming', label: 'Natation', icon: Waves, available: true },
+  { id: 'triathlon', label: 'Triathlon', icon: Activity, available: true },
 ];
 
 const GUT_TOLERANCE_OPTIONS = [
@@ -67,6 +68,12 @@ const Nutrition = () => {
     sport: 'cycling',
     distanceKm: '',
     elevationGainM: '',
+    swimmingDistanceKm: '1.5',
+    cyclingDistanceKm: '40',
+    cyclingElevationGainM: '',
+    runningDistanceKm: '10',
+    runningElevationGainM: '',
+    transitionMinutes: '10',
     plannedStartAt: '',
     locationLabel: '',
     objectiveText: '',
@@ -88,10 +95,23 @@ const Nutrition = () => {
     setError(null);
 
     try {
+      const effortInput = form.sport === 'triathlon'
+        ? {
+          swimmingDistanceKm: Number(form.swimmingDistanceKm),
+          cyclingDistanceKm: Number(form.cyclingDistanceKm),
+          cyclingElevationGainM: form.cyclingElevationGainM === '' ? 0 : Number(form.cyclingElevationGainM),
+          runningDistanceKm: Number(form.runningDistanceKm),
+          runningElevationGainM: form.runningElevationGainM === '' ? 0 : Number(form.runningElevationGainM),
+          transitionMinutes: form.transitionMinutes === '' ? 0 : Number(form.transitionMinutes),
+        }
+        : {
+          distanceKm: Number(form.distanceKm),
+          elevationGainM: form.elevationGainM === '' ? 0 : Number(form.elevationGainM),
+        };
+
       const res = await api.post('/nutrition/effort/preview', {
         sport: form.sport,
-        distanceKm: Number(form.distanceKm),
-        elevationGainM: form.elevationGainM === '' ? 0 : Number(form.elevationGainM),
+        ...effortInput,
         plannedStartAt: form.plannedStartAt || null,
         locationLabel: form.locationLabel || null,
         objectiveText: form.objectiveText || null,
@@ -157,23 +177,66 @@ const Nutrition = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-            <div>
-              <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Distance (km)</label>
-              <input
-                type="number" name="distanceKm" value={form.distanceKm} onChange={handleChange}
-                className="input-cyber" min="0.1" max="1000" step="0.1" required placeholder={form.sport === 'swimming' ? '3.8' : '120'}
-              />
+          {form.sport === 'triathlon' ? (
+            <div className="space-y-4">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                Renseigne chaque segment et le temps total prévu pour T1 + T2.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div>
+                  <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Natation (km)</label>
+                  <input type="number" name="swimmingDistanceKm" value={form.swimmingDistanceKm} onChange={handleChange}
+                    className="input-cyber" min="0.1" max="50" step="0.1" required placeholder="1.5" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Vélo (km)</label>
+                  <input type="number" name="cyclingDistanceKm" value={form.cyclingDistanceKm} onChange={handleChange}
+                    className="input-cyber" min="1" max="1000" step="0.1" required placeholder="40" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">D+ vélo (m)</label>
+                  <input type="number" name="cyclingElevationGainM" value={form.cyclingElevationGainM} onChange={handleChange}
+                    className="input-cyber" min="0" max="20000" step="10" placeholder="500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Course (km)</label>
+                  <input type="number" name="runningDistanceKm" value={form.runningDistanceKm} onChange={handleChange}
+                    className="input-cyber" min="1" max="250" step="0.1" required placeholder="10" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">D+ course (m)</label>
+                  <input type="number" name="runningElevationGainM" value={form.runningElevationGainM} onChange={handleChange}
+                    className="input-cyber" min="0" max="10000" step="10" placeholder="100" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Transitions T1 + T2 (min)</label>
+                  <input type="number" name="transitionMinutes" value={form.transitionMinutes} onChange={handleChange}
+                    className="input-cyber" min="0" max="180" step="1" required placeholder="10" />
+                </div>
+              </div>
             </div>
-            {form.sport !== 'swimming' && (
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
               <div>
-                <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">D+ (m)</label>
+                <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Distance (km)</label>
                 <input
-                  type="number" name="elevationGainM" value={form.elevationGainM} onChange={handleChange}
-                  className="input-cyber" min="0" max="20000" step="10" placeholder="1500"
+                  type="number" name="distanceKm" value={form.distanceKm} onChange={handleChange}
+                  className="input-cyber" min="0.1" max="1000" step="0.1" required placeholder={form.sport === 'swimming' ? '3.8' : '120'}
                 />
               </div>
-            )}
+              {form.sport !== 'swimming' && (
+                <div>
+                  <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">D+ (m)</label>
+                  <input
+                    type="number" name="elevationGainM" value={form.elevationGainM} onChange={handleChange}
+                    className="input-cyber" min="0" max="20000" step="10" placeholder="1500"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Lieu</label>
               <input
@@ -261,6 +324,29 @@ const Nutrition = () => {
               </MetricCard>
             </div>
           </section>
+
+          {effort.legs && (
+            <section className="glass-panel p-6 mb-8">
+              <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Détail des disciplines</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  ['swimming', 'Natation', Waves],
+                  ['cycling', 'Vélo', Bike],
+                  ['running', 'Course à pied', PersonStanding],
+                ].map(([key, label, Icon]) => (
+                  <MetricCard key={key} icon={Icon} label={label} accent="var(--accent-blue)">
+                    {formatDuration(effort.legs[key].estimatedDurationMinutes.target)}
+                    <span className="block text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                      {effort.legs[key].estimatedEnergyKcal.target} kcal
+                    </span>
+                  </MetricCard>
+                ))}
+              </div>
+              <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+                Transitions T1 + T2 : {formatDuration(effort.transitionMinutes)}
+              </p>
+            </section>
+          )}
 
           <section className="glass-panel p-6 mb-8" style={{ borderColor: 'var(--accent-blue)' }}>
             <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Pendant l'effort</h2>
