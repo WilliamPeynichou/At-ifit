@@ -126,11 +126,11 @@ const Onboarding = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Rule 1: removed border border-white/10 bg-black/40 — glass-panel handles it */}
-      <div className="glass-panel p-8 w-full max-w-4xl relative z-10">
+      <div className="glass-panel p-4 sm:p-8 w-full max-w-4xl relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-black tracking-widest mb-2">
+        <div className="flex items-center justify-between gap-3 mb-8">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-widest mb-2 break-words">
               {/* Rule 2: text-white → text-primary */}
               <span style={{ color: 'var(--text-primary)' }}>INITIALIZATION</span>
               {/* Rule 5: keep text-neon-cyan */}
@@ -144,7 +144,7 @@ const Onboarding = () => {
           {/* Rule 15: hover:bg-white/5 → glass-border hover */}
           <button
             onClick={handleSkip}
-            className="p-2 hover:bg-[rgba(249,115,22,0.1)] rounded-lg transition-colors"
+            className="p-2 shrink-0 hover:bg-[rgba(249,115,22,0.1)] rounded-lg transition-colors"
             title={t('onboarding.skipOnboarding')}
           >
             {/* Rule 3: text-slate-400 → text-muted; Rule 2: hover:text-white removed */}
@@ -153,8 +153,8 @@ const Onboarding = () => {
         </div>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2 sm:gap-4 mb-8">
+          <div className="flex items-center gap-2 min-w-0">
             {/* Rules 7 & 9: step circle conditional styles */}
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -176,7 +176,7 @@ const Onboarding = () => {
             </div>
             {/* Rule 5: keep text-neon-cyan; Rule 4: text-slate-500 → text-muted */}
             <span
-              className={`text-xs font-bold uppercase tracking-widest ${currentStep >= 1 ? 'text-neon-cyan' : ''}`}
+              className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest whitespace-nowrap ${currentStep >= 1 ? 'text-neon-cyan' : ''}`}
               style={currentStep < 1 ? { color: 'var(--text-muted)' } : undefined}
             >
               {t('onboarding.profile')}
@@ -184,10 +184,10 @@ const Onboarding = () => {
           </div>
           {/* Rule 10: divider gradient → glass-border gradient */}
           <div
-            className="w-16 h-[1px]"
+            className="flex-1 min-w-6 max-w-16 h-[1px]"
             style={{ background: 'linear-gradient(to right, var(--glass-border), transparent)' }}
           ></div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {/* Rules 8 & 9: step circle conditional styles */}
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -209,7 +209,7 @@ const Onboarding = () => {
             </div>
             {/* Rule 6: keep text-neon-purple; Rule 4: text-slate-500 → text-muted */}
             <span
-              className={`text-xs font-bold uppercase tracking-widest ${currentStep >= 2 ? 'text-neon-purple' : ''}`}
+              className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest whitespace-nowrap ${currentStep >= 2 ? 'text-neon-purple' : ''}`}
               style={currentStep < 2 ? { color: 'var(--text-muted)' } : undefined}
             >
               {t('onboarding.strava')}
@@ -233,7 +233,7 @@ const Onboarding = () => {
               </div>
               {/* Rule 11: bg-black/30 border border-white/5 → glass content area */}
               <div
-                className="rounded-xl p-6"
+                className="rounded-xl p-4 sm:p-6"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}
               >
                 <UserProfile onUpdate={handleProfileUpdate} />
@@ -266,7 +266,7 @@ const Onboarding = () => {
               </div>
               {/* Rule 11: bg-black/30 border border-white/5 → glass content area */}
               <div
-                className="rounded-xl p-8 text-center"
+                className="rounded-xl p-4 sm:p-8 text-center"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}
               >
                 {stravaConnected ? (

@@ -106,9 +106,9 @@ function ChartBox({ children, empty, height = 280 }) {
 function RunningHeader({ status, activityCount, onSync, syncing, syncMessage }) {
   return (
     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-      <div>
-        <h1 className="text-4xl sm:text-5xl font-black flex items-center gap-3">
-          <Route className="w-9 h-9" style={{ color: 'var(--accent-blue)' }} />
+      <div className="min-w-0">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black flex items-center gap-3">
+          <Route className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ color: 'var(--accent-blue)' }} />
           Analyse Running
         </h1>
         <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
@@ -116,7 +116,7 @@ function RunningHeader({ status, activityCount, onSync, syncing, syncMessage }) 
         </p>
       </div>
 
-      <div className="glass-card p-4 min-w-[280px]">
+      <div className="glass-card p-4 w-full min-w-0 sm:w-auto sm:min-w-[280px]">
         <div className="grid grid-cols-2 gap-3 text-sm mb-4">
           <div>
             <p className="text-xs uppercase font-bold tracking-widest" style={{ color: 'var(--text-muted)' }}>Strava</p>

@@ -74,14 +74,14 @@ const NewUserProfile = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="glass-panel p-8 w-full max-w-2xl relative z-10">
+      <div className="glass-panel p-4 sm:p-8 w-full max-w-2xl relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-xl" style={{ background: 'rgba(249,115,22,0.1)', border: '1.5px solid var(--glass-border)' }}>
+            <div className="p-3 rounded-xl shrink-0" style={{ background: 'rgba(249,115,22,0.1)', border: '1.5px solid var(--glass-border)' }}>
               <User className="w-8 h-8 text-neon-purple" />
             </div>
-            <h1 className="text-3xl font-black tracking-widest">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-widest">
               <span style={{ color: 'var(--text-primary)' }}>STEP 1</span>
               <span className="text-neon-purple">: PROFILE</span>
             </h1>
@@ -98,7 +98,7 @@ const NewUserProfile = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">
                 {t('profile.callSign')}
@@ -159,7 +159,7 @@ const NewUserProfile = () => {
               />
             </div>
 
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">
                 {t('profile.country')}
               </label>
@@ -178,8 +178,8 @@ const NewUserProfile = () => {
               </select>
             </div>
 
-            <div className="md:col-span-2">
-              <div className="rounded-xl p-6 relative overflow-hidden" style={{ background: 'rgba(0,85,255,0.06)', border: '2px solid var(--glass-border)' }}>
+            <div className="sm:col-span-2">
+              <div className="rounded-xl p-4 sm:p-6 relative overflow-hidden" style={{ background: 'rgba(0,85,255,0.06)', border: '2px solid var(--glass-border)' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full" style={{ background: 'rgba(0,85,255,0.12)' }}></div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
@@ -196,7 +196,7 @@ const NewUserProfile = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">FC repos</label>
                       <input
@@ -250,8 +250,8 @@ const NewUserProfile = () => {
             </div>
 
             {/* Target Weight - Highlighted */}
-            <div className="md:col-span-2">
-              <div className="rounded-xl p-6 relative overflow-hidden" style={{ background: 'rgba(249,115,22,0.08)', border: '2px solid var(--glass-border)' }}>
+            <div className="sm:col-span-2">
+              <div className="rounded-xl p-4 sm:p-6 relative overflow-hidden" style={{ background: 'rgba(249,115,22,0.08)', border: '2px solid var(--glass-border)' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full" style={{ background: 'rgba(249,115,22,0.15)' }}></div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">

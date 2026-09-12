@@ -42,10 +42,10 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen relative flex flex-col">
       {/* Desktop header — hidden on mobile */}
-      <header className="glass-nav sticky top-0 z-50 hidden md:block">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <header className="glass-nav sticky top-0 z-50 hidden xl:block">
+        <div className="max-w-6xl mx-auto px-4 xl:px-6 h-16 flex items-center justify-between gap-3">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
             <div className="rounded-xl p-2" style={{ background: 'var(--accent-blue-light)', border: '1px solid rgba(0,85,255,0.15)' }}>
               <Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
             </div>
@@ -55,12 +55,12 @@ const Layout = ({ children }) => {
           </Link>
 
           {/* Nav links */}
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 min-w-0 overflow-x-auto">
             {visibleNavItems.map(({ path, label, icon }) => (
               <Link
                 key={path}
                 to={path}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap"
                 style={{
                   color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-secondary)',
                   background: isActive(path) ? 'var(--accent-blue-light)' : 'transparent',
@@ -73,9 +73,9 @@ const Layout = ({ children }) => {
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             {user && (
-              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
+              <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                 {user.pseudo || user.email}
               </div>
@@ -88,15 +88,15 @@ const Layout = ({ children }) => {
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
             >
               <LogOut className="w-4 h-4" />
-              Déconnexion
+              <span className="hidden 2xl:inline">Déconnexion</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile top bar */}
-      <div className="glass-nav sticky top-0 z-50 md:hidden">
-        <div className="px-4 h-14 flex items-center justify-between">
+      {/* Mobile / tablet top bar */}
+      <div className="glass-nav sticky top-0 z-50 xl:hidden">
+        <div className="px-4 h-14 flex items-center justify-between" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <Link to="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
             <Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
             <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em', fontSize: '1rem' }}>
@@ -116,14 +116,15 @@ const Layout = ({ children }) => {
 
         {mobileMenuOpen && (
           <div
-            className="absolute left-3 right-3 top-16 rounded-2xl overflow-hidden shadow-2xl"
+            className="absolute left-3 right-3 top-16 rounded-2xl shadow-2xl overflow-y-auto overscroll-contain"
             style={{
               background: 'rgba(255,255,255,0.96)',
               backdropFilter: 'blur(18px)',
               border: '1px solid var(--glass-border)',
+              maxHeight: 'calc(100dvh - 5rem - env(safe-area-inset-bottom))',
             }}
           >
-            <div className="p-3 space-y-1">
+            <div className="p-3 space-y-1" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
               {user && (
                 <div className="px-3 py-2 mb-2 rounded-xl text-xs flex items-center gap-2" style={{ background: 'rgba(34,197,94,0.08)', color: 'var(--text-muted)' }}>
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -138,7 +139,7 @@ const Layout = ({ children }) => {
                     key={path}
                     to={path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all"
+                    className="flex items-center gap-3 px-3 py-3.5 min-h-[44px] rounded-xl text-sm font-medium transition-all"
                     style={{
                       color: active ? 'var(--accent-blue)' : 'var(--text-secondary)',
                       background: active ? 'var(--accent-blue-light)' : 'transparent',
@@ -155,7 +156,7 @@ const Layout = ({ children }) => {
                   setMobileMenuOpen(false);
                   logout();
                 }}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mt-2"
+                className="w-full flex items-center gap-3 px-3 py-3.5 min-h-[44px] rounded-xl text-sm font-medium transition-all mt-2"
                 style={{ color: '#b91c1c', background: 'rgba(239,68,68,0.07)' }}
               >
                 <LogOut className="w-4 h-4" />
@@ -172,7 +173,7 @@ const Layout = ({ children }) => {
       </main>
 
       {/* Footer — desktop only */}
-      <div className="hidden md:block mt-auto pt-6">
+      <div className="hidden xl:block mt-auto pt-6">
         <Footer />
       </div>
 

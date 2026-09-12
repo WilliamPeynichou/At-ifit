@@ -58,8 +58,8 @@ const WeightForm = ({ onUpdate }) => {
         <h2 className="text-lg font-bold tracking-wider" style={{ color: 'var(--text-primary)' }}>{t('weightForm.logNewData')}</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 items-end relative z-10 flex-1">
-        <div className="w-full sm:w-auto flex-shrink-0">
+      <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-4 lg:items-end relative z-10 flex-1">
+        <div className="w-full lg:w-auto lg:flex-shrink-0">
           <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('weightForm.date')}</label>
           <input
             type="date"
@@ -69,7 +69,7 @@ const WeightForm = ({ onUpdate }) => {
             required
           />
         </div>
-        <div className="flex-1 w-full min-w-[125px] max-w-[50%]">
+        <div className="w-full lg:flex-1 lg:min-w-[125px]">
           <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('weightForm.weight')}</label>
           <input
             type="number"
@@ -83,7 +83,7 @@ const WeightForm = ({ onUpdate }) => {
         </div>
         <button
           type="submit"
-          className="btn-cyber w-1/2 sm:w-auto h-[50px] px-3 text-xs flex items-center justify-center flex-shrink-0 whitespace-nowrap"
+          className="btn-cyber w-full lg:w-auto h-[50px] px-3 text-xs flex items-center justify-center flex-shrink-0 whitespace-nowrap"
         >
           {t('weightForm.addEntry')}
         </button>

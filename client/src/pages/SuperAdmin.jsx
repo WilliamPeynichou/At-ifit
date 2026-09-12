@@ -698,7 +698,7 @@ export default function SuperAdmin() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-3" style={{ background: 'var(--accent-blue-light)', color: 'var(--accent-blue)' }}>
             <ShieldAlert className="w-4 h-4" /> Super admin
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black">Panneau d’administration global</h1>
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black">Panneau d’administration global</h1>
           <p className="text-sm mt-2 max-w-3xl" style={{ color: 'var(--text-muted)' }}>
             CRUD global, diagnostic Strava, actions destructives auditées et logs strictement en lecture seule. Aucun secret technique n’est exposé.
           </p>

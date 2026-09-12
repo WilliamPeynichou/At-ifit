@@ -207,14 +207,14 @@ const NewUserStrava = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="glass-panel p-8 w-full max-w-2xl relative z-10">
+      <div className="glass-panel p-4 sm:p-8 w-full max-w-2xl relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-xl bg-[#fc4c02]/10 border border-[#fc4c02]/30">
+            <div className="p-3 rounded-xl shrink-0 bg-[#fc4c02]/10 border border-[#fc4c02]/30">
               <Activity className="w-8 h-8 text-[#fc4c02]" />
             </div>
-            <h1 className="text-3xl font-black tracking-widest">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-widest">
               <span style={{ color: 'var(--text-primary)' }}>ÉTAPE 3</span>
               <span className="text-[#fc4c02]"> : STRAVA</span>
             </h1>
@@ -232,7 +232,7 @@ const NewUserStrava = () => {
 
         <div className="space-y-6">
           {stravaConnected ? (
-            <div className="rounded-xl p-8 text-center" style={{ background: 'rgba(22,163,74,0.1)', border: '2px solid rgba(22,163,74,0.3)' }}>
+            <div className="rounded-xl p-4 sm:p-8 text-center" style={{ background: 'rgba(22,163,74,0.1)', border: '2px solid rgba(22,163,74,0.3)' }}>
               <CheckCircle2 className="w-16 h-16 mx-auto mb-4" style={{ color: '#16a34a' }} />
               <h3 className="text-xl font-bold mb-2" style={{ color: '#16a34a' }}>
                 {t('newUser.strava.connected') || 'STRAVA CONNECTÉ'}
@@ -250,7 +250,7 @@ const NewUserStrava = () => {
             </div>
           ) : (
             <>
-              <div className="rounded-xl p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}>
+              <div className="rounded-xl p-4 sm:p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)' }}>
                 <p className="text-center mb-6" style={{ color: 'var(--text-secondary)' }}>
                   {t('newUser.strava.description') || 'Connectez votre compte Strava pour importer automatiquement vos activités et améliorer votre expérience de suivi.'}
                 </p>
@@ -291,19 +291,19 @@ const NewUserStrava = () => {
                 ) : (
                   <button
                     onClick={initiateAuth}
-                    className="bg-[#fc4c02] hover:bg-[#e34402] text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-[#fc4c02]/20 flex items-center justify-center gap-3 w-full"
+                    className="bg-[#fc4c02] hover:bg-[#e34402] text-white font-bold py-4 px-4 sm:px-8 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-[#fc4c02]/20 flex items-center justify-center gap-2 sm:gap-3 w-full text-sm sm:text-base"
                   >
-                    <Activity />
-                    {t('newUser.strava.connect') || 'SE CONNECTER À STRAVA'}
-                    <ArrowRight className="w-4 h-4" />
+                    <Activity className="shrink-0" />
+                    <span className="text-center">{t('newUser.strava.connect') || 'SE CONNECTER À STRAVA'}</span>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
                   </button>
                 )}
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleSkip}
-                  className="flex-1 px-6 py-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 min-h-[44px] rounded-lg transition-all flex items-center justify-center gap-2"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid var(--glass-border)', color: 'var(--text-muted)' }}
                 >
                   <X className="w-4 h-4" />
@@ -311,7 +311,7 @@ const NewUserStrava = () => {
                 </button>
                 <button
                   onClick={handleComplete}
-                  className="flex-1 btn-cyber flex items-center justify-center gap-2"
+                  className="flex-1 btn-cyber min-h-[44px] flex items-center justify-center gap-2"
                 >
                   {t('newUser.strava.finish') || 'TERMINER LA CONFIGURATION'}
                   <ArrowRight className="w-4 h-4" />

@@ -296,29 +296,28 @@ const Dashboard = () => {
         <WeightPerformanceChart />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="space-y-8">
           {/* Combined Chart Section */}
           <div className="glass-panel p-8 relative  group">
             <div className="absolute top-0 left-0 w-full h-[1px]" style={{ background: 'linear-gradient(to right, transparent, var(--accent-blue), transparent)', opacity: 0.15 }}></div>
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl font-bold tracking-widest flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent-blue)', boxShadow: '0 0 10px var(--accent-blue)' }}></span>
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-bold tracking-widest flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
+                <span className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ background: 'var(--accent-blue)', boxShadow: '0 0 10px var(--accent-blue)' }}></span>
                 {t('dashboard.correlation')}
               </h2>
 
               {/* Metric Toggle */}
-              <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}>
+              <div className="flex items-center gap-1 rounded-lg p-1 w-full sm:w-auto" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}>
                 <button
                   onClick={() => setMetric('distance')}
-                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'distance' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
+                  className={`flex-1 sm:flex-none px-3 py-1.5 sm:py-1 rounded-md text-xs font-mono transition-all ${metric === 'distance' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
                   style={metric === 'distance' ? { background: 'var(--accent-blue)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('dashboard.distance')}
                 </button>
                 <button
                   onClick={() => setMetric('calories')}
-                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all flex items-center gap-1.5 ${metric === 'calories' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
+                  className={`flex-1 sm:flex-none px-3 py-1.5 sm:py-1 rounded-md text-xs font-mono transition-all flex items-center justify-center gap-1.5 ${metric === 'calories' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
                   style={metric === 'calories' ? { background: 'var(--accent-blue)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('dashboard.calories')}
@@ -334,44 +333,48 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => setMetric('bpm')}
-                  className={`px-3 py-1 rounded-md text-xs font-mono transition-all ${metric === 'bpm' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
+                  className={`flex-1 sm:flex-none px-3 py-1.5 sm:py-1 rounded-md text-xs font-mono transition-all ${metric === 'bpm' ? 'text-white shadow-lg' : 'hover:opacity-80'}`}
                   style={metric === 'bpm' ? { background: 'var(--accent-blue)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('dashboard.bpm')}
                 </button>
               </div>
             </div>
-            <div className="h-96">
+            <div className="h-64 sm:h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={combinedData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <ComposedChart data={combinedData} margin={{ top: 5, right: 0, left: -24, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis
                     dataKey="date"
                     stroke="#a8a29e"
-                    tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'monospace' }}
+                    tick={{ fill: '#78716c', fontSize: 10, fontFamily: 'monospace' }}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(str) => new Date(str).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                    interval="preserveStartEnd"
+                    minTickGap={24}
                     dy={15}
                   />
                   <YAxis
                     yAxisId="left"
+                    width={40}
                     stroke="#a8a29e"
-                    tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'monospace' }}
+                    tick={{ fill: '#78716c', fontSize: 10, fontFamily: 'monospace' }}
                     tickLine={false}
                     axisLine={false}
                     domain={['auto', 'auto']}
-                    dx={-10}
+                    dx={-6}
                     label={{ value: 'kg', angle: -90, position: 'insideLeft', fill: '#78716c', fontSize: 10 }}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
+                    width={40}
                     stroke="#a8a29e"
-                    tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'monospace' }}
+                    tick={{ fill: '#78716c', fontSize: 10, fontFamily: 'monospace' }}
                     tickLine={false}
                     axisLine={false}
-                    dx={10}
+                    dx={6}
                     label={{
                       value: metric === 'distance' ? 'km' : metric === 'calories' ? 'kcal' : 'bpm',
                       angle: 90,
@@ -435,7 +438,7 @@ const Dashboard = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             <StatsCard
               title={t('dashboard.startDate')}
               value={weights.length > 0 ? new Date(weights[0].date).toLocaleDateString() : '-'}
@@ -466,7 +469,7 @@ const Dashboard = () => {
                <span className="w-8 h-[1px]" style={{ background: 'var(--glass-border)' }}></span>
                {t('dashboard.performanceMetrics')}
              </h3>
-             <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
               <StatsCard
                 title={t('dashboard.totalLogs')}
                 value={totalMeasurements}
@@ -512,7 +515,6 @@ const Dashboard = () => {
                </div>
              </div>
            )}
-        </div>
       </div>
     </div>
   );

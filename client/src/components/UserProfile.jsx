@@ -85,7 +85,7 @@ const UserProfile = ({ onUpdate }) => {
   if (loading) return <div className="text-neon-cyan animate-pulse">LOADING PROFILE DATA...</div>;
 
   return (
-    <div className="glass-panel p-6 relative ">
+    <div className="glass-panel p-4 sm:p-6 relative ">
       <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(0, 85, 255, 0.08)' }}></div>
 
       <div className="flex items-center gap-3 mb-6 relative z-10">
@@ -96,7 +96,7 @@ const UserProfile = ({ onUpdate }) => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('profile.callSign')}</label>
             <input
@@ -143,7 +143,7 @@ const UserProfile = ({ onUpdate }) => {
               required
             />
           </div>
-          <div className="col-span-2">
+          <div className="col-span-1 sm:col-span-2">
             <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('profile.targetWeight')} <span style={{ color: 'var(--text-muted)' }} className="ml-2">/// {t('profile.missionGoal')}</span></label>
             <input
               type="number"
@@ -155,7 +155,7 @@ const UserProfile = ({ onUpdate }) => {
               placeholder={t('profile.optional')}
             />
           </div>
-          <div className="col-span-2">
+          <div className="col-span-1 sm:col-span-2">
             <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">{t('profile.country')}</label>
             <select
               name="country"
@@ -171,12 +171,12 @@ const UserProfile = ({ onUpdate }) => {
               <option value="IT" style={{ background: 'var(--bg-secondary)' }}>{countryNames.IT[language] || countryNames.IT.EN}</option>
             </select>
           </div>
-          <div className="col-span-2 pt-4 mt-2" style={{ borderTop: '1px solid var(--glass-border)' }}>
+          <div className="col-span-1 sm:col-span-2 pt-4 mt-2" style={{ borderTop: '1px solid var(--glass-border)' }}>
             <div className="flex items-center gap-2 mb-4">
               <Bike className="w-4 h-4" style={{ color: 'var(--accent-blue)' }} />
               <h3 className="text-base font-bold tracking-wider" style={{ color: 'var(--text-primary)' }}>Profil cycliste</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               <div>
                 <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">FC max</label>
                 <input
@@ -242,7 +242,7 @@ const UserProfile = ({ onUpdate }) => {
             </div>
           </div>
           {formData.consoKcal && (
-            <div className="col-span-2 mt-2 grid grid-cols-2 gap-4">
+            <div className="col-span-1 sm:col-span-2 mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold mb-2 uppercase tracking-widest flex items-center gap-2" style={{ color: 'var(--accent-blue)' }}>
                   {t('profile.dailyFuelTarget')} <span style={{ color: 'var(--text-muted)' }} className="ml-2">/// {t('profile.calculated')}</span>

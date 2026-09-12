@@ -115,16 +115,16 @@ function MiniStat({ label, value }) {
 function CyclingHeader({ status, activityCount, onSync, syncing, syncMessage }) {
   return (
     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-      <div>
-        <h1 className="text-4xl sm:text-5xl font-black flex items-center gap-3">
-          <Bike className="w-9 h-9" style={{ color: 'var(--accent-blue)' }} />
+      <div className="min-w-0">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black flex items-center gap-3">
+          <Bike className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ color: 'var(--accent-blue)' }} />
           Analyse Cyclisme Route
         </h1>
         <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
           Analyse de vos sorties vélo : volume, vitesse, dénivelé, cardio, puissance, charge et progression.
         </p>
       </div>
-      <div className="glass-card p-4 min-w-[300px]">
+      <div className="glass-card p-4 w-full min-w-0 sm:w-auto sm:min-w-[300px]">
         <div className="grid grid-cols-2 gap-3 text-sm mb-4">
           <MiniHeader label="Strava" value={status?.stravaConnected ? 'Connecté' : 'Non connecté'} color={status?.stravaConnected ? '#16a34a' : '#dc2626'} />
           <MiniHeader label="Sync" value={status?.dataSynced ? 'Synchronisé' : 'En attente'} />

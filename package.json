@@ -16,5 +16,9 @@
   "bugs": {
     "url": "https://github.com/WilliamPeynichou/At-ifit/issues"
   },
-  "homepage": "https://github.com/WilliamPeynichou/At-ifit#readme"
+  "homepage": "https://github.com/WilliamPeynichou/At-ifit#readme",
+  "devDependencies": {
+    "@oxlint/plugins": "1.82.0",
+    "oxlint": "1.82.0"
+  }
 }

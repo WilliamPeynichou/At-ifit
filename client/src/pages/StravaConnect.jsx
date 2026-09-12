@@ -130,15 +130,15 @@ const StravaConnect = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
-        <div className="glass-panel p-8 relative overflow-hidden">
+        <div className="glass-panel p-4 sm:p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 blur-3xl rounded-full" style={{ background: 'rgba(252,76,2,0.15)' }}></div>
 
           <div className="relative z-10">
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 rounded-lg bg-[#fc4c02]/10 border border-[#fc4c02]/30">
+              <div className="p-3 rounded-lg shrink-0 bg-[#fc4c02]/10 border border-[#fc4c02]/30">
                 <Activity className="w-8 h-8 text-[#fc4c02]" />
               </div>
-              <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Connect to Strava</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Connect to Strava</h1>
             </div>
 
             <p className="mb-8 text-lg leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
@@ -272,11 +272,11 @@ const StravaConnect = () => {
 
                       <button
                         onClick={initiateAuth}
-                        className="w-full bg-[#fc4c02] hover:bg-[#e34402] text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-[#fc4c02]/20 flex items-center justify-center gap-3"
+                        className="w-full bg-[#fc4c02] hover:bg-[#e34402] text-white font-bold py-4 px-4 sm:px-8 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-[#fc4c02]/20 flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base"
                       >
-                        <Activity size={24} />
-                        CONNECT WITH STRAVA
-                        <ArrowRight size={20} />
+                        <Activity size={24} className="shrink-0" />
+                        <span>CONNECT WITH STRAVA</span>
+                        <ArrowRight size={20} className="shrink-0" />
                       </button>
                     </div>
                   </>

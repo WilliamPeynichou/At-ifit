@@ -52,14 +52,14 @@ const NewUserWeight = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="glass-panel p-8 w-full max-w-2xl relative z-10">
+      <div className="glass-panel p-4 sm:p-8 w-full max-w-2xl relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-xl" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>
+            <div className="p-3 rounded-xl shrink-0" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>
               <Scale className="w-8 h-8 text-neon-cyan" />
             </div>
-            <h1 className="text-3xl font-black tracking-widest">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-widest">
               <span style={{ color: 'var(--text-primary)' }}>STEP 2</span>
               <span className="text-neon-cyan">: CURRENT WEIGHT</span>
             </h1>
@@ -77,7 +77,7 @@ const NewUserWeight = () => {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Large Weight Input */}
-          <div className="rounded-2xl p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(0,85,255,0.3)' }}>
+          <div className="rounded-2xl p-4 sm:p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(0,85,255,0.3)' }}>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-bold text-neon-cyan mb-4 uppercase tracking-widest text-center">
@@ -88,7 +88,7 @@ const NewUserWeight = () => {
                   step="0.1"
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
-                  className="input-cyber w-full text-4xl font-bold text-center py-8"
+                  className="input-cyber w-full text-3xl sm:text-4xl font-bold text-center py-6 sm:py-8"
                   style={{ border: '2px solid rgba(0,85,255,0.3)' }}
                   required
                   placeholder="0.0"
