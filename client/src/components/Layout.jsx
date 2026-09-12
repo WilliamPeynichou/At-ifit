@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple } from 'lucide-react';
+import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Link, useLocation } from 'react-router-dom';
 import Footer from './Footer';
 
@@ -32,6 +33,7 @@ const MOBILE_NAV_ITEMS = [
 
 const Layout = ({ children }) => {
   const { logout, user } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -74,6 +76,15 @@ const Layout = ({ children }) => {
 
           {/* Right side */}
           <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg transition-all duration-200"
+              style={{ color: 'var(--text-muted)' }}
+              aria-label={isDark ? 'Activer le mode clair' : 'Activer le mode sombre'}
+              title={isDark ? 'Mode clair' : 'Mode sombre'}
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             {user && (
               <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
@@ -103,6 +114,15 @@ const Layout = ({ children }) => {
               AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
             </span>
           </Link>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            aria-label={isDark ? 'Activer le mode clair' : 'Activer le mode sombre'}
+            title={isDark ? 'Mode clair' : 'Mode sombre'}
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
           <button
             onClick={() => setMobileMenuOpen(open => !open)}
             className="p-2 rounded-lg transition-colors"
@@ -150,6 +170,15 @@ const Layout = ({ children }) => {
                   </Link>
                 );
               })}
+
+              <button
+                onClick={toggleTheme}
+                className="w-full flex items-center gap-3 px-3 py-3.5 min-h-[44px] rounded-xl text-sm font-medium transition-all"
+                style={{ color: '#000000', background: 'rgba(0,85,255,0.06)' }}
+              >
+                {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+                {isDark ? 'Mode clair' : 'Mode sombre'}
+              </button>
 
               <button
                 onClick={() => {

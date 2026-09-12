@@ -86,6 +86,33 @@
   }
 }
 
+/* ── Dark mode global — bascule via .theme-dark sur <html> ── */
+:root.theme-dark {
+  --glass-white:       rgba(19, 16, 20, 0.85);
+  --glass-white-hover: rgba(19, 16, 20, 0.92);
+  --glass-border:       rgba(0, 85, 255, 0.22);
+  --glass-border-hover: rgba(0, 85, 255, 0.55);
+
+  --text-primary:   #e8e8e8;
+  --text-secondary: rgba(232, 232, 232, 0.72);
+  --text-muted:     rgba(232, 232, 232, 0.48);
+}
+
+:root.theme-dark select.input-clean,
+:root.theme-dark select.input-cyber {
+  color-scheme: dark;
+}
+
+:root.theme-dark .input-clean,
+:root.theme-dark .input-cyber {
+  background: rgba(232, 232, 232, 0.06);
+}
+
+:root.theme-dark .input-clean:focus,
+:root.theme-dark .input-cyber:focus {
+  background: rgba(19, 16, 20, 0.9);
+}
+
 @layer components {
   /* ── Polices utilitaires ── */
   .font-display { font-family: var(--font-display); letter-spacing: 0.06em; }
