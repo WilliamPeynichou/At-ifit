@@ -161,7 +161,7 @@ test('performance vélo utilise des fonds blancs et des typos foncées', async (
   await expect(page.getByText('Évolution TSS / IF')).toBeVisible();
 
   const cyclingHeading = page.getByRole('heading', { name: /Vitesse moyenne vs dénivelé/i });
-  await expect(cyclingHeading).toHaveCSS('color', 'rgb(15, 23, 42)');
+  await expect(cyclingHeading).toHaveCSS('color', 'rgb(20, 20, 19)');
 
   const chartCard = cyclingHeading.locator('..');
   await expect(chartCard).toHaveCSS('background-color', 'rgb(255, 255, 255)');

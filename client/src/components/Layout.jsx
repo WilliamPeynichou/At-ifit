@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon } from 'lucide-react';
+import { Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, useLocation } from 'react-router-dom';
@@ -46,14 +46,8 @@ const Layout = ({ children }) => {
       {/* Desktop header — hidden on mobile */}
       <header className="glass-nav sticky top-0 z-50 hidden xl:block">
         <div className="max-w-6xl mx-auto px-4 xl:px-6 h-16 flex items-center justify-between gap-3">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="rounded-xl p-2" style={{ background: 'var(--accent-blue-light)', border: '1px solid rgba(0,85,255,0.15)' }}>
-              <Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
-            </div>
-            <span className="font-display text-xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}>
-              AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
-            </span>
+          <Link to="/" className="font-display text-xl tracking-widest shrink-0" style={{ color: 'var(--text-light-primary)' }}>
+            Atifit
           </Link>
 
           {/* Nav links */}
@@ -108,11 +102,8 @@ const Layout = ({ children }) => {
       {/* Mobile / tablet top bar */}
       <div className="glass-nav sticky top-0 z-50 xl:hidden">
         <div className="px-4 h-14 flex items-center justify-between" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <Link to="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-            <Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
-            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em', fontSize: '1rem' }}>
-              AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
-            </span>
+          <Link to="/" className="font-display tracking-widest" style={{ color: 'var(--text-light-primary)', fontSize: '1rem' }} onClick={() => setMobileMenuOpen(false)}>
+            Atifit
           </Link>
           <button
             onClick={toggleTheme}

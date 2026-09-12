@@ -486,7 +486,7 @@ const StravaStatsContent = () => {
         </div>
       )}
 
-      <YearlyProgress />
+      <YearlyProgress activities={activities} selectedSport={selectedSport} />
 
       <div className="glass-panel p-6">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">

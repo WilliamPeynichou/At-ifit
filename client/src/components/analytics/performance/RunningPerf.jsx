@@ -137,7 +137,7 @@ const RunningPerf = ({ activities }) => {
       </div>
 
       {/* Pace evolution */}
-      <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+      <div className="chart-surface rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
         <h3 className="text-lg font-bold mb-4" style={{ color: '#0f172a' }}>Évolution de l'allure</h3>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -164,7 +164,7 @@ const RunningPerf = ({ activities }) => {
 
       {/* Best efforts + predictions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+        <div className="chart-surface rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1f2937' }}>
             <Trophy size={20} style={{ color: '#eab308' }} /> Records personnels
           </h3>
@@ -198,7 +198,7 @@ const RunningPerf = ({ activities }) => {
           )}
         </div>
 
-        <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+        <div className="chart-surface rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1f2937' }}>
             <Zap size={20} style={{ color: '#fc4c02' }} /> Prédictions de course (Riegel)
           </h3>

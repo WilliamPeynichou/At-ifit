@@ -9,13 +9,15 @@ const MONTHS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep',
 const SPORT_LABELS = { run: 'Course', ride: 'Vélo', walk: 'Marche', swim: 'Natation', workout: 'Muscu' };
 
 const tooltipStyle = {
-  backgroundColor: 'rgba(19,16,20,0.97)',
-  backdropFilter: 'blur(12px)',
-  border: '1px solid var(--glass-border)',
-  borderRadius: '12px',
-  color: '#e8e8e8',
-  padding: '10px 14px',
-  fontSize: '13px',
+  backgroundColor: 'var(--chart-tooltip-bg)',
+  border: '1px solid var(--chart-tooltip-border)',
+  borderRadius: '10px',
+  color: 'var(--chart-tooltip-text)',
+  padding: '8px 10px',
+  fontSize: '12px',
+  width: 'max-content',
+  maxWidth: 'min(280px, calc(100vw - 32px))',
+  boxShadow: '0 10px 24px rgba(20,20,19,0.14)',
 };
 
 const FilterBtn = ({ active, onClick, children }) => (
@@ -31,7 +33,7 @@ const FilterBtn = ({ active, onClick, children }) => (
   </button>
 );
 
-const YearlyProgress = ({ activities: providedActivities, hideRunning = false }) => {
+const YearlyProgress = ({ activities: providedActivities, hideRunning = false, selectedSport = 'All' }) => {
   const { queryParams } = useTemporal();
   const [fetchedActivities, setFetchedActivities] = useState([]);
   const [stats, setStats] = useState(null);
@@ -39,7 +41,18 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false })
   const [year, setYear] = useState(new Date().getFullYear());
   const [sport, setSport] = useState('tous');
 
+  useEffect(() => {
+    setSport(selectedSport === 'All' ? 'tous' : selectedSport.toLowerCase());
+  }, [selectedSport]);
+
   const activities = providedActivities ?? fetchedActivities;
+  const matchesSport = (activityType, selected) => {
+    if (selected === 'tous') return true;
+    const type = String(activityType || '').toLowerCase();
+    if (selected === 'ride') return type.includes('ride');
+    if (selected === 'run') return type.includes('run');
+    return type === selected;
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -81,7 +94,7 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false })
     activities.forEach(a => {
       const d = new Date(a.startDate || a.start_date);
       if (d.getFullYear() !== year) return;
-      if (sport !== 'tous' && (a.type || '').toLowerCase() !== sport) return;
+      if (!matchesSport(a.type, sport)) return;
       byMonth[d.getMonth()].km += (a.distance || 0) / 1000;
       byMonth[d.getMonth()].count += 1;
     });
@@ -99,6 +112,7 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false })
       const d = new Date(a.startDate || a.start_date);
       if (d.getFullYear() !== year) return;
       const type = (a.type || '').toLowerCase();
+      if (!matchesSport(type, sport)) return;
       const dist = a.distance || 0;
       const time = a.movingTime || a.moving_time || 0;
       if (type === 'run') {
@@ -112,7 +126,7 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false })
       }
     });
     return totals;
-  }, [activities, year]);
+  }, [activities, year, sport]);
 
   const allRun = stats?.all_run_totals;
   const allRide = stats?.all_ride_totals;
@@ -189,9 +203,11 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false })
               <Tooltip
                 contentStyle={tooltipStyle}
                 formatter={(v) => [`${v} km`, 'Distance']}
-                cursor={{ fill: 'rgba(0,85,255,0.06)' }}
+                labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 700 }}
+                itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+                cursor={{ fill: 'rgba(106,155,204,0.10)' }}
               />
-              <Bar dataKey="km" fill="rgba(0,85,255,0.55)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="km" fill="var(--accent-blue)" fillOpacity={0.72} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </>

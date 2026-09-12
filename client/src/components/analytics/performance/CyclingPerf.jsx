@@ -155,13 +155,13 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       {profile && (profile.level || profile.vo2max || profile.maxHeartrate) && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {profile.level && profile.level !== 'Untrained' && profile.level !== 'Indéterminé' && (
-            <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
+            <div className="chart-surface rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#475569' }}>Niveau Coggan</p>
               <p className="text-xl font-bold" style={{ color: '#0f172a' }}>{profile.level}</p>
             </div>
           )}
           {profile.vo2max && (
-            <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
+            <div className="chart-surface rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#475569' }}>VO2max estimée</p>
               <p className="text-xl font-bold" style={{ color: '#0f172a' }}>
                 {profile.vo2max}<span className="text-sm ml-1" style={{ color: '#475569' }}>ml/kg/min</span>
@@ -171,7 +171,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
             </div>
           )}
           {profile.maxHeartrate && (
-            <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
+            <div className="chart-surface rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#475569' }}>FC max</p>
               <p className="text-xl font-bold" style={{ color: '#0f172a' }}>
                 {profile.maxHeartrate}<span className="text-sm ml-1" style={{ color: '#475569' }}>bpm</span>
@@ -187,7 +187,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
             </div>
           )}
           {profile.weight && (
-            <div className="rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
+            <div className="chart-surface rounded-2xl p-4" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#475569' }}>Poids</p>
               <p className="text-xl font-bold" style={{ color: '#0f172a' }}>
                 {profile.weight}<span className="text-sm ml-1" style={{ color: '#475569' }}>kg</span>
@@ -215,7 +215,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       </>)}
 
       {/* Comparaison sorties : distance + vitesse + BPM (min/avg/max) */}
-      <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+      <div className="chart-surface rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0f172a' }}>
           <HeartPulse size={20} style={{ color: '#ef4444' }} /> Comparaison sorties — distance, vitesse, BPM
         </h3>
@@ -252,7 +252,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       </div>
 
       {/* Vitesse vs Dénivelé — corrélation */}
-      <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+      <div className="chart-surface rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0f172a' }}>
           <Mountain size={20} style={{ color: '#0055ff' }} /> Vitesse moyenne vs dénivelé
         </h3>
@@ -284,7 +284,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
       </div>
 
       {/* TSS evolution */}
-      <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
+      <div className="chart-surface rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', boxShadow: '0 12px 28px rgba(15,23,42,0.06)' }}>
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0f172a' }}>
           <TrendingUp size={20} style={{ color: '#0055ff' }} /> Évolution TSS / IF
         </h3>

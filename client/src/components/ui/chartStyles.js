@@ -8,13 +8,18 @@
 
 export const darkTooltipProps = {
   contentStyle: {
-    backgroundColor: 'rgba(19,16,20,0.97)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 8,
-    color: '#ffffff',
+    backgroundColor: 'var(--chart-tooltip-bg)',
+    border: '1px solid var(--chart-tooltip-border)',
+    borderRadius: 10,
+    color: 'var(--chart-tooltip-text)',
+    width: 'max-content',
+    maxWidth: 'min(300px, calc(100vw - 32px))',
+    padding: '8px 10px',
+    boxShadow: '0 10px 24px rgba(20,20,19,0.14)',
   },
-  labelStyle: { color: '#ffffff', fontWeight: 600 },
-  cursor: { stroke: 'rgba(255,255,255,0.18)', strokeWidth: 1 },
+  labelStyle: { color: 'var(--chart-tooltip-text)', fontWeight: 700 },
+  itemStyle: { color: 'var(--chart-tooltip-text)' },
+  cursor: { stroke: 'var(--chart-tooltip-border)', strokeWidth: 1 },
 };
 
 export const lightTooltipProps = {

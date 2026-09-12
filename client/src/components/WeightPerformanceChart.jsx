@@ -7,29 +7,30 @@ import api from '../api';
 import { TrendingDown, Activity } from 'lucide-react';
 
 const tooltipStyle = {
-  backgroundColor: 'rgba(19,16,20,0.97)',
-  backdropFilter: 'blur(12px)',
-  border: '1px solid rgba(255,255,255,0.22)',
+  backgroundColor: 'var(--chart-tooltip-bg)',
+  border: '1px solid var(--chart-tooltip-border)',
   borderLeft: '4px solid #6a9bcc',
   borderRadius: '10px',
-  color: '#ffffff',
-  boxShadow: '0 16px 40px rgba(0,0,0,0.42)',
-  padding: '10px 14px',
-  fontSize: '13px',
+  color: 'var(--chart-tooltip-text)',
+  padding: '8px 10px',
+  fontSize: '12px',
+  width: 'max-content',
+  maxWidth: 'min(300px, calc(100vw - 32px))',
+  boxShadow: '0 10px 24px rgba(20,20,19,0.14)',
 };
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={tooltipStyle}>
-      <p className="font-semibold mb-1" style={{ color: '#ffffff' }}>{label}</p>
+      <p className="font-semibold mb-1" style={{ color: 'var(--chart-tooltip-text)' }}>{label}</p>
       {payload.map((p) => (
         <div key={p.dataKey} className="flex items-center justify-between gap-5 py-0.5">
-          <span className="flex items-center gap-2" style={{ color: '#e5e7eb' }}>
+          <span className="flex items-center gap-2" style={{ color: 'var(--chart-tooltip-muted)' }}>
             <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />
             {p.name}
           </span>
-          <strong style={{ color: '#fff' }}>{p.value ?? '—'}{p.unit}</strong>
+          <strong style={{ color: 'var(--chart-tooltip-text)' }}>{p.value ?? '—'}{p.unit}</strong>
         </div>
       ))}
     </div>

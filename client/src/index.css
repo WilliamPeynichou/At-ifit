@@ -48,6 +48,13 @@
   --shadow-md:   0 8px 32px rgba(0, 0, 0, 0.6);
   --shadow-blue: 0 8px 24px rgba(0, 85, 255, 0.22);
 
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-text: #141413;
+  --chart-tooltip-muted: #5f5e58;
+  --chart-tooltip-border: #b0aea5;
+  --chart-surface: #ffffff;
+  --chart-title: #141413;
+
   /* ── Clip-paths diagonaux ── */
   --clip-card:  polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
   --clip-panel: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
@@ -96,6 +103,12 @@
   --glass-white-hover: rgba(19, 16, 20, 0.92);
   --glass-border:       rgba(0, 85, 255, 0.22);
   --glass-border-hover: rgba(0, 85, 255, 0.55);
+  --chart-tooltip-bg: #faf9f5;
+  --chart-tooltip-text: #141413;
+  --chart-tooltip-muted: #5f5e58;
+  --chart-tooltip-border: #b0aea5;
+  --chart-surface: #e8e6dc;
+  --chart-title: #141413;
 
   --text-primary:   #e8e8e8;
   --text-secondary: rgba(232, 232, 232, 0.72);
@@ -301,6 +314,19 @@ select.input-cyber option {
     border-color: var(--accent-blue);
     box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.12);
     outline: none;
+  }
+
+  .chart-surface {
+    background: var(--chart-surface) !important;
+    border-color: var(--chart-tooltip-border) !important;
+    color: var(--chart-title) !important;
+  }
+
+  .chart-surface h1,
+  .chart-surface h2,
+  .chart-surface h3,
+  .chart-surface h4 {
+    color: var(--chart-title) !important;
   }
 
   .analysis-card {
