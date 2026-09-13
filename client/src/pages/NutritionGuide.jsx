@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Apple, ArrowUpRight, Bike, BookOpen, CalendarRange, ChevronRight, Droplets, FlaskConical, PersonStanding, ShieldCheck, Waves } from 'lucide-react';
+import { Apple, ArrowUpRight, Bike, BookOpen, Calculator, CalendarRange, ChevronRight, Droplets, FlaskConical, PersonStanding, ShieldCheck, Waves } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   AUBINEAU_SOURCE,
@@ -33,6 +33,8 @@ export default function NutritionGuide() {
           <div className="flex flex-wrap gap-3 mt-6">
             <Link className="btn-primary flex items-center gap-2" to="/nutrition/strategie">Calculer ma stratégie <ChevronRight size={17} /></Link>
             <Link className="btn-ghost flex items-center gap-2" to="/preparer-course">Préparer une course</Link>
+            <Link className="btn-ghost flex items-center gap-2" to="/kcal-calculator"><Calculator size={16} /> Besoins quotidiens</Link>
+            <Link className="btn-ghost flex items-center gap-2" to="/sources"><BookOpen size={16} /> Sources et documentation</Link>
           </div>
         </div>
       </header>
@@ -186,8 +188,23 @@ export default function NutritionGuide() {
                 <Apple size={20} />
               </div>
               <p className="text-sm my-4" style={{ color: 'var(--text-secondary)' }}>{item.use}</p>
-              <p className="text-xs uppercase font-bold mb-2" style={{ color: 'var(--text-muted)' }}>Exemples de modèles</p>
-              <p className="text-sm font-semibold mb-4">{item.models.join(' · ')}</p>
+              <p className="text-xs uppercase font-bold mb-2" style={{ color: 'var(--text-muted)' }}>Top 3 du PDF</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs mb-4">
+                  <thead><tr style={{ color: 'var(--text-muted)' }}><th className="text-left py-2">Modèle</th><th className="text-right">Glucides</th><th className="text-right">Sodium</th><th className="text-right">Qualité / prix</th></tr></thead>
+                  <tbody>
+                    {item.products.map(product => (
+                      <tr key={product.model} style={{ borderTop: '1px solid var(--glass-border)' }}>
+                        <td className="py-2 pr-3"><strong>#{product.rank} {product.model}</strong><span className="block" style={{ color: 'var(--text-muted)' }}>{product.dose || product.format}{product.normalizedTo ? ` · valeurs pour ${product.normalizedTo}` : ''}</span></td>
+                        <td className="text-right whitespace-nowrap">{product.carbohydratesG} g</td>
+                        <td className="text-right whitespace-nowrap">{product.sodiumMg} mg</td>
+                        <td className="text-right whitespace-nowrap">{product.qualityScore} / {product.valueScore}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{item.dataBasis}</p>
               <ul className="space-y-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {item.checks.map(check => <li key={check}>— {check}</li>)}
               </ul>
@@ -203,6 +220,7 @@ export default function NutritionGuide() {
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{AUBINEAU_SOURCE.role}. {AUBINEAU_SOURCE.note}</p>
         </div>
         <a href={AUBINEAU_SOURCE.url} target="_blank" rel="noreferrer" className="btn-ghost flex items-center gap-2 shrink-0">Voir son site <ArrowUpRight size={16} /></a>
+        <Link to="/sources" className="btn-ghost flex items-center gap-2 shrink-0">Détail des sources</Link>
       </aside>
 
       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>

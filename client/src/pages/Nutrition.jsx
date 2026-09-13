@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Apple, Bike, Droplets, Zap, Clock, AlertTriangle, Info, Loader2, Salad, PersonStanding, Waves, Activity, ArrowUpRight, BookOpen } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { AUBINEAU_SOURCE } from '../data/nutritionKnowledge';
+import { Link, useSearchParams } from 'react-router-dom';
+import { AUBINEAU_SOURCE, getProductRecommendations } from '../data/nutritionKnowledge';
 import api from '../api';
 
 const SPORTS = [
@@ -65,23 +65,29 @@ function MetricCard({ icon, label, children, accent }) {
   );
 }
 
+const FORM_DEFAULTS = {
+  sport: 'cycling',
+  distanceKm: '',
+  elevationGainM: '',
+  swimmingDistanceKm: '1.5',
+  cyclingDistanceKm: '40',
+  cyclingElevationGainM: '',
+  runningDistanceKm: '10',
+  runningElevationGainM: '',
+  transitionMinutes: '10',
+  plannedStartAt: '',
+  locationLabel: '',
+  objectiveText: '',
+  gutTolerance: '',
+  sweatSodiumProfile: '',
+};
+
 const Nutrition = () => {
-  const [form, setForm] = useState({
-    sport: 'cycling',
-    distanceKm: '',
-    elevationGainM: '',
-    swimmingDistanceKm: '1.5',
-    cyclingDistanceKm: '40',
-    cyclingElevationGainM: '',
-    runningDistanceKm: '10',
-    runningElevationGainM: '',
-    transitionMinutes: '10',
-    plannedStartAt: '',
-    locationLabel: '',
-    objectiveText: '',
-    gutTolerance: '',
-    sweatSodiumProfile: '',
-  });
+  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState(() => Object.keys(FORM_DEFAULTS).reduce((values, key) => ({
+    ...values,
+    [key]: searchParams.get(key) ?? FORM_DEFAULTS[key],
+  }), {}));
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -133,6 +139,11 @@ const Nutrition = () => {
 
   const during = plan?.during;
   const effort = plan?.effort;
+  const productRecommendations = plan ? getProductRecommendations({
+    sport: form.sport,
+    durationMinutes: effort?.estimatedDurationMinutes?.target,
+    heatStress: effort?.heatStress,
+  }) : [];
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -146,7 +157,10 @@ const Nutrition = () => {
           Stratégie glucides, hydratation et sodium calculée depuis tes données Strava.
         </p>
         </div>
-        <Link to="/nutrition" className="btn-ghost flex items-center gap-2 self-start"> <BookOpen size={16} /> Guide alimentaire</Link>
+        <div className="flex flex-wrap gap-2 self-start">
+          <Link to="/preparer-course" className="btn-ghost flex items-center gap-2">Préparer une course</Link>
+          <Link to="/nutrition" className="btn-ghost flex items-center gap-2"><BookOpen size={16} /> Guide alimentaire</Link>
+        </div>
       </div>
       <section className="glass-panel p-6 mb-8">
         <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -221,8 +235,8 @@ const Nutrition = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
               <div>
-                <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Distance (km)</label>
-                <input
+                  <label htmlFor="distanceKm" className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Distance (km)</label>
+                  <input id="distanceKm"
                   type="number" name="distanceKm" value={form.distanceKm} onChange={handleChange}
                   className="input-cyber" min="0.1" max="1000" step="0.1" required placeholder={form.sport === 'swimming' ? '3.8' : '120'}
                 />
@@ -241,8 +255,9 @@ const Nutrition = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Lieu</label>
+              <label htmlFor="locationLabel" className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Lieu</label>
               <input
+                id="locationLabel"
                 type="text" name="locationLabel" value={form.locationLabel} onChange={handleChange}
                 className="input-cyber" maxLength={120} placeholder="Annecy, France"
               />
@@ -276,8 +291,9 @@ const Nutrition = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Objectif</label>
+            <label htmlFor="objectiveText" className="block text-xs font-bold text-neon-cyan mb-2 uppercase tracking-widest">Objectif</label>
             <textarea
+              id="objectiveText"
               name="objectiveText" value={form.objectiveText} onChange={handleChange}
               className="input-cyber" rows={3} maxLength={1000}
               placeholder="Sortie soutenue de 120 km, objectif performance, j'ai du mal à manger solide après trois heures."
@@ -305,6 +321,7 @@ const Nutrition = () => {
       <aside className="glass-panel p-5 mb-8 flex flex-col sm:flex-row justify-between gap-4" style={{ borderColor: '#d97757' }}>
         <div><p className="font-mono text-xs uppercase" style={{ color: '#d97757' }}>Source documentaire complémentaire</p><p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Conseils pratiques et comparatifs produits de {AUBINEAU_SOURCE.author}, {AUBINEAU_SOURCE.role}. Calculs quantitatifs issus du référentiel scientifique versionné Atifit.</p></div>
         <a href={AUBINEAU_SOURCE.url} target="_blank" rel="noreferrer" className="btn-ghost flex items-center gap-2 shrink-0 self-start">Site Nicolas Aubineau <ArrowUpRight size={16} /></a>
+        <Link to="/sources" className="btn-ghost flex items-center gap-2 shrink-0 self-start">Sources et documentation</Link>
       </aside>
 
       {plan && (
@@ -422,6 +439,28 @@ const Nutrition = () => {
                 </p>
               </div>
             )}
+          </section>
+
+          <section className="glass-panel p-6 mb-8">
+            <h2 className="text-xl font-bold mb-1">Produits adaptés à ce scénario</h2>
+            <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>Sélection issue des PDF comparatifs. Elle aide à choisir un format, sans remplacer les cibles calculées ci-dessus.</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {productRecommendations.map(category => {
+                const product = category.products[0];
+                return (
+                  <article key={category.id} className="glass-card p-5">
+                    <p className="font-mono text-xs uppercase" style={{ color: 'var(--accent-blue)' }}>{category.title} · comparatif {category.edition}</p>
+                    <h3 className="text-lg mt-2">#{product.rank} {product.model}</h3>
+                    <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+                      {product.dose || product.format} · {product.carbohydratesG} g glucides · {product.sodiumMg} mg sodium
+                      {product.proteinG ? ` · ${product.proteinG} g protéines` : ''}
+                    </p>
+                    <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Scores PDF : qualité {product.qualityScore} · qualité/prix {product.valueScore}. {category.dataBasis}</p>
+                  </article>
+                );
+              })}
+            </div>
+            <Link to="/nutrition" className="btn-ghost inline-flex items-center gap-2 mt-5"><BookOpen size={16} /> Comparer les trois premiers modèles</Link>
           </section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

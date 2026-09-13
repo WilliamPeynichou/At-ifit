@@ -17,6 +17,7 @@ const CyclingDashboard = lazy(() => import('./pages/CyclingDashboard'));
 const NutritionGuide = lazy(() => import('./pages/NutritionGuide'));
 const Nutrition = lazy(() => import('./pages/Nutrition'));
 const RacePreparation = lazy(() => import('./pages/RacePreparation'));
+const Sources = lazy(() => import('./pages/Sources'));
 const RunningDashboard = lazy(() => import('./pages/RunningDashboard'));
 const SwimmingDashboard = lazy(() => import('./pages/SwimmingDashboard'));
 const KcalCalculator = lazy(() => import('./components/KcalCalculator'));
@@ -119,6 +120,16 @@ function AppInner() {
               <ProtectedRoute>
                 <Layout>
                   <RacePreparation />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sources"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Sources />
                 </Layout>
               </ProtectedRoute>
             }

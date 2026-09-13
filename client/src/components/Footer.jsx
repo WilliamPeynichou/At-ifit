@@ -28,6 +28,7 @@ const Footer = () => {
               { to: '/cyclisme', label: 'Cyclisme' },
               { to: '/kcal-calculator', label: 'Calories' },
               { to: '/stats-explanation', label: 'Guide' },
+              { to: '/sources', label: 'Sources' },
             ].map(({ to, label }) => (
               <Link
                 key={to}

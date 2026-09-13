@@ -137,6 +137,33 @@ async function mockApi(page) {
       });
     }
     if (path === '/cycling/rides') return json(rides);
+    if (path === '/nutrition/effort/preview') {
+      return json({
+        data: {
+          effort: {
+            estimatedDurationMinutes: { low: 225, target: 240, high: 255 },
+            estimatedEnergyKcal: { low: 2200, target: 2400, high: 2600 },
+            heatStress: 'modéré',
+            comparableActivitiesCount: 4,
+          },
+          during: {
+            carbohydratesGPerHour: { low: 50, target: 60, high: 70 },
+            carbohydratesTotalG: { low: 200, target: 240, high: 280 },
+            fluidMlPerHour: { low: 400, target: 500, high: 600 },
+            fluidTotalMl: { low: 1600, target: 2000, high: 2400 },
+            sodiumMgPerHour: { low: 400, target: 500, high: 600 },
+            sodiumTotalMg: { low: 1600, target: 2000, high: 2400 },
+            feedingIntervalMinutes: 20,
+            timeline: [],
+          },
+          before: { available: false, reason: 'Données insuffisantes.' },
+          after: { available: false, reason: 'Données insuffisantes.' },
+          confidence: { label: 'modérée' },
+          warnings: [], assumptions: [], missingData: [],
+          disclaimer: 'Conseils généraux.', algorithmVersion: '1', knowledgeVersion: '1',
+        },
+      });
+    }
 
     return json({});
   });
@@ -238,7 +265,7 @@ test('préparation de course couvre le triathlon', async ({ page }) => {
   await expect(page.getByLabel(/Natation \(km\)/)).toHaveValue('1.9');
   await expect(page.getByLabel(/Vélo \(km\)/)).toHaveValue('90');
   await expect(page.getByLabel(/Transitions T1 \+ T2/)).toHaveValue('10');
-  await expect(page.getByLabel(/^Distance \(km\)/)).toHaveCount(0);
+  await expect(page.locator('form input[name="distanceKm"]')).toHaveCount(0);
 });
 
 test('header reste utilisable en tablette et en mobile', async ({ page }) => {
@@ -262,6 +289,113 @@ test('header reste utilisable en tablette et en mobile', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Ouvrir le menu/i })).toBeVisible();
   await page.getByRole('button', { name: /Ouvrir le menu/i }).click();
   await expect(page.getByRole('link', { name: /Préparer course/i })).toBeVisible();
+});
+
+test('la calculette de course conserve ses valeurs après rechargement', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/preparer-course');
+  const calculator = page.locator('aside').filter({ hasText: 'Calculette' });
+  await calculator.getByLabel('Distance (km)').fill('15');
+  await calculator.getByLabel('Heures').fill('1');
+  await calculator.getByLabel('Minutes').fill('12');
+  await expect(calculator.getByText('4:48 /km')).toBeVisible();
+
+  await page.reload();
+  const restored = page.locator('aside').filter({ hasText: 'Calculette' });
+  await expect(restored.getByLabel('Distance (km)')).toHaveValue('15');
+  await expect(restored.getByLabel('Heures')).toHaveValue('1');
+  await expect(restored.getByLabel('Minutes')).toHaveValue('12');
+  await expect(restored.getByText('4:48 /km')).toBeVisible();
+});
+
+test('la calculette mobile reste repliable et ne bloque pas le formulaire', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/preparer-course');
+
+  const toggle = page.getByRole('button', { name: 'Calculette' });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('button', { name: 'Construire mon plan' })).toBeVisible();
+  await toggle.click();
+  await expect(page.getByRole('heading', { name: 'Calculette' })).toBeVisible();
+  await page.getByRole('button', { name: 'Fermer la calculette' }).click();
+  await expect(page.getByRole('heading', { name: 'Calculette' })).toBeHidden();
+  await page.getByLabel('Nom course').fill('Course mobile');
+  await expect(page.getByLabel('Nom course')).toHaveValue('Course mobile');
+});
+
+test('le plan de course affiche les modèles recommandés issus des PDF', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+  await page.goto('/preparer-course');
+  await page.getByLabel('Date').fill('2027-04-04');
+  await page.getByRole('button', { name: 'Construire mon plan' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Modèles conseillés pour cette course' })).toBeVisible();
+  await expect(page.getByText(/Aptonia Iso\+ Pêche/)).toBeVisible();
+  await expect(page.getByText(/Decathlon Energy Gel\+/)).toBeVisible();
+  await expect(page.getByText(/Isostar After Reload Drink/)).toBeVisible();
+  await expect(page.getByText(/Nicolas Aubineau/).first()).toBeVisible();
+});
+
+test('la préparation transfère le contexte vers la stratégie nutritionnelle', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/preparer-course');
+  await page.getByLabel('Nom course').fill('Marathon test');
+  await page.getByLabel('Date').fill('2027-04-04');
+  await page.getByLabel('Lieu').fill('Paris, France');
+  await page.getByRole('button', { name: 'Construire mon plan' }).click();
+  const detailLink = page.getByRole('link', { name: /plan nutritionnel détaillé/i });
+  await expect(detailLink).toBeVisible();
+  await detailLink.click();
+
+  await expect(page).toHaveURL(/\/nutrition\/strategie\?/);
+  await expect(page.getByRole('heading', { name: /^Nutrition$/ })).toBeVisible();
+  await expect(page.locator('input[name="distanceKm"]')).toHaveValue('42.195');
+  await expect(page.getByLabel('Lieu')).toHaveValue('Paris, France');
+  await expect(page.getByLabel('Objectif')).toHaveValue(/Marathon test/);
+  await expect(page.getByLabel('Tolérance digestive')).toHaveValue('medium');
+});
+
+test('la page sources explique documentation et références scientifiques', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/nutrition');
+  await page.getByRole('link', { name: /Sources et documentation/i }).click();
+
+  await expect(page).toHaveURL(/\/sources$/);
+  await expect(page.getByRole('heading', { name: /D’où viennent les informations/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Documentation de Nicolas Aubineau/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Site de Nicolas Aubineau/i })).toHaveAttribute('href', 'https://www.nicolas-aubineau.com/');
+  await expect(page.getByText(/Jeukendrup A\./)).toBeVisible();
+  await expect(page.getByText(/Comparatif des gels énergétiques/).first()).toBeVisible();
+  await expect(page.getByText(/Aucune valeur affichée n’est générée par un modèle de langage/)).toBeVisible();
 });
 
 test('menus Nutrition gardent texte et fond contrastés', async ({ page }) => {

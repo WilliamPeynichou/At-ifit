@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Bike, CalendarDays, Check, ChevronRight, Clock3, Flag, Loader2, PersonStanding, Target, Utensils, Waves } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../api';
-import { AUBINEAU_SOURCE, BASE_RULES, CARB_LOADING, RACE_PROTOCOLS } from '../data/nutritionKnowledge';
+import RacePaceCalculator from '../components/RacePaceCalculator';
+import { AUBINEAU_SOURCE, BASE_RULES, CARB_LOADING, getProductRecommendations, RACE_PROTOCOLS } from '../data/nutritionKnowledge';
 
 const SPORTS = [
   { id: 'running', label: 'Course à pied', distance: 42.195, dPlus: 300, hours: 4 },
@@ -77,6 +79,29 @@ export default function RacePreparation() {
   const targetPace = form.sport === 'running' && Number(form.distanceKm) > 0 ? targetTotalMinutes / Number(form.distanceKm) : null;
   const targetSpeed = form.sport === 'cycling' && targetTotalMinutes > 0 ? Number(form.distanceKm) / (targetTotalMinutes / 60) : null;
 
+  const strategySearch = useMemo(() => {
+    const params = new URLSearchParams({
+      sport: form.sport,
+      plannedStartAt: form.date ? `${form.date}T09:00` : '',
+      locationLabel: form.locationLabel,
+      objectiveText: `Objectif ${form.raceName || 'course'} en ${formatMinutes(targetTotalMinutes)}.`,
+      gutTolerance: form.gutTolerance,
+      sweatSodiumProfile: form.sweatSodiumProfile,
+    });
+    if (isTriathlon) {
+      params.set('swimmingDistanceKm', form.swimmingDistanceKm);
+      params.set('cyclingDistanceKm', form.cyclingDistanceKm);
+      params.set('cyclingElevationGainM', form.cyclingElevationGainM);
+      params.set('runningDistanceKm', form.runningDistanceKm);
+      params.set('runningElevationGainM', form.runningElevationGainM);
+      params.set('transitionMinutes', form.transitionMinutes);
+    } else {
+      params.set('distanceKm', form.distanceKm);
+      params.set('elevationGainM', form.elevationGainM);
+    }
+    return params.toString();
+  }, [form, isTriathlon, targetTotalMinutes]);
+
   const update = event => setForm(current => ({ ...current, [event.target.name]: event.target.value }));
 
   const chooseSport = sport => setForm(current => ({
@@ -135,6 +160,11 @@ export default function RacePreparation() {
   const predicted = result?.effort?.estimatedDurationMinutes?.target;
   const gap = Number.isFinite(predicted) ? targetTotalMinutes - predicted : null;
   const legs = result?.effort?.legs;
+  const productRecommendations = result && form.nutrition ? getProductRecommendations({
+    sport: form.sport,
+    durationMinutes: predicted || targetTotalMinutes,
+    heatStress: result?.effort?.heatStress,
+  }) : [];
   const protocol = deriveProtocol({
     sport: form.sport,
     distanceKm: isTriathlon ? totalTriathlonKm : form.distanceKm,
@@ -143,7 +173,7 @@ export default function RacePreparation() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-7">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-24 lg:pb-10 space-y-7">
       <header>
         <p className="font-mono text-xs uppercase tracking-[.2em]" style={{ color: 'var(--accent-blue)' }}>Objectif → plan → exécution</p>
         <h1 className="text-4xl sm:text-5xl font-black mt-2">Préparer une course</h1>
@@ -153,6 +183,8 @@ export default function RacePreparation() {
         </p>
       </header>
 
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem] gap-6 items-start">
+        <div className="min-w-0 space-y-7">
       <form onSubmit={submit} className="glass-panel p-5 sm:p-6 space-y-6">
         <div>
           <label className="block text-xs font-bold uppercase mb-2">Discipline</label>
@@ -214,7 +246,7 @@ export default function RacePreparation() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <label className="text-xs font-bold uppercase">Nom course<input className="input-cyber mt-2" name="raceName" value={form.raceName} onChange={update} placeholder={isTriathlon ? 'Ironman Nice' : 'Marathon de Paris'} /></label>
           <label className="text-xs font-bold uppercase">Date<input required className="input-cyber mt-2" type="date" name="date" value={form.date} onChange={update} /></label>
-          {!isTriathlon && <label className="text-xs font-bold uppercase">Distance (km)<input required className="input-cyber mt-2" type="number" min="0.1" step="0.1" name="distanceKm" value={form.distanceKm} onChange={update} /></label>}
+          {!isTriathlon && <label className="text-xs font-bold uppercase">Distance (km)<input required className="input-cyber mt-2" type="number" min="0.1" step="0.001" name="distanceKm" value={form.distanceKm} onChange={update} /></label>}
           {!isTriathlon && <label className="text-xs font-bold uppercase">D+ (m)<input className="input-cyber mt-2" type="number" min="0" name="elevationGainM" value={form.elevationGainM} onChange={update} /></label>}
           <label className="text-xs font-bold uppercase">Lieu<input className="input-cyber mt-2" name="locationLabel" value={form.locationLabel} onChange={update} placeholder="Annecy, France" /></label>
         </div>
@@ -247,6 +279,14 @@ export default function RacePreparation() {
                   <option value="salty">Très salée</option>
                 </select>
               </label>
+            </div>
+          )}
+          {form.nutrition && (
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Le détail reprend automatiquement les informations de cette course.</p>
+              <Link to={`/nutrition/strategie?${strategySearch}`} className="btn-ghost inline-flex items-center gap-2 shrink-0">
+                Ouvrir le plan nutritionnel détaillé <ChevronRight size={17} />
+              </Link>
             </div>
           )}
         </div>
@@ -351,10 +391,44 @@ export default function RacePreparation() {
                   </ul>
                 </div>
               )}
-              <ul className="grid md:grid-cols-2 gap-2 mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
-                {BASE_RULES.slice(0, 4).map(rule => <li key={rule}>· {rule}</li>)}
-              </ul>
-            </section>
+               <ul className="grid md:grid-cols-2 gap-2 mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
+                 {BASE_RULES.slice(0, 4).map(rule => <li key={rule}>· {rule}</li>)}
+               </ul>
+
+               {productRecommendations.length > 0 && (
+                 <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--glass-border)' }}>
+                   <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
+                     <div>
+                       <p className="font-mono text-xs uppercase" style={{ color: 'var(--accent-blue)' }}>Sélection issue des comparatifs PDF</p>
+                       <h3 className="text-xl mt-1">Modèles conseillés pour cette course</h3>
+                     </div>
+                     <Link to="/nutrition" className="btn-ghost inline-flex items-center gap-2 self-start shrink-0">Voir tous les comparatifs <ChevronRight size={16} /></Link>
+                   </div>
+                   <div className="grid md:grid-cols-2 gap-4">
+                     {productRecommendations.map(category => (
+                       <article key={category.id} className="rounded-xl p-4" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
+                         <p className="text-xs font-bold uppercase" style={{ color: 'var(--accent-blue)' }}>{category.title} · {category.edition}</p>
+                         <ol className="mt-3 space-y-3">
+                           {category.products.map(product => (
+                             <li key={product.model} className="text-sm">
+                               <strong>#{product.rank} {product.model}</strong>
+                               <span className="block text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                                 {product.dose || product.format} · {product.carbohydratesG} g glucides · {product.sodiumMg} mg sodium
+                                 {product.proteinG ? ` · ${product.proteinG} g protéines` : ''}
+                               </span>
+                             </li>
+                           ))}
+                         </ol>
+                         <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>{category.use}</p>
+                       </article>
+                     ))}
+                   </div>
+                   <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+                     Modèles proposés selon discipline, durée et chaleur. Vérifie recette et étiquette actuelles, puis teste chaque produit à l’entraînement.
+                   </p>
+                 </div>
+               )}
+             </section>
           )}
 
           <section className="glass-panel p-5 sm:p-6">
@@ -372,9 +446,25 @@ export default function RacePreparation() {
               {CARB_LOADING.notes.map(note => <li key={note}>— {note}</li>)}
             </ul>
             <a href={AUBINEAU_SOURCE.url} target="_blank" rel="noreferrer" className="btn-ghost mt-5 inline-flex">Source : {AUBINEAU_SOURCE.author}</a>
+            <Link to="/sources" className="btn-ghost mt-5 sm:ml-3 inline-flex">D’où viennent ces conseils</Link>
           </section>
         </div>
       )}
+        </div>
+
+        <RacePaceCalculator
+          distanceKm={isTriathlon ? Number(form.runningDistanceKm) : Number(form.distanceKm)}
+          targetMinutes={targetTotalMinutes}
+          onApplyTarget={total => {
+            const roundedTotal = Math.round(total);
+            setForm(current => ({
+              ...current,
+              targetHours: Math.floor(roundedTotal / 60),
+              targetMinutes: roundedTotal % 60,
+            }));
+          }}
+        />
+      </div>
     </div>
   );
 }

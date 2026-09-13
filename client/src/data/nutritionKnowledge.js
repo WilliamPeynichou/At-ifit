@@ -99,6 +99,12 @@ export const PRODUCT_COMPARISONS = [
     use: 'Meilleur apport selon Nicolas Aubineau : eau, glucides variés, sodium, vitamines et minéraux dans un seul produit.',
     models: ['Aptonia Iso+ Pêche', 'Mulebar Boisson de l’effort Fruits rouges', 'Apurna Boisson Hydratation Orange'],
     checks: ['≈ 30 g de glucides par heure', '≈ 300 mg de sodium par heure', 'Ratio sucres/glucides sous 75 %'],
+    products: [
+      { rank: 1, model: 'Aptonia Iso+ Pêche', dose: '38 g / 500 ml', carbohydratesG: 33, sodiumMg: 400, sugarRatioPct: 51.5, qualityScore: 15.5, valueScore: 15.25 },
+      { rank: 2, model: 'Mulebar Boisson de l’effort Fruits rouges', dose: '40 g / 500 ml', carbohydratesG: 36.5, sodiumMg: 301, sugarRatioPct: 47.9, qualityScore: 17, valueScore: 13.75 },
+      { rank: 3, model: 'Apurna Boisson Hydratation Orange', dose: '45 g / 500 ml', carbohydratesG: 36.9, sodiumMg: 305, sugarRatioPct: 47.7, qualityScore: 17, valueScore: 13.25 },
+    ],
+    dataBasis: 'Valeurs par bidon et classement qualité/prix du PDF 2026.',
   },
   {
     id: 'gels',
@@ -107,6 +113,12 @@ export const PRODUCT_COMPARISONS = [
     use: 'Pratique mais qualitativement limité : peu de vitamines et minéraux.',
     models: ['Decathlon Energy Gel+', 'Authentic Nutrition Boost Gel', 'Effinov Sport Hydraminov Gel+'],
     checks: ['1 gel par heure maximum', 'Toujours accompagné d’environ 300 ml d’eau', 'Risque d’hypoglycémie réactionnelle si pris seul'],
+    products: [
+      { rank: 1, model: 'Decathlon Energy Gel+', format: '46 g', normalizedTo: '25 g de gel', carbohydratesG: 21.5, sodiumMg: 50, qualityScore: 11, valueScore: 14 },
+      { rank: 2, model: 'Authentic Nutrition Boost Gel', format: '30 g', normalizedTo: '25 g de gel', carbohydratesG: 15, sodiumMg: 37.5, qualityScore: 15.5, valueScore: 13.5 },
+      { rank: 3, model: 'Effinov Sport Hydraminov Gel+', format: '80 g', normalizedTo: '25 g de gel', carbohydratesG: 9, sodiumMg: 94, qualityScore: 8, valueScore: 12.25 },
+    ],
+    dataBasis: 'Valeurs normalisées à 25 g et classement qualité/prix du PDF 2026 ; le format commercial ne constitue pas une dose horaire.',
   },
   {
     id: 'bars',
@@ -115,6 +127,12 @@ export const PRODUCT_COMPARISONS = [
     use: 'À réserver au vélo, au trail et aux allures modérées, jamais en courant vite.',
     models: ['Aptonia Barre énergétique aux dattes', 'Clif Bar Energy Bar myrtilles-amandes', 'Mulebar Barre énergétique bio'],
     checks: ['Mastication longue, de préférence en marchant', 'Sur ultra, viser 4 à 6 g de protéines par barre', 'Moins digestes que le liquide'],
+    products: [
+      { rank: 1, model: 'Aptonia Barre énergétique aux dattes', format: '35 g', normalizedTo: '40 g de barre', carbohydratesG: 22.9, proteinG: 2.5, sodiumMg: 9, sugarRatioPct: 75, qualityScore: 14, valueScore: 16.75 },
+      { rank: 2, model: 'Clif Bar Energy Bar myrtilles-amandes', format: '68 g', normalizedTo: '40 g de barre', carbohydratesG: 21.8, proteinG: 6.5, sodiumMg: 104, sugarRatioPct: 46, qualityScore: 14, valueScore: 16.25 },
+      { rank: 3, model: 'Mulebar Barre énergétique bio ananas-coco', format: '40 g', normalizedTo: '40 g de barre', carbohydratesG: 26, proteinG: 2.7, sodiumMg: 24, sugarRatioPct: 62, qualityScore: 5, valueScore: 12.5 },
+    ],
+    dataBasis: 'Valeurs ramenées à 40 g et classement qualité/prix du PDF 2025.',
   },
   {
     id: 'electrolytes',
@@ -123,6 +141,12 @@ export const PRODUCT_COMPARISONS = [
     use: 'Hydratation et minéraux, mais apport glucidique insuffisant seul.',
     models: ['Aptonia Boisson Sport Électrolytes', 'Aptonia Electrolytes Tabs', 'Nutripure Pure Electrolytes'],
     checks: ['≈ 300 mg de sodium par bidon', 'À compléter par une source de glucides', 'Utile par forte chaleur'],
+    products: [
+      { rank: 1, model: 'Aptonia Boisson Sport Électrolytes', dose: '4 g / 500 ml', carbohydratesG: 1.4, sodiumMg: 252, qualityScore: 12.5, valueScore: 16.25 },
+      { rank: 2, model: 'Aptonia Electrolytes Tabs', dose: '4 g / 500 ml', carbohydratesG: 1.4, sodiumMg: 250, qualityScore: 12.5, valueScore: 15.75 },
+      { rank: 3, model: 'Nutripure Pure Electrolytes', dose: '10 g / 500 ml', carbohydratesG: 6.4, sodiumMg: 306, qualityScore: 20, valueScore: 11.75 },
+    ],
+    dataBasis: 'Valeurs par bidon et classement qualité/prix du PDF 2024.',
   },
   {
     id: 'recovery',
@@ -131,8 +155,32 @@ export const PRODUCT_COMPARISONS = [
     use: 'Aussi utilisables pendant l’effort long pour apporter protéines et BCAA.',
     models: ['Isostar After Reload Drink', 'Powerbar Recovery Active', 'Apurna Boisson de récupération'],
     checks: ['Trail : 1 dose toutes les 2 à 3 h', 'Marathon > 3 h : 125 ml vers le km 25', 'Glucides + protéines + sodium'],
+    products: [
+      { rank: 1, model: 'Isostar After Reload Drink', dose: '50 g', carbohydratesG: 35, proteinG: 10, sodiumMg: 140, qualityScore: 12.5, valueScore: 15.5 },
+      { rank: 2, model: 'Powerbar Recovery Active', dose: '55 g', carbohydratesG: 39, proteinG: 11, sodiumMg: 100, qualityScore: 9.5, valueScore: 14.75 },
+      { rank: 3, model: 'Apurna Boisson de récupération', dose: '40 g', carbohydratesG: 23.2, proteinG: 10, sodiumMg: 150, qualityScore: 15.5, valueScore: 14.25 },
+    ],
+    dataBasis: 'Valeurs par dose conseillée et classement qualité/prix du PDF 2024.',
   },
 ];
+
+/**
+ * Sélection éditoriale déterministe : elle ne modifie jamais les cibles du moteur
+ * scientifique. Elle indique seulement quelles familles de produits sont les plus
+ * faciles à utiliser pour le scénario calculé.
+ */
+export function getProductRecommendations({ sport, durationMinutes = 0, heatStress = 'normal' } = {}) {
+  const duration = Number(durationMinutes) || 0;
+  const ids = ['drinks'];
+
+  if (sport === 'cycling' || sport === 'triathlon' || (sport === 'running' && duration >= 240)) ids.push('bars');
+  if (sport === 'running' || sport === 'triathlon') ids.push('gels');
+  if (heatStress === 'high' || heatStress === 'very_high') ids.push('electrolytes');
+  if (duration >= 180) ids.push('recovery');
+
+  return [...new Set(ids)].map(id => PRODUCT_COMPARISONS.find(item => item.id === id)).filter(Boolean);
+}
+
 
 export const SPORT_FOOD_GUIDES = {
   cycling: {
