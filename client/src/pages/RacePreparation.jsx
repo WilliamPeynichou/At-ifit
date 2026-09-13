@@ -3,7 +3,7 @@ import { AlertTriangle, Bike, CalendarDays, Check, ChevronRight, Clock3, Flag, L
 import { Link } from 'react-router-dom';
 import api from '../api';
 import RacePaceCalculator from '../components/RacePaceCalculator';
-import { AUBINEAU_SOURCE, BASE_RULES, CARB_LOADING, getProductRecommendations, RACE_PROTOCOLS } from '../data/nutritionKnowledge';
+import { AUBINEAU_SOURCE, BASE_RULES, CARB_LOADING, getModelsByAthleteProfile, getProductRecommendations, RACE_PROTOCOLS } from '../data/nutritionKnowledge';
 
 const SPORTS = [
   { id: 'running', label: 'Course à pied', distance: 42.195, dPlus: 300, hours: 4 },
@@ -163,6 +163,12 @@ export default function RacePreparation() {
   const productRecommendations = result && form.nutrition ? getProductRecommendations({
     sport: form.sport,
     durationMinutes: predicted || targetTotalMinutes,
+    heatStress: result?.effort?.heatStress,
+  }) : [];
+  const athleteProfiles = result && form.nutrition ? getModelsByAthleteProfile({
+    durationMinutes: predicted || targetTotalMinutes,
+    gutTolerance: form.gutTolerance,
+    sweatSodiumProfile: form.sweatSodiumProfile,
     heatStress: result?.effort?.heatStress,
   }) : [];
   const protocol = deriveProtocol({
@@ -426,6 +432,49 @@ export default function RacePreparation() {
                    <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
                      Modèles proposés selon discipline, durée et chaleur. Vérifie recette et étiquette actuelles, puis teste chaque produit à l’entraînement.
                    </p>
+                 </div>
+               )}
+
+               {athleteProfiles.length > 0 && (
+                 <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--glass-border)' }}>
+                   <p className="font-mono text-xs uppercase" style={{ color: 'var(--accent-blue)' }}>Comparaison par profil</p>
+                   <h3 className="text-xl mt-1 mb-1">Modèles par type d’athlète</h3>
+                   <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+                     Profil déduit de ta tolérance digestive, de ta sueur et de la durée estimée.
+                   </p>
+                   <div className="grid md:grid-cols-2 gap-4">
+                     {athleteProfiles.map(profile => (
+                       <article
+                         key={profile.id}
+                         className="rounded-xl p-4"
+                         style={{
+                           background: 'var(--surface-subtle)',
+                           border: profile.matches ? '2px solid var(--accent-blue)' : '1px solid var(--glass-border)',
+                         }}
+                       >
+                         <div className="flex items-start justify-between gap-3">
+                           <h4 className="text-lg">{profile.label}</h4>
+                           {profile.matches && (
+                             <span className="text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap" style={{ background: 'var(--accent-blue)', color: '#fff' }}>
+                               Ton profil
+                             </span>
+                           )}
+                         </div>
+                         <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>{profile.summary}</p>
+                         <ul className="mt-3 space-y-2">
+                           {profile.products.map(product => (
+                             <li key={`${profile.id}-${product.model}`} className="text-sm">
+                               <strong>{product.model}</strong>
+                               <span className="block text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                                 {product.categoryTitle} {product.edition} · {product.dose || product.format} · {product.carbohydratesG} g glucides · {product.sodiumMg} mg sodium
+                               </span>
+                             </li>
+                           ))}
+                         </ul>
+                         <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>{profile.advice}</p>
+                       </article>
+                     ))}
+                   </div>
                  </div>
                )}
              </section>

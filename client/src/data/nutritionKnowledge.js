@@ -181,6 +181,82 @@ export function getProductRecommendations({ sport, durationMinutes = 0, heatStre
   return [...new Set(ids)].map(id => PRODUCT_COMPARISONS.find(item => item.id === id)).filter(Boolean);
 }
 
+const findProduct = (categoryId, modelFragment) => {
+  const category = PRODUCT_COMPARISONS.find(item => item.id === categoryId);
+  const product = category?.products.find(item => item.model.includes(modelFragment));
+  return product ? { ...product, categoryId, categoryTitle: category.title, edition: category.edition } : null;
+};
+
+/**
+ * Profils d’athlètes types. Chaque profil regroupe les modèles les mieux classés des
+ * comparatifs qui répondent à sa contrainte principale (digestion, sueur, durée).
+ * Les cibles chiffrées restent produites par le moteur scientifique.
+ */
+export const ATHLETE_MODEL_PROFILES = [
+  {
+    id: 'sensitive-gut',
+    label: 'Estomac sensible',
+    summary: 'Digestion difficile, cible glucidique plafonnée, tout passe par le liquide.',
+    advice: 'Boisson comme base unique, dilution légèrement renforcée, ni gel ni solide en intensité.',
+    picks: [['drinks', 'Aptonia Iso+'], ['electrolytes', 'Aptonia Boisson Sport'], ['gels', 'Authentic Nutrition Boost Gel']],
+  },
+  {
+    id: 'standard',
+    label: 'Tolérance classique',
+    summary: 'Digestion normale, formats courts à moyens, apport régulier sans contrainte forte.',
+    advice: 'Boisson en base, un gel par heure maximum, toujours accompagné d’eau.',
+    picks: [['drinks', 'Mulebar Boisson'], ['gels', 'Decathlon Energy Gel+'], ['bars', 'Aptonia Barre énergétique aux dattes']],
+  },
+  {
+    id: 'trained-gut',
+    label: 'Intestin entraîné',
+    summary: 'Apports élevés déjà répétés à l’entraînement, charge glucidique haute supportée.',
+    advice: 'Cumuler boisson et solides, varier les types de glucides pour tenir la cible horaire.',
+    picks: [['drinks', 'Apurna Boisson Hydratation'], ['bars', 'Clif Bar Energy Bar'], ['gels', 'Decathlon Energy Gel+']],
+  },
+  {
+    id: 'salty-sweater',
+    label: 'Sueur très salée',
+    summary: 'Traces blanches sur la peau ou les vêtements, pertes sodées importantes.',
+    advice: 'Ajouter une source de sodium dédiée en plus de la boisson, surtout par forte chaleur.',
+    picks: [['electrolytes', 'Nutripure Pure Electrolytes'], ['drinks', 'Aptonia Iso+'], ['bars', 'Clif Bar Energy Bar']],
+  },
+  {
+    id: 'endurance',
+    label: 'Longue distance',
+    summary: 'Au-delà de 3 h, lassitude gustative et casse musculaire deviennent les vrais risques.',
+    advice: 'Alterner sucré et salé, ajouter une dose de récupération toutes les 2 à 3 h.',
+    picks: [['recovery', 'Isostar After Reload Drink'], ['bars', 'Clif Bar Energy Bar'], ['drinks', 'Mulebar Boisson']],
+  },
+];
+
+/**
+ * Renvoie tous les profils types avec leurs modèles, et marque ceux qui correspondent
+ * au formulaire rempli, afin de comparer sa situation aux autres profils.
+ */
+export function getModelsByAthleteProfile({
+  durationMinutes = 0,
+  gutTolerance = '',
+  sweatSodiumProfile = '',
+  heatStress = '',
+} = {}) {
+  const duration = Number(durationMinutes) || 0;
+  const matched = new Set();
+
+  if (gutTolerance === 'low') matched.add('sensitive-gut');
+  if (gutTolerance === 'medium' || gutTolerance === 'high') matched.add('standard');
+  if (gutTolerance === 'trained') matched.add('trained-gut');
+  if (sweatSodiumProfile === 'salty' || heatStress === 'high' || heatStress === 'extreme') matched.add('salty-sweater');
+  if (duration >= 180) matched.add('endurance');
+  if (matched.size === 0) matched.add('standard');
+
+  return ATHLETE_MODEL_PROFILES.map(profile => ({
+    ...profile,
+    matches: matched.has(profile.id),
+    products: profile.picks.map(([categoryId, model]) => findProduct(categoryId, model)).filter(Boolean),
+  }));
+}
+
 
 export const SPORT_FOOD_GUIDES = {
   cycling: {

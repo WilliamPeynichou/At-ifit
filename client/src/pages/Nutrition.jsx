@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Apple, Bike, Droplets, Zap, Clock, AlertTriangle, Info, Loader2, Salad, PersonStanding, Waves, Activity, ArrowUpRight, BookOpen } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { AUBINEAU_SOURCE, getProductRecommendations } from '../data/nutritionKnowledge';
+import { AUBINEAU_SOURCE, getModelsByAthleteProfile, getProductRecommendations } from '../data/nutritionKnowledge';
 import api from '../api';
 
 const SPORTS = [
@@ -142,6 +142,12 @@ const Nutrition = () => {
   const productRecommendations = plan ? getProductRecommendations({
     sport: form.sport,
     durationMinutes: effort?.estimatedDurationMinutes?.target,
+    heatStress: effort?.heatStress,
+  }) : [];
+  const athleteProfiles = plan ? getModelsByAthleteProfile({
+    durationMinutes: effort?.estimatedDurationMinutes?.target,
+    gutTolerance: form.gutTolerance,
+    sweatSodiumProfile: form.sweatSodiumProfile,
     heatStress: effort?.heatStress,
   }) : [];
 
@@ -461,6 +467,49 @@ const Nutrition = () => {
               })}
             </div>
             <Link to="/nutrition" className="btn-ghost inline-flex items-center gap-2 mt-5"><BookOpen size={16} /> Comparer les trois premiers modèles</Link>
+          </section>
+
+          <section className="glass-panel p-6 mb-8">
+            <h2 className="text-xl font-bold mb-1">Modèles par type d’athlète</h2>
+            <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
+              Ton profil est mis en avant selon la tolérance digestive, la sueur et la durée estimée. Les autres profils
+              restent visibles pour comparer.
+            </p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {athleteProfiles.map(profile => (
+                <article
+                  key={profile.id}
+                  className="glass-card p-5"
+                  style={profile.matches ? { borderColor: 'var(--accent-blue)', borderWidth: '2px' } : undefined}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-lg">{profile.label}</h3>
+                    {profile.matches && (
+                      <span className="text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap" style={{ background: 'var(--accent-blue)', color: '#fff' }}>
+                        Ton profil
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>{profile.summary}</p>
+                  <ul className="mt-4 space-y-2">
+                    {profile.products.map(product => (
+                      <li key={`${profile.id}-${product.model}`} className="text-sm">
+                        <strong>{product.model}</strong>
+                        <span className="block text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          {product.categoryTitle} {product.edition} · {product.dose || product.format} · {product.carbohydratesG} g glucides · {product.sodiumMg} mg sodium
+                          {product.proteinG ? ` · ${product.proteinG} g protéines` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs mt-4" style={{ color: 'var(--text-secondary)' }}>{profile.advice}</p>
+                </article>
+              ))}
+            </div>
+            <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+              Modèles tirés des comparatifs de {AUBINEAU_SOURCE.author}. Ils complètent les cibles calculées, ils ne les
+              remplacent pas. Tester chaque produit à l’entraînement.
+            </p>
           </section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

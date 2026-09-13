@@ -347,9 +347,9 @@ test('le plan de course affiche les modèles recommandés issus des PDF', async 
   await page.getByRole('button', { name: 'Construire mon plan' }).click();
 
   await expect(page.getByRole('heading', { name: 'Modèles conseillés pour cette course' })).toBeVisible();
-  await expect(page.getByText(/Aptonia Iso\+ Pêche/)).toBeVisible();
-  await expect(page.getByText(/Decathlon Energy Gel\+/)).toBeVisible();
-  await expect(page.getByText(/Isostar After Reload Drink/)).toBeVisible();
+  await expect(page.getByText(/Aptonia Iso\+ Pêche/).first()).toBeVisible();
+  await expect(page.getByText(/Decathlon Energy Gel\+/).first()).toBeVisible();
+  await expect(page.getByText(/Isostar After Reload Drink/).first()).toBeVisible();
   await expect(page.getByText(/Nicolas Aubineau/).first()).toBeVisible();
 });
 
@@ -376,6 +376,33 @@ test('la préparation transfère le contexte vers la stratégie nutritionnelle',
   await expect(page.getByLabel('Lieu')).toHaveValue('Paris, France');
   await expect(page.getByLabel('Objectif')).toHaveValue(/Marathon test/);
   await expect(page.getByLabel('Tolérance digestive')).toHaveValue('medium');
+});
+
+test('les formulaires affichent les modèles par type d’athlète', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/nutrition/strategie');
+  await page.locator('input[name="distanceKm"]').fill('120');
+  await page.getByLabel('Tolérance digestive').selectOption('low');
+  await page.getByLabel('Sueur').selectOption('salty');
+  await page.getByRole('button', { name: 'Calculer ma stratégie' }).click();
+
+  const section = page.locator('section').filter({ hasText: 'Modèles par type d’athlète' });
+  await expect(section.getByRole('heading', { name: 'Modèles par type d’athlète' })).toBeVisible();
+  await expect(section.getByRole('heading', { name: 'Estomac sensible' })).toBeVisible();
+  await expect(section.getByRole('heading', { name: 'Intestin entraîné' })).toBeVisible();
+  await expect(section.getByText('Ton profil', { exact: true })).toHaveCount(3);
+
+  await page.goto('/preparer-course');
+  await page.getByLabel('Date').fill('2027-04-04');
+  await page.getByRole('button', { name: 'Construire mon plan' }).click();
+  await expect(page.getByRole('heading', { name: 'Modèles par type d’athlète' })).toBeVisible();
+  await expect(page.getByText('Ton profil', { exact: true }).first()).toBeVisible();
 });
 
 test('la page sources explique documentation et références scientifiques', async ({ page }) => {
