@@ -268,7 +268,7 @@ test('préparation de course couvre le triathlon', async ({ page }) => {
   await expect(page.locator('form input[name="distanceKm"]')).toHaveCount(0);
 });
 
-test('le header hybride affiche les raccourcis et le contexte sans logo', async ({ page }) => {
+test('le header fluide garde toutes les pages principales à un clic, sans logo', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'e2e-access-token');
@@ -280,9 +280,11 @@ test('le header hybride affiche les raccourcis et le contexte sans logo', async 
   await page.goto('/nutrition/strategie');
   const header = page.locator('header.glass-nav');
   await expect(header.getByText('Nutrition / Stratégie')).toBeVisible();
-  await expect(header.getByRole('navigation', { name: 'Raccourcis' }).getByRole('link', { name: /Dashboard/i })).toBeVisible();
-  await expect(header.getByRole('navigation', { name: 'Raccourcis' }).getByRole('link', { name: /Strava/i })).toBeVisible();
-  await expect(header.getByRole('navigation', { name: 'Raccourcis' }).getByRole('link', { name: /Préparer course/i })).toBeVisible();
+  await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Dashboard/i })).toBeVisible();
+  await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Strava/i })).toBeVisible();
+  await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Préparer course/i })).toBeVisible();
+  await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Nutrition/i })).toBeVisible();
+  await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Natation/i })).toBeVisible();
   await expect(header.getByRole('link', { name: /^Atifit$/i })).toHaveCount(0);
 });
 

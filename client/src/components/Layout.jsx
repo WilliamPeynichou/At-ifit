@@ -22,7 +22,16 @@ const NAV_ITEMS = [
   { path: '/new-user-profile', label: 'Profil', icon: User },
 ];
 
-const QUICK_NAV_PATHS = ['/', '/strava-stats', '/preparer-course'];
+const DIRECT_NAV_PATHS = [
+  '/',
+  '/strava-stats',
+  '/running-dashboard',
+  '/swimming-dashboard',
+  '/cycling-dashboard',
+  '/nutrition',
+  '/preparer-course',
+  '/kcal-calculator',
+];
 
 const PAGE_CONTEXT = {
   '/': 'Vue d’ensemble',
@@ -50,7 +59,7 @@ const Layout = ({ children }) => {
     ? location.pathname.startsWith('/nutrition')
     : location.pathname === path;
   const visibleNavItems = NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
-  const quickNavItems = visibleNavItems.filter(item => QUICK_NAV_PATHS.includes(item.path));
+  const directNavItems = visibleNavItems.filter(item => DIRECT_NAV_PATHS.includes(item.path));
   const currentContext = PAGE_CONTEXT[location.pathname]
     || (location.pathname.startsWith('/nutrition') ? 'Nutrition' : 'Atifit');
 
@@ -81,22 +90,24 @@ const Layout = ({ children }) => {
           className="max-w-6xl mx-auto px-4 sm:px-6 h-14 lg:h-16 flex items-center justify-between gap-3"
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
-          <div className="min-w-0 flex items-center gap-3">
-            <p className="font-mono text-[10px] sm:text-xs uppercase tracking-[.16em] truncate" style={{ color: 'var(--text-light-secondary)' }}>
+          <div className="min-w-0 flex items-center gap-2 xl:gap-3">
+            <p className="font-mono text-[10px] xl:text-xs uppercase tracking-[.16em] truncate max-w-[8rem] xl:max-w-[11rem]" style={{ color: 'var(--text-light-secondary)' }}>
               {currentContext}
             </p>
-            <nav aria-label="Raccourcis" className="hidden lg:flex items-center gap-1">
-              {quickNavItems.map(({ path, label, icon }) => (
+            <nav aria-label="Navigation principale" className="hidden lg:flex items-center gap-0.5 xl:gap-1 min-w-0">
+              {directNavItems.map(({ path, label, icon }) => (
                 <Link
                   key={path}
                   to={path}
-                  className="flex items-center gap-2 px-2.5 xl:px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                  title={label}
+                  aria-label={label}
+                  className="flex items-center gap-2 px-2 xl:px-2.5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0"
                   style={{
                     color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-light-secondary)',
                     background: isActive(path) ? 'rgba(255,255,255,0.08)' : 'transparent',
                   }}
                 >
-                  {React.createElement(icon, { size: 15 })}
+                  {React.createElement(icon, { size: 16 })}
                   <span className="hidden xl:inline">{label}</span>
                 </Link>
               ))}
