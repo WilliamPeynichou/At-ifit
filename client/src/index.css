@@ -239,6 +239,15 @@ select.input-cyber option {
     height: clamp(0.82rem, 1.35cqi, 1rem);
   }
 
+  .header-profile-button {
+    padding: clamp(0.42rem, 0.72cqi, 0.55rem);
+  }
+
+  .header-profile-button svg {
+    width: clamp(0.95rem, 1.5cqi, 1.25rem);
+    height: clamp(0.95rem, 1.5cqi, 1.25rem);
+  }
+
   .header-theme-button {
     padding: clamp(0.42rem, 0.72cqi, 0.55rem);
   }

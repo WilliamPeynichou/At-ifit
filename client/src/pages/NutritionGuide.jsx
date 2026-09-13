@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Apple, ArrowUpRight, Bike, BookOpen, Calculator, CalendarRange, ChevronRight, Droplets, FlaskConical, PersonStanding, ShieldCheck, Waves } from 'lucide-react';
+import { Apple, ArrowUpRight, Bike, BookOpen, Calculator, CalendarRange, ChevronRight, Droplets, FlaskConical, PersonStanding, Scale, ShieldCheck, Waves } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   AUBINEAU_SOURCE,
@@ -34,6 +34,7 @@ export default function NutritionGuide() {
             <Link className="btn-primary flex items-center gap-2" to="/nutrition/strategie">Calculer ma stratégie <ChevronRight size={17} /></Link>
             <Link className="btn-ghost flex items-center gap-2" to="/preparer-course">Préparer une course</Link>
             <Link className="btn-ghost flex items-center gap-2" to="/kcal-calculator"><Calculator size={16} /> Besoins quotidiens</Link>
+            <Link className="btn-ghost flex items-center gap-2" to="/nutrition/comparatifs"><Scale size={16} /> Comparer les produits</Link>
             <Link className="btn-ghost flex items-center gap-2" to="/sources"><BookOpen size={16} /> Sources et documentation</Link>
           </div>
         </div>
@@ -169,7 +170,16 @@ export default function NutritionGuide() {
         </ul>
       </section>
 
-      <section>
+       <section className="glass-panel p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ borderColor: 'var(--accent-blue)' }}>
+         <div>
+           <p className="font-mono text-xs uppercase" style={{ color: 'var(--accent-blue)' }}>Décider sans perdre le contexte</p>
+           <h2 className="text-2xl mt-1">Comparer tous les modèles</h2>
+           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Recherche, filtres, tri et valeurs normalisées des PDF 2024 à 2026.</p>
+         </div>
+         <Link to="/nutrition/comparatifs" className="btn-primary inline-flex items-center gap-2 shrink-0">Ouvrir le comparateur <ChevronRight size={17} /></Link>
+       </section>
+
+       <section>
         <div className="flex items-end justify-between gap-4 mb-4">
           <div>
             <h2 className="text-2xl font-black">Choisir un produit</h2>
@@ -211,6 +221,7 @@ export default function NutritionGuide() {
             </article>
           ))}
         </div>
+        <Link to="/nutrition/comparatifs" className="btn-ghost inline-flex items-center gap-2 mt-5"><Scale size={16} /> Ouvrir le comparateur complet</Link>
       </section>
 
       <aside className="glass-panel p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5" style={{ borderColor: '#d97757' }}>

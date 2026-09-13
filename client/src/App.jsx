@@ -18,6 +18,8 @@ const NutritionGuide = lazy(() => import('./pages/NutritionGuide'));
 const Nutrition = lazy(() => import('./pages/Nutrition'));
 const RacePreparation = lazy(() => import('./pages/RacePreparation'));
 const Sources = lazy(() => import('./pages/Sources'));
+const FoodComparisons = lazy(() => import('./pages/FoodComparisons'));
+const Profile = lazy(() => import('./pages/Profile'));
 const RunningDashboard = lazy(() => import('./pages/RunningDashboard'));
 const SwimmingDashboard = lazy(() => import('./pages/SwimmingDashboard'));
 const KcalCalculator = lazy(() => import('./components/KcalCalculator'));
@@ -105,6 +107,16 @@ function AppInner() {
             }
           />
           <Route
+            path="/nutrition/comparatifs"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <FoodComparisons />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/nutrition/strategie"
             element={
               <ProtectedRoute>
@@ -120,6 +132,16 @@ function AppInner() {
               <ProtectedRoute>
                 <Layout>
                   <RacePreparation />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Profile />
                 </Layout>
               </ProtectedRoute>
             }

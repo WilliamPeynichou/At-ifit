@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon, Flag } from 'lucide-react';
+import { Bike, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon, Flag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, useLocation } from 'react-router-dom';
@@ -49,7 +49,7 @@ const PAGE_CONTEXT = {
 };
 
 const Layout = ({ children }) => {
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -116,10 +116,15 @@ const Layout = ({ children }) => {
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {user && (
-              <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm max-w-[12rem]" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-                <span className="truncate">{user.pseudo || user.email}</span>
-              </div>
+              <Link
+                to="/profile"
+                className="header-profile-button flex items-center justify-center rounded-lg transition-colors"
+                style={{ color: 'var(--text-light-primary)', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)' }}
+                aria-label="Ouvrir mon profil"
+                title="Mon profil"
+              >
+                <User className="w-5 h-5" />
+              </Link>
             )}
             <button
               onClick={toggleTheme}
@@ -132,7 +137,7 @@ const Layout = ({ children }) => {
             </button>
             <button
               onClick={() => setMenuOpen(open => !open)}
-              className="header-menu-button flex items-center gap-2 rounded-lg font-bold transition-colors"
+              className="header-menu-button flex items-center gap-2 rounded-lg font-bold transition-colors lg:hidden"
               style={{
                 color: 'var(--text-primary)',
                 background: menuOpen ? 'rgba(255,255,255,0.10)' : 'transparent',
@@ -205,21 +210,10 @@ const Layout = ({ children }) => {
             <div className="mt-8 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" style={{ borderTop: '1px solid var(--glass-border)' }}>
               {user && (
                 <p className="text-sm flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  <User size={16} style={{ color: 'var(--accent-blue)' }} />
                   {user.pseudo || user.email}
                 </p>
               )}
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  logout();
-                }}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold self-start"
-                style={{ color: 'var(--text-primary)', border: '1px solid var(--glass-border)', background: 'var(--surface-subtle)' }}
-              >
-                <LogOut className="w-4 h-4" />
-                Déconnexion
-              </button>
             </div>
           </nav>
         </div>

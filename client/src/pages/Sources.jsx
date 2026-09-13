@@ -12,28 +12,33 @@ const AUBINEAU_DOCUMENTS = [
   },
   {
     title: 'Comparatif des gels énergétiques',
-    detail: 'Édition 2026.',
-    usedFor: 'Classement des gels, valeurs normalisées à 25 g.',
+    detail: 'PDF 2026 · valeurs normalisées à 25 g de gel.',
+    usedFor: 'Comparer glucides, sodium, qualité et qualité/prix des gels à base commune.',
+    route: '/nutrition/comparatifs?categorie=gels',
   },
   {
     title: 'Comparatif des barres énergétiques',
-    detail: 'Édition 2025.',
-    usedFor: 'Classement des barres, valeurs ramenées à 40 g.',
+    detail: 'PDF 2025 · valeurs ramenées à 40 g de barre.',
+    usedFor: 'Comparer glucides, protéines, sodium, qualité et qualité/prix à portion comparable.',
+    route: '/nutrition/comparatifs?categorie=bars',
   },
   {
     title: 'Comparatif des boissons de l’effort',
-    detail: 'Édition 2026.',
-    usedFor: 'Classement des boissons, glucides et sodium par bidon.',
+    detail: 'PDF 2026 · valeurs par bidon de 500 ml.',
+    usedFor: 'Comparer glucides, sodium, ratio sucres/glucides, qualité et qualité/prix.',
+    route: '/nutrition/comparatifs?categorie=drinks',
   },
   {
     title: 'Comparatif des boissons de récupération',
-    detail: 'Édition 2024.',
-    usedFor: 'Classement récupération, apports glucides et protéines par dose.',
+    detail: 'PDF 2024 · valeurs par dose conseillée.',
+    usedFor: 'Comparer glucides, protéines, sodium, qualité et qualité/prix des produits de récupération.',
+    route: '/nutrition/comparatifs?categorie=recovery',
   },
   {
     title: 'Comparatif des boissons électrolytes',
-    detail: 'Édition 2024.',
-    usedFor: 'Classement électrolytes, sodium par bidon.',
+    detail: 'PDF 2024 · valeurs par bidon de 500 ml.',
+    usedFor: 'Comparer sodium, glucides, qualité et qualité/prix ; ces produits ne couvrent pas seuls les glucides.',
+    route: '/nutrition/comparatifs?categorie=electrolytes',
   },
 ];
 
@@ -66,17 +71,22 @@ const DATA_SOURCES = [
   {
     name: 'Strava',
     detail: 'Activités synchronisées via l’API officielle après autorisation explicite.',
-    usedFor: 'Durées estimées, dépense énergétique, sorties comparables, statistiques.',
+    usedFor: 'Durées estimées, dépense énergétique, sorties comparables, statistiques et profils d’effort.',
+  },
+  {
+    name: 'CARTO',
+    detail: 'Service cartographique utilisé côté serveur avec un jeton d’accès stocké en variable d’environnement.',
+    usedFor: 'Fonds de carte et couches géographiques ; aucun jeton n’est exposé au navigateur.',
+  },
+  {
+    name: 'Services météo',
+    detail: 'Données météo interrogées côté serveur selon la disponibilité du scénario.',
+    usedFor: 'Estimation du stress thermique ; à défaut, le moteur annonce une hypothèse tempérée.',
   },
   {
     name: 'Profil athlète Atifit',
     detail: 'Poids, tolérance digestive et profil de sueur saisis par l’utilisateur.',
     usedFor: 'Personnalisation des cibles glucides, hydratation et sodium.',
-  },
-  {
-    name: 'Météo et cartographie',
-    detail: 'Services externes interrogés côté serveur, clés stockées en variables d’environnement.',
-    usedFor: 'Stress thermique du scénario de course et fonds de carte.',
   },
 ];
 
@@ -129,6 +139,38 @@ export default function Sources() {
         <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
           Les recettes, formats et prix évoluent : vérifier l’étiquette du produit au moment de l’achat.
         </p>
+      </section>
+
+      <section id="comparatifs" className="glass-panel p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-2xl font-black flex items-center gap-2">
+              <Link2 size={21} style={{ color: 'var(--accent-blue)' }} /> Comparatifs alimentaires : méthode et lecture
+            </h2>
+            <p className="text-sm mt-2 max-w-3xl" style={{ color: 'var(--text-muted)' }}>
+              Les cinq PDF sont des comparatifs éditoriaux de {AUBINEAU_SOURCE.author}. Atifit reprend uniquement les
+              modèles cités, leurs valeurs relevées et le classement. Les unités sont normalisées quand le PDF le précise,
+              afin de comparer des formats différents à base commune.
+            </p>
+          </div>
+          <Link to="/nutrition/comparatifs" className="btn-primary inline-flex items-center gap-2 shrink-0">Ouvrir les comparatifs <ArrowUpRight size={16} /></Link>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          {AUBINEAU_DOCUMENTS.filter(doc => doc.route).map(doc => (
+            <article key={doc.title} className="rounded-xl p-4" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
+              <h3 className="text-lg">{doc.title}</h3>
+              <p className="font-mono text-xs mt-1" style={{ color: 'var(--accent-blue)' }}>{doc.detail}</p>
+              <p className="text-sm mt-3" style={{ color: 'var(--text-secondary)' }}>{doc.usedFor}</p>
+              <Link to={doc.route} className="text-sm font-bold inline-flex items-center gap-1 mt-4" style={{ color: 'var(--accent-blue)' }}>Voir les modèles <ArrowUpRight size={14} /></Link>
+            </article>
+          ))}
+        </div>
+        <div className="mt-5 p-4 rounded-xl text-sm" style={{ background: 'var(--surface-subtle)', borderLeft: '4px solid #d97757', color: 'var(--text-secondary)' }}>
+          <strong>Lire un classement correctement.</strong> Qualité et qualité/prix sont des scores du PDF, pas des cibles
+          nutritionnelles. Une boisson électrolyte apporte peu de glucides et doit être complétée ; un gel exige de l’eau ;
+          une barre est surtout adaptée au vélo ou au trail à allure modérée. Vérifie toujours la recette actuelle et teste
+          la tolérance à l’entraînement.
+        </div>
       </section>
 
       <section className="glass-panel p-6">

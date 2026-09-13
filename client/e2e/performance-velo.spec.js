@@ -268,6 +268,33 @@ test('préparation de course couvre le triathlon', async ({ page }) => {
   await expect(page.locator('form input[name="distanceKm"]')).toHaveCount(0);
 });
 
+test('comparateur alimentaire filtre, trie et revient depuis la page nutrition', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/nutrition');
+  await page.getByRole('link', { name: /Comparer les produits/i }).click();
+  await expect(page).toHaveURL(/\/nutrition\/comparatifs$/);
+  await expect(page.getByRole('heading', { name: 'Choisir un produit adapté' })).toBeVisible();
+  await expect(page.getByText('15 modèles affichés')).toBeVisible();
+
+  await page.getByRole('tab', { name: /Gels énergétiques/i }).click();
+  await expect(page.getByRole('heading', { name: 'Gels énergétiques' })).toBeVisible();
+  await expect(page.getByText('3 modèles affichés')).toBeVisible();
+  await page.getByLabel('Rechercher un modèle').fill('Authentic');
+  await expect(page.getByText('1 modèle affiché')).toBeVisible();
+  await expect(page.getByText('Authentic Nutrition Boost Gel')).toBeVisible();
+
+  await page.goto('/sources');
+  await page.getByRole('link', { name: /Voir les modèles/i }).nth(1).click();
+  await expect(page).toHaveURL(/categorie=bars/);
+  await expect(page.getByRole('heading', { name: /^Barres énergétiques$/ })).toBeVisible();
+});
+
 test('le header fluide garde toutes les pages principales à un clic, sans logo', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
@@ -312,7 +339,7 @@ test('l’initialisation Strava peut être passée', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /INITIALIZATION/i })).toBeHidden();
 });
 
-test('le menu burger fonctionne en desktop et en mobile', async ({ page }) => {
+test('le profil est accessible directement depuis le header desktop', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'e2e-access-token');
@@ -320,21 +347,32 @@ test('le menu burger fonctionne en desktop et en mobile', async ({ page }) => {
     window.localStorage.setItem('onboarding_completed', 'true');
   });
 
-  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.setViewportSize({ width: 1400, height: 800 });
   await page.goto('/preparer-course');
   const header = page.locator('header.glass-nav');
-  await expect(header).toBeVisible();
-  const headerBox = await header.boundingBox();
-  expect(headerBox.width).toBeLessThanOrEqual(1100);
+  await expect(header.getByRole('button', { name: 'Ouvrir le menu' })).toHaveCount(0);
+  await header.getByRole('link', { name: 'Ouvrir mon profil' }).click();
 
-  await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
-  const menu = page.getByRole('dialog', { name: 'Menu principal' });
-  await expect(menu.getByRole('link', { name: /Préparer course/ })).toBeVisible();
-  await expect(menu.getByRole('link', { name: /Cyclisme/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Fermer le menu' }).click();
-  await expect(menu).toBeHidden();
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.getByRole('heading', { name: 'e2e' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Modifier mon profil' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Suivi du poids/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Gérer Strava/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Modifier mon profil' }).click();
+  await expect(page.getByRole('button', { name: 'Enregistrer' })).toBeVisible();
+});
+
+test('le menu burger fonctionne sur mobile', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/preparer-course');
+  const header = page.locator('header.glass-nav');
   await expect(header).toBeVisible();
   await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
   await expect(page.getByRole('dialog', { name: 'Menu principal' }).getByRole('link', { name: /Préparer course/ })).toBeVisible();
@@ -427,7 +465,7 @@ test('la préparation transfère le contexte vers la stratégie nutritionnelle',
   await expect(page.getByLabel('Tolérance digestive')).toHaveValue('medium');
 });
 
-test('le header reste fixe et le menu floute les autres entrées au survol', async ({ page }) => {
+test('le header reste fixe et le menu mobile floute les autres entrées au survol', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'e2e-access-token');
@@ -435,7 +473,7 @@ test('le header reste fixe et le menu floute les autres entrées au survol', asy
     window.localStorage.setItem('onboarding_completed', 'true');
   });
 
-  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/preparer-course');
   const header = page.locator('header.glass-nav');
   await expect(header).toHaveCSS('position', 'fixed');
@@ -456,7 +494,7 @@ test('le header reste fixe et le menu floute les autres entrées au survol', asy
   await expect(page.getByRole('button', { name: 'Ouvrir le menu' })).toHaveAttribute('aria-expanded', 'false');
 });
 
-test('le menu garde un contraste inverse selon le thème', async ({ page }) => {
+test('le menu mobile garde un contraste inverse selon le thème', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'e2e-access-token');
@@ -464,6 +502,7 @@ test('le menu garde un contraste inverse selon le thème', async ({ page }) => {
     window.localStorage.setItem('onboarding_completed', 'true');
   });
 
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/preparer-course');
   await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
   const menu = page.getByRole('dialog', { name: 'Menu principal' });
