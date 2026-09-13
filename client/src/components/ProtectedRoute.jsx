@@ -7,27 +7,27 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   const { token, accessToken, loading, user } = useAuth();
   const effectiveToken = accessToken || token;
   const location = useLocation();
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [onboardingSkipped, setOnboardingSkipped] = useState(() => (
+    typeof window !== 'undefined' && localStorage.getItem('onboarding_completed') === 'true'
+  ));
 
+  // L'initialisation peut être passée à tout moment : on réévalue à chaque navigation
+  // et dès qu'une page signale que l'étape a été sautée.
   useEffect(() => {
-    if (!loading && token && user) {
-      const onboardingCompleted = localStorage.getItem('onboarding_completed');
-      
-      if (onboardingCompleted === 'true') {
-        setNeedsOnboarding(false);
-      } else {
-        const profileIncomplete = !user.height || !user.age || !user.gender;
-        const stravaNotConnected = !user.stravaConnected;
-        setNeedsOnboarding(profileIncomplete || stravaNotConnected);
-      }
-      setCheckingOnboarding(false);
-    } else if (!loading) {
-      setCheckingOnboarding(false);
-    }
-  }, [loading, token, user]);
+    const syncSkipped = () => setOnboardingSkipped(localStorage.getItem('onboarding_completed') === 'true');
+    syncSkipped();
+    window.addEventListener('onboarding-updated', syncSkipped);
+    window.addEventListener('storage', syncSkipped);
+    return () => {
+      window.removeEventListener('onboarding-updated', syncSkipped);
+      window.removeEventListener('storage', syncSkipped);
+    };
+  }, [location.pathname]);
 
-  if (loading || checkingOnboarding) {
+  const profileIncomplete = !user?.height || !user?.age || !user?.gender;
+  const needsOnboarding = Boolean(user) && !onboardingSkipped && (profileIncomplete || !user?.stravaConnected);
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg text-slate-600">Loading...</div>

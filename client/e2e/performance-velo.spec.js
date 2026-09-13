@@ -268,7 +268,46 @@ test('préparation de course couvre le triathlon', async ({ page }) => {
   await expect(page.locator('form input[name="distanceKm"]')).toHaveCount(0);
 });
 
-test('header reste utilisable en tablette et en mobile', async ({ page }) => {
+test('le header hybride affiche les raccourcis et le contexte sans logo', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.setViewportSize({ width: 1400, height: 800 });
+  await page.goto('/nutrition/strategie');
+  const header = page.locator('header.glass-nav');
+  await expect(header.getByText('Nutrition / Stratégie')).toBeVisible();
+  await expect(header.getByRole('navigation', { name: 'Raccourcis' }).getByRole('link', { name: /Dashboard/i })).toBeVisible();
+  await expect(header.getByRole('navigation', { name: 'Raccourcis' }).getByRole('link', { name: /Strava/i })).toBeVisible();
+  await expect(header.getByRole('navigation', { name: 'Raccourcis' }).getByRole('link', { name: /Préparer course/i })).toBeVisible();
+  await expect(header.getByRole('link', { name: /^Atifit$/i })).toHaveCount(0);
+});
+
+test('l’initialisation Strava peut être passée', async ({ page }) => {
+  await page.route('**/api/**', async route => {
+    const path = new URL(route.request().url()).pathname.replace('/api', '');
+    const body = path === '/user'
+      ? { id: 1, email: 'e2e@example.test', pseudo: 'e2e', role: 'user', stravaConnected: false }
+      : {};
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.removeItem('onboarding_completed');
+  });
+
+  await page.goto('/preparer-course');
+  await page.getByRole('button', { name: /Passer l’initialisation|Passer l'initialisation/i }).last().click();
+
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem('onboarding_completed'))).toBe('true');
+  await expect(page.getByRole('heading', { name: /INITIALIZATION/i })).toBeHidden();
+});
+
+test('le menu burger fonctionne en desktop et en mobile', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'e2e-access-token');
@@ -282,15 +321,18 @@ test('header reste utilisable en tablette et en mobile', async ({ page }) => {
   await expect(header).toBeVisible();
   const headerBox = await header.boundingBox();
   expect(headerBox.width).toBeLessThanOrEqual(1100);
-  await expect(page.getByRole('link', { name: /Cyclisme/i }).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Plus de pages' }).click();
-  await expect(page.getByRole('link', { name: /Préparer course/i })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
+  const menu = page.getByRole('dialog', { name: 'Menu principal' });
+  await expect(menu.getByRole('link', { name: /Préparer course/ })).toBeVisible();
+  await expect(menu.getByRole('link', { name: /Cyclisme/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Fermer le menu' }).click();
+  await expect(menu).toBeHidden();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(header).toBeHidden();
-  await expect(page.getByRole('button', { name: /Ouvrir le menu/i })).toBeVisible();
-  await page.getByRole('button', { name: /Ouvrir le menu/i }).click();
-  await expect(page.getByRole('link', { name: /Préparer course/i })).toBeVisible();
+  await expect(header).toBeVisible();
+  await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
+  await expect(page.getByRole('dialog', { name: 'Menu principal' }).getByRole('link', { name: /Préparer course/ })).toBeVisible();
 });
 
 test('la calculette de course conserve ses valeurs après rechargement', async ({ page }) => {
@@ -380,7 +422,7 @@ test('la préparation transfère le contexte vers la stratégie nutritionnelle',
   await expect(page.getByLabel('Tolérance digestive')).toHaveValue('medium');
 });
 
-test('le header reste fixe et sans défilement horizontal', async ({ page }) => {
+test('le header reste fixe et le menu floute les autres entrées au survol', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'e2e-access-token');
@@ -392,18 +434,43 @@ test('le header reste fixe et sans défilement horizontal', async ({ page }) => 
   await page.goto('/preparer-course');
   const header = page.locator('header.glass-nav');
   await expect(header).toHaveCSS('position', 'fixed');
-
-  const nav = header.locator('nav');
-  const overflows = await nav.evaluate(el => el.scrollWidth > el.clientWidth + 1);
-  expect(overflows).toBe(false);
-
   await page.mouse.wheel(0, 600);
   await expect(header).toBeInViewport();
 
-  await page.getByRole('button', { name: 'Plus de pages' }).click();
-  await expect(page.getByRole('link', { name: /Préparer course/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
+  const hovered = page.locator('[data-nav-item="/strava-stats"]');
+  const other = page.locator('[data-nav-item="/kcal-calculator"]');
+  await expect(other).toHaveCSS('filter', 'none');
+
+  await hovered.hover();
+  await expect(hovered).toHaveCSS('filter', 'none');
+  await expect(other).toHaveCSS('filter', 'blur(1px)');
+
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('button', { name: 'Plus de pages' })).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('dialog', { name: 'Menu principal' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Ouvrir le menu' })).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('le menu garde un contraste inverse selon le thème', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/preparer-course');
+  await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
+  const menu = page.getByRole('dialog', { name: 'Menu principal' });
+  await expect(menu).toHaveCSS('background-color', 'rgb(250, 249, 245)');
+  await expect(menu).toHaveCSS('color', 'rgb(20, 20, 19)');
+
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: /Activer le mode sombre/i }).click();
+  await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
+  const darkMenu = page.getByRole('dialog', { name: 'Menu principal' });
+  await expect(darkMenu).toHaveCSS('background-color', 'rgb(20, 20, 19)');
+  await expect(darkMenu).toHaveCSS('color', 'rgb(232, 232, 232)');
 });
 
 test('le parcours course et stratégie reste relié', async ({ page }) => {

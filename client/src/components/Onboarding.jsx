@@ -38,6 +38,7 @@ const Onboarding = () => {
 
   const handleSkip = () => {
     localStorage.setItem('onboarding_completed', 'true');
+    window.dispatchEvent(new Event('onboarding-updated'));
     navigate('/');
   };
 
@@ -100,6 +101,7 @@ const Onboarding = () => {
 
   const handleComplete = () => {
     localStorage.setItem('onboarding_completed', 'true');
+    window.dispatchEvent(new Event('onboarding-updated'));
     navigate('/');
   };
 

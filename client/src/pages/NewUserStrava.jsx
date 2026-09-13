@@ -197,12 +197,23 @@ const NewUserStrava = () => {
     }
   };
 
-  const handleSkip = () => {
+  /** L'initialisation Strava reste facultative : on mémorise le passage pour ne pas y revenir. */
+  const completeOnboarding = () => {
+    try {
+      localStorage.setItem('onboarding_completed', 'true');
+      window.dispatchEvent(new Event('onboarding-updated'));
+    } catch {
+      // Stockage indisponible : la navigation reste possible pour cette session.
+    }
     navigate('/');
   };
 
+  const handleSkip = () => {
+    completeOnboarding();
+  };
+
   const handleComplete = () => {
-    navigate('/');
+    completeOnboarding();
   };
 
   return (

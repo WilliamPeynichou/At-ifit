@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon, Flag, MoreHorizontal } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon, Flag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, useLocation } from 'react-router-dom';
@@ -7,22 +7,8 @@ import Footer from './Footer';
 
 const SUPER_ADMIN_NAV_ITEM = { path: '/super-admin', label: 'Super Admin', icon: ShieldAlert, superAdminOnly: true };
 
+/** Entrées du menu plein écran, communes à toutes les tailles d'écran. */
 const NAV_ITEMS = [
-  { path: '/', label: 'Dashboard', icon: Home },
-  { path: '/strava-stats', label: 'Strava', icon: BarChart2 },
-  { path: '/running-dashboard', label: 'Running', icon: Route },
-  { path: '/swimming-dashboard', label: 'Natation', icon: Waves },
-  { path: '/cycling-dashboard', label: 'Cyclisme', icon: Bike },
-  { path: '/nutrition', label: 'Nutrition', icon: Apple },
-  { path: '/preparer-course', label: 'Préparer course', icon: Flag },
-  { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
-  SUPER_ADMIN_NAV_ITEM,
-];
-
-/** Cinq entrées toujours visibles : le reste passe dans le menu « Plus », sans scroll horizontal. */
-const PRIMARY_NAV_COUNT = 5;
-
-const MOBILE_NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: Home },
   { path: '/strava-stats', label: 'Strava', icon: BarChart2 },
   { path: '/assistant', label: 'Coach IA', icon: Bot },
@@ -36,235 +22,197 @@ const MOBILE_NAV_ITEMS = [
   { path: '/new-user-profile', label: 'Profil', icon: User },
 ];
 
+const QUICK_NAV_PATHS = ['/', '/strava-stats', '/preparer-course'];
+
+const PAGE_CONTEXT = {
+  '/': 'Vue d’ensemble',
+  '/strava-stats': 'Analyse Strava',
+  '/assistant': 'Coach IA',
+  '/running-dashboard': 'Running',
+  '/swimming-dashboard': 'Natation',
+  '/cycling-dashboard': 'Cyclisme',
+  '/nutrition': 'Nutrition',
+  '/nutrition/strategie': 'Nutrition / Stratégie',
+  '/preparer-course': 'Préparer course',
+  '/kcal-calculator': 'Calculateur kcal',
+  '/sources': 'Sources',
+  '/new-user-profile': 'Profil',
+};
+
 const Layout = ({ children }) => {
   const { logout, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const moreMenuRef = useRef(null);
-
-  useEffect(() => {
-    setMoreMenuOpen(false);
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (!moreMenuOpen) return undefined;
-    const handlePointerDown = event => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target)) setMoreMenuOpen(false);
-    };
-    const handleKeyDown = event => {
-      if (event.key === 'Escape') setMoreMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [moreMenuOpen]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [focusedPath, setFocusedPath] = useState(null);
 
   const isActive = (path) => path === '/nutrition'
     ? location.pathname.startsWith('/nutrition')
     : location.pathname === path;
   const visibleNavItems = NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
-  const visibleMobileNavItems = MOBILE_NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
-  const primaryNavItems = visibleNavItems.slice(0, PRIMARY_NAV_COUNT);
-  const overflowNavItems = visibleNavItems.slice(PRIMARY_NAV_COUNT);
-  const overflowIsActive = overflowNavItems.some(item => isActive(item.path));
+  const quickNavItems = visibleNavItems.filter(item => QUICK_NAV_PATHS.includes(item.path));
+  const currentContext = PAGE_CONTEXT[location.pathname]
+    || (location.pathname.startsWith('/nutrition') ? 'Nutrition' : 'Atifit');
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setFocusedPath(null);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
 
   return (
     <div className="min-h-screen relative flex flex-col">
-      {/* Header desktop — fixé en haut, sans défilement horizontal */}
-      <header className="glass-nav fixed top-0 inset-x-0 z-50 hidden lg:block">
-        <div className="max-w-6xl mx-auto px-4 xl:px-6 h-16 flex items-center gap-3">
-          <Link to="/" className="font-display text-xl tracking-widest shrink-0" style={{ color: 'var(--text-light-primary)' }}>
-            Atifit
-          </Link>
-
-          {/* Nav links */}
-          <nav className="flex items-center gap-1 flex-1 min-w-0">
-            {primaryNavItems.map(({ path, label, icon }) => (
-              <Link
-                key={path}
-                to={path}
-                title={label}
-                className="flex items-center gap-2 px-2.5 xl:px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap shrink-0"
-                style={{
-                  color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                  background: isActive(path) ? 'var(--accent-blue-light)' : 'transparent',
-                }}
-              >
-                {React.createElement(icon, { size: 15 })}
-                <span className="hidden xl:inline">{label}</span>
-              </Link>
-            ))}
-
-            {overflowNavItems.length > 0 && (
-              <div className="relative shrink-0" ref={moreMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setMoreMenuOpen(open => !open)}
-                  aria-expanded={moreMenuOpen}
-                  aria-haspopup="true"
-                  aria-label="Plus de pages"
-                  className="flex items-center gap-2 px-2.5 xl:px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap"
+      {/* Header unique — fixé en haut, menu déployable, aucune navigation horizontale */}
+      <header className="glass-nav fixed top-0 inset-x-0 z-50">
+        <div
+          className="max-w-6xl mx-auto px-4 sm:px-6 h-14 lg:h-16 flex items-center justify-between gap-3"
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
+          <div className="min-w-0 flex items-center gap-3">
+            <p className="font-mono text-[10px] sm:text-xs uppercase tracking-[.16em] truncate" style={{ color: 'var(--text-light-secondary)' }}>
+              {currentContext}
+            </p>
+            <nav aria-label="Raccourcis" className="hidden lg:flex items-center gap-1">
+              {quickNavItems.map(({ path, label, icon }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  className="flex items-center gap-2 px-2.5 xl:px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                   style={{
-                    color: overflowIsActive ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                    background: overflowIsActive || moreMenuOpen ? 'var(--accent-blue-light)' : 'transparent',
+                    color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-light-secondary)',
+                    background: isActive(path) ? 'rgba(255,255,255,0.08)' : 'transparent',
                   }}
                 >
-                  <MoreHorizontal size={15} />
-                  <span className="hidden xl:inline">Plus</span>
-                </button>
+                  {React.createElement(icon, { size: 15 })}
+                  <span className="hidden xl:inline">{label}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
 
-                {moreMenuOpen && (
-                  <div
-                    className="absolute left-0 top-full mt-2 min-w-[13rem] rounded-xl p-2 shadow-2xl"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)' }}
-                  >
-                    {overflowNavItems.map(({ path, label, icon }) => (
-                      <Link
-                        key={path}
-                        to={path}
-                        onClick={() => setMoreMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap"
-                        style={{
-                          color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-primary)',
-                          background: isActive(path) ? 'var(--accent-blue-light)' : 'transparent',
-                        }}
-                      >
-                        {React.createElement(icon, { size: 16 })}
-                        {label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </nav>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg transition-all duration-200"
-              style={{ color: 'var(--text-muted)' }}
-              aria-label={isDark ? 'Activer le mode clair' : 'Activer le mode sombre'}
-              title={isDark ? 'Mode clair' : 'Mode sombre'}
-            >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {user && (
-              <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm max-w-[12rem] truncate" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></div>
+              <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm max-w-[12rem]" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
                 <span className="truncate">{user.pseudo || user.email}</span>
               </div>
             )}
             <button
-              onClick={logout}
-              className="flex items-center gap-1.5 px-3 xl:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+              onClick={toggleTheme}
+              className="p-2 rounded-lg transition-colors"
               style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+              aria-label={isDark ? 'Activer le mode clair' : 'Activer le mode sombre'}
+              title={isDark ? 'Mode clair' : 'Mode sombre'}
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden 2xl:inline">Déconnexion</span>
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={() => setMenuOpen(open => !open)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-colors"
+              style={{
+                color: 'var(--text-primary)',
+                background: menuOpen ? 'rgba(255,255,255,0.10)' : 'transparent',
+                border: '1px solid var(--glass-border)',
+              }}
+              aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-expanded={menuOpen}
+              aria-controls="main-menu-overlay"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <span className="hidden sm:inline">{menuOpen ? 'Fermer' : 'Menu'}</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Barre mobile / tablette — fixée en haut */}
-      <div className="glass-nav fixed top-0 inset-x-0 z-50 lg:hidden">
-        <div className="px-3 sm:px-4 h-14 flex items-center justify-between gap-2" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <Link to="/" className="font-display tracking-widest truncate" style={{ color: 'var(--text-light-primary)', fontSize: '1rem' }} onClick={() => setMobileMenuOpen(false)}>
-            Atifit
-          </Link>
-          <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: 'var(--text-muted)' }}
-            aria-label={isDark ? 'Activer le mode clair' : 'Activer le mode sombre'}
-            title={isDark ? 'Mode clair' : 'Mode sombre'}
+      {/* Menu plein écran — fond et texte suivent le thème pour garder le contraste */}
+      {menuOpen && (
+        <div
+          id="main-menu-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu principal"
+          className="fixed inset-0 z-40 overflow-y-auto"
+          style={{
+            background: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+            paddingTop: 'calc(4rem + env(safe-area-inset-top))',
+          }}
+        >
+          <nav
+            className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10"
+            onMouseLeave={() => setFocusedPath(null)}
           >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-          <button
-            onClick={() => setMobileMenuOpen(open => !open)}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: 'var(--text-primary)', background: mobileMenuOpen ? 'rgba(0,85,255,0.10)' : 'transparent' }}
-            aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-          </div>
-        </div>
-
-        {mobileMenuOpen && (
-          <div
-            className="absolute left-3 right-3 top-16 rounded-2xl shadow-2xl overflow-y-auto overscroll-contain"
-            style={{
-              background: 'rgba(255,255,255,0)',
-              backdropFilter: 'blur(18px)',
-              border: '1px solid var(--glass-border)',
-              maxHeight: 'calc(100dvh - 5rem - env(safe-area-inset-bottom))',
-            }}
-          >
-            <div className="p-3 space-y-1" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
-              {user && (
-                <div className="px-3 py-2 mb-2 rounded-xl text-xs flex items-center gap-2" style={{ background: 'rgba(34,197,94,0.08)', color: '#000000' }}>
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  {user.pseudo || user.email}
-                </div>
-              )}
-
-              {visibleMobileNavItems.map(({ path, label, icon }) => {
+            <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+              {visibleNavItems.map(({ path, label, icon }, index) => {
                 const active = isActive(path);
+                const dimmed = focusedPath !== null && focusedPath !== path;
+
                 return (
-                  <Link
-                    key={path}
-                    to={path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3.5 min-h-[44px] rounded-xl text-sm font-medium transition-all"
-                    style={{
-                      color: '#000000',
-                      background: active ? 'var(--accent-blue-light)' : 'transparent',
-                    }}
-                  >
-                    {React.createElement(icon, { size: 18, strokeWidth: active ? 2.5 : 1.8 })}
-                    {label}
-                  </Link>
+                  <li key={path}>
+                    <Link
+                      to={path}
+                      data-nav-item={path}
+                      onMouseEnter={() => setFocusedPath(path)}
+                      onFocus={() => setFocusedPath(null)}
+                      onBlur={() => setFocusedPath(null)}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-4 sm:py-5 rounded-2xl min-h-[56px] transition-all duration-300"
+                      style={{
+                        color: 'var(--text-primary)',
+                        background: active ? 'var(--surface-subtle)' : 'transparent',
+                        border: `1px solid ${active ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
+                        filter: dimmed ? 'blur(1px)' : 'none',
+                        opacity: dimmed ? 0.62 : 1,
+                        transform: focusedPath === path ? 'translateX(4px)' : 'none',
+                      }}
+                    >
+                      <span className="font-mono text-xs w-6 shrink-0" style={{ color: 'var(--text-muted)' }}>
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      {React.createElement(icon, { size: 20, style: { color: 'var(--accent-blue)' }, className: 'shrink-0' })}
+                      <span className="text-xl sm:text-2xl font-display truncate">{label}</span>
+                    </Link>
+                  </li>
                 );
               })}
+            </ul>
 
-              <button
-                onClick={toggleTheme}
-                className="w-full flex items-center gap-3 px-3 py-3.5 min-h-[44px] rounded-xl text-sm font-medium transition-all"
-                style={{ color: '#000000', background: 'rgba(0,85,255,0.06)' }}
-              >
-                {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
-                {isDark ? 'Mode clair' : 'Mode sombre'}
-              </button>
-
+            <div className="mt-8 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" style={{ borderTop: '1px solid var(--glass-border)' }}>
+              {user && (
+                <p className="text-sm flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  {user.pseudo || user.email}
+                </p>
+              )}
               <button
                 onClick={() => {
-                  setMobileMenuOpen(false);
+                  setMenuOpen(false);
                   logout();
                 }}
-                className="w-full flex items-center gap-3 px-3 py-3.5 min-h-[44px] rounded-xl text-sm font-medium transition-all mt-2"
-                style={{ color: '#000000', background: 'rgba(239,68,68,0.07)' }}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold self-start"
+                style={{ color: 'var(--text-primary)', border: '1px solid var(--glass-border)', background: 'var(--surface-subtle)' }}
               >
                 <LogOut className="w-4 h-4" />
                 Déconnexion
               </button>
             </div>
-          </div>
-        )}
-      </div>
+          </nav>
+        </div>
+      )}
 
       {/* Main content — décalé sous le header fixé */}
       <main className="w-full relative z-10 flex-1 pb-10 md:pb-12 pt-14 lg:pt-16" style={{ marginTop: 'env(safe-area-inset-top)' }}>
