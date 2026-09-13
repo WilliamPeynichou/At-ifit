@@ -316,6 +316,15 @@ select.input-cyber option {
     outline: none;
   }
 
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .chart-surface {
     background: var(--chart-surface) !important;
     border-color: var(--chart-tooltip-border) !important;

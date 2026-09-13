@@ -47,33 +47,34 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen relative flex flex-col">
-      {/* Desktop header — hidden on mobile */}
-      <header className="glass-nav sticky top-0 z-50 hidden xl:block">
-        <div className="max-w-6xl mx-auto px-4 xl:px-6 h-16 flex items-center justify-between gap-3">
+      {/* Header desktop — visible dès lg, labels condensés selon largeur */}
+      <header className="glass-nav sticky top-0 z-50 hidden lg:block">
+        <div className="max-w-6xl mx-auto px-4 xl:px-6 h-16 flex items-center gap-3">
           <Link to="/" className="font-display text-xl tracking-widest shrink-0" style={{ color: 'var(--text-light-primary)' }}>
             Atifit
           </Link>
 
           {/* Nav links */}
-          <nav className="flex items-center gap-1 min-w-0 overflow-x-auto">
+          <nav className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto no-scrollbar">
             {visibleNavItems.map(({ path, label, icon }) => (
               <Link
                 key={path}
                 to={path}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap"
+                title={label}
+                className="flex items-center gap-2 px-2.5 xl:px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap shrink-0"
                 style={{
                   color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-secondary)',
                   background: isActive(path) ? 'var(--accent-blue-light)' : 'transparent',
                 }}
               >
                 {React.createElement(icon, { size: 15 })}
-                {label}
+                <span className="hidden xl:inline">{label}</span>
               </Link>
             ))}
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg transition-all duration-200"
@@ -84,14 +85,14 @@ const Layout = ({ children }) => {
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             {user && (
-              <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                {user.pseudo || user.email}
+              <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm max-w-[12rem] truncate" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></div>
+                <span className="truncate">{user.pseudo || user.email}</span>
               </div>
             )}
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+              className="flex items-center gap-1.5 px-3 xl:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
               style={{ color: 'var(--text-muted)' }}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
@@ -103,12 +104,13 @@ const Layout = ({ children }) => {
         </div>
       </header>
 
-      {/* Mobile / tablet top bar */}
-      <div className="glass-nav sticky top-0 z-50 xl:hidden">
-        <div className="px-4 h-14 flex items-center justify-between" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <Link to="/" className="font-display tracking-widest" style={{ color: 'var(--text-light-primary)', fontSize: '1rem' }} onClick={() => setMobileMenuOpen(false)}>
+      {/* Barre mobile / tablette */}
+      <div className="glass-nav sticky top-0 z-50 lg:hidden">
+        <div className="px-3 sm:px-4 h-14 flex items-center justify-between gap-2" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <Link to="/" className="font-display tracking-widest truncate" style={{ color: 'var(--text-light-primary)', fontSize: '1rem' }} onClick={() => setMobileMenuOpen(false)}>
             Atifit
           </Link>
+          <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={toggleTheme}
             className="p-2 rounded-lg transition-colors"
@@ -127,6 +129,7 @@ const Layout = ({ children }) => {
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
+          </div>
         </div>
 
         {mobileMenuOpen && (
@@ -196,8 +199,8 @@ const Layout = ({ children }) => {
         {children}
       </main>
 
-      {/* Footer — desktop only */}
-      <div className="hidden xl:block mt-auto pt-6">
+      {/* Footer */}
+      <div className="hidden lg:block mt-auto pt-6">
         <Footer />
       </div>
 

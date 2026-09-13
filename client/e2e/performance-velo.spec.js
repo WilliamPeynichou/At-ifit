@@ -223,6 +223,47 @@ test('guide nutrition cite Nicolas Aubineau et ouvre la préparation de course',
   await expect(page.getByLabel(/Objectif heures/i)).toBeVisible();
 });
 
+test('préparation de course couvre le triathlon', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/preparer-course');
+  await page.getByRole('button', { name: /^Triathlon$/ }).click();
+  await expect(page.getByRole('button', { name: /Ironman/ })).toBeVisible();
+  await page.getByRole('button', { name: /Half \/ 70.3/ }).click();
+  await expect(page.getByLabel(/Natation \(km\)/)).toHaveValue('1.9');
+  await expect(page.getByLabel(/Vélo \(km\)/)).toHaveValue('90');
+  await expect(page.getByLabel(/Transitions T1 \+ T2/)).toHaveValue('10');
+  await expect(page.getByLabel(/^Distance \(km\)/)).toHaveCount(0);
+});
+
+test('header reste utilisable en tablette et en mobile', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.goto('/preparer-course');
+  const header = page.locator('header.glass-nav');
+  await expect(header).toBeVisible();
+  const headerBox = await header.boundingBox();
+  expect(headerBox.width).toBeLessThanOrEqual(1100);
+  await expect(page.getByRole('link', { name: /Préparer course/i })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(header).toBeHidden();
+  await expect(page.getByRole('button', { name: /Ouvrir le menu/i })).toBeVisible();
+  await page.getByRole('button', { name: /Ouvrir le menu/i }).click();
+  await expect(page.getByRole('link', { name: /Préparer course/i })).toBeVisible();
+});
+
 test('menus Nutrition gardent texte et fond contrastés', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
