@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon, Flag } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Bike, LogOut, Home, Flame, User, BarChart2, Route, Waves, Bot, Menu, X, ShieldAlert, Apple, Sun, Moon, Flag, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, useLocation } from 'react-router-dom';
@@ -18,6 +18,9 @@ const NAV_ITEMS = [
   { path: '/kcal-calculator', label: 'Kcal', icon: Flame },
   SUPER_ADMIN_NAV_ITEM,
 ];
+
+/** Cinq entrées toujours visibles : le reste passe dans le menu « Plus », sans scroll horizontal. */
+const PRIMARY_NAV_COUNT = 5;
 
 const MOBILE_NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: Home },
@@ -38,25 +41,51 @@ const Layout = ({ children }) => {
   const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef(null);
+
+  useEffect(() => {
+    setMoreMenuOpen(false);
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!moreMenuOpen) return undefined;
+    const handlePointerDown = event => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target)) setMoreMenuOpen(false);
+    };
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') setMoreMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [moreMenuOpen]);
 
   const isActive = (path) => path === '/nutrition'
     ? location.pathname.startsWith('/nutrition')
     : location.pathname === path;
   const visibleNavItems = NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
   const visibleMobileNavItems = MOBILE_NAV_ITEMS.filter(item => !item.superAdminOnly || user?.role === 'super_admin');
+  const primaryNavItems = visibleNavItems.slice(0, PRIMARY_NAV_COUNT);
+  const overflowNavItems = visibleNavItems.slice(PRIMARY_NAV_COUNT);
+  const overflowIsActive = overflowNavItems.some(item => isActive(item.path));
 
   return (
     <div className="min-h-screen relative flex flex-col">
-      {/* Header desktop — visible dès lg, labels condensés selon largeur */}
-      <header className="glass-nav sticky top-0 z-50 hidden lg:block">
+      {/* Header desktop — fixé en haut, sans défilement horizontal */}
+      <header className="glass-nav fixed top-0 inset-x-0 z-50 hidden lg:block">
         <div className="max-w-6xl mx-auto px-4 xl:px-6 h-16 flex items-center gap-3">
           <Link to="/" className="font-display text-xl tracking-widest shrink-0" style={{ color: 'var(--text-light-primary)' }}>
             Atifit
           </Link>
 
           {/* Nav links */}
-          <nav className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto no-scrollbar">
-            {visibleNavItems.map(({ path, label, icon }) => (
+          <nav className="flex items-center gap-1 flex-1 min-w-0">
+            {primaryNavItems.map(({ path, label, icon }) => (
               <Link
                 key={path}
                 to={path}
@@ -71,6 +100,49 @@ const Layout = ({ children }) => {
                 <span className="hidden xl:inline">{label}</span>
               </Link>
             ))}
+
+            {overflowNavItems.length > 0 && (
+              <div className="relative shrink-0" ref={moreMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMoreMenuOpen(open => !open)}
+                  aria-expanded={moreMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="Plus de pages"
+                  className="flex items-center gap-2 px-2.5 xl:px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap"
+                  style={{
+                    color: overflowIsActive ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                    background: overflowIsActive || moreMenuOpen ? 'var(--accent-blue-light)' : 'transparent',
+                  }}
+                >
+                  <MoreHorizontal size={15} />
+                  <span className="hidden xl:inline">Plus</span>
+                </button>
+
+                {moreMenuOpen && (
+                  <div
+                    className="absolute left-0 top-full mt-2 min-w-[13rem] rounded-xl p-2 shadow-2xl"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)' }}
+                  >
+                    {overflowNavItems.map(({ path, label, icon }) => (
+                      <Link
+                        key={path}
+                        to={path}
+                        onClick={() => setMoreMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap"
+                        style={{
+                          color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-primary)',
+                          background: isActive(path) ? 'var(--accent-blue-light)' : 'transparent',
+                        }}
+                      >
+                        {React.createElement(icon, { size: 16 })}
+                        {label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* Right side */}
@@ -104,8 +176,8 @@ const Layout = ({ children }) => {
         </div>
       </header>
 
-      {/* Barre mobile / tablette */}
-      <div className="glass-nav sticky top-0 z-50 lg:hidden">
+      {/* Barre mobile / tablette — fixée en haut */}
+      <div className="glass-nav fixed top-0 inset-x-0 z-50 lg:hidden">
         <div className="px-3 sm:px-4 h-14 flex items-center justify-between gap-2" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <Link to="/" className="font-display tracking-widest truncate" style={{ color: 'var(--text-light-primary)', fontSize: '1rem' }} onClick={() => setMobileMenuOpen(false)}>
             Atifit
@@ -194,8 +266,8 @@ const Layout = ({ children }) => {
         )}
       </div>
 
-      {/* Main content */}
-      <main className="w-full relative z-10 flex-1 pb-10 md:pb-12">
+      {/* Main content — décalé sous le header fixé */}
+      <main className="w-full relative z-10 flex-1 pb-10 md:pb-12 pt-14 lg:pt-16" style={{ marginTop: 'env(safe-area-inset-top)' }}>
         {children}
       </main>
 

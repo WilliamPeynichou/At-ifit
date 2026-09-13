@@ -282,6 +282,8 @@ test('header reste utilisable en tablette et en mobile', async ({ page }) => {
   await expect(header).toBeVisible();
   const headerBox = await header.boundingBox();
   expect(headerBox.width).toBeLessThanOrEqual(1100);
+  await expect(page.getByRole('link', { name: /Cyclisme/i }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Plus de pages' }).click();
   await expect(page.getByRole('link', { name: /Préparer course/i })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -376,6 +378,59 @@ test('la préparation transfère le contexte vers la stratégie nutritionnelle',
   await expect(page.getByLabel('Lieu')).toHaveValue('Paris, France');
   await expect(page.getByLabel('Objectif')).toHaveValue(/Marathon test/);
   await expect(page.getByLabel('Tolérance digestive')).toHaveValue('medium');
+});
+
+test('le header reste fixe et sans défilement horizontal', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.goto('/preparer-course');
+  const header = page.locator('header.glass-nav');
+  await expect(header).toHaveCSS('position', 'fixed');
+
+  const nav = header.locator('nav');
+  const overflows = await nav.evaluate(el => el.scrollWidth > el.clientWidth + 1);
+  expect(overflows).toBe(false);
+
+  await page.mouse.wheel(0, 600);
+  await expect(header).toBeInViewport();
+
+  await page.getByRole('button', { name: 'Plus de pages' }).click();
+  await expect(page.getByRole('link', { name: /Préparer course/i })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Plus de pages' })).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('le parcours course et stratégie reste relié', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('accessToken', 'e2e-access-token');
+    window.localStorage.setItem('refreshToken', 'e2e-refresh-token');
+    window.localStorage.setItem('onboarding_completed', 'true');
+  });
+
+  await page.goto('/preparer-course');
+  await expect(page.getByRole('navigation', { name: 'Parcours course et nutrition' })).toBeVisible();
+  await page.getByLabel('Nom course').fill('Trail des tests');
+  await page.getByLabel('Date').fill('2027-05-02');
+  await page.getByRole('button', { name: 'Construire mon plan' }).click();
+  await expect(page.getByRole('heading', { name: 'Stratégie jour J' })).toBeVisible();
+
+  await page.goto('/nutrition/strategie');
+  await expect(page.getByText(/Une préparation de course est enregistrée/)).toBeVisible();
+  await page.getByRole('button', { name: 'Reprendre ma course' }).click();
+  await expect(page.getByLabel('Objectif')).toHaveValue(/Trail des tests/);
+  await expect(page.locator('input[name="distanceKm"]')).toHaveValue('42.195');
+
+  const steps = page.getByRole('navigation', { name: 'Parcours course et nutrition' });
+  await expect(steps.getByRole('link', { name: /Stratégie nutritionnelle/ })).toHaveAttribute('aria-current', 'step');
+  await steps.getByRole('link', { name: /Préparer ma course/ }).click();
+  await expect(page).toHaveURL(/\/preparer-course$/);
 });
 
 test('les formulaires affichent les modèles par type d’athlète', async ({ page }) => {

@@ -3,6 +3,8 @@ import { AlertTriangle, Bike, CalendarDays, Check, ChevronRight, Clock3, Flag, L
 import { Link } from 'react-router-dom';
 import api from '../api';
 import RacePaceCalculator from '../components/RacePaceCalculator';
+import RaceJourneySteps from '../components/RaceJourneySteps';
+import { saveRaceContext } from '../utils/raceContext';
 import { AUBINEAU_SOURCE, BASE_RULES, CARB_LOADING, getModelsByAthleteProfile, getProductRecommendations, RACE_PROTOCOLS } from '../data/nutritionKnowledge';
 
 const SPORTS = [
@@ -150,6 +152,26 @@ export default function RacePreparation() {
         nutritionProfile: { gutTolerance: form.gutTolerance, sweatSodiumProfile: form.sweatSodiumProfile },
       });
       setResult(response.data?.data || response.data);
+      saveRaceContext({
+        raceName: form.raceName,
+        sport: form.sport,
+        plannedStartAt: form.date ? `${form.date}T09:00` : '',
+        locationLabel: form.locationLabel,
+        objectiveText: `Objectif ${form.raceName || 'course'} en ${formatMinutes(targetTotalMinutes)}.`,
+        gutTolerance: form.gutTolerance,
+        sweatSodiumProfile: form.sweatSodiumProfile,
+        targetTotalMinutes,
+        ...(isTriathlon
+          ? {
+            swimmingDistanceKm: form.swimmingDistanceKm,
+            cyclingDistanceKm: form.cyclingDistanceKm,
+            cyclingElevationGainM: form.cyclingElevationGainM,
+            runningDistanceKm: form.runningDistanceKm,
+            runningElevationGainM: form.runningElevationGainM,
+            transitionMinutes: form.transitionMinutes,
+          }
+          : { distanceKm: form.distanceKm, elevationGainM: form.elevationGainM }),
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Impossible de construire la préparation.');
     } finally {
@@ -188,6 +210,8 @@ export default function RacePreparation() {
           adaptée. Plan indicatif : adapte la charge avec un coach en cas de blessure ou de reprise.
         </p>
       </header>
+
+      <RaceJourneySteps contextLabel={form.raceName || null} strategySearch={strategySearch} />
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem] gap-6 items-start">
         <div className="min-w-0 space-y-7">

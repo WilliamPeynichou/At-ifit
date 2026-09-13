@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Apple, Bike, Droplets, Zap, Clock, AlertTriangle, Info, Loader2, Salad, PersonStanding, Waves, Activity, ArrowUpRight, BookOpen } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AUBINEAU_SOURCE, getModelsByAthleteProfile, getProductRecommendations } from '../data/nutritionKnowledge';
+import RaceJourneySteps from '../components/RaceJourneySteps';
+import { buildStrategySearch, loadRaceContext } from '../utils/raceContext';
 import api from '../api';
 
 const SPORTS = [
@@ -84,6 +86,8 @@ const FORM_DEFAULTS = {
 
 const Nutrition = () => {
   const [searchParams] = useSearchParams();
+  const storedRace = useMemo(() => loadRaceContext(), []);
+  const cameFromRace = useMemo(() => Boolean(searchParams.get('sport')), [searchParams]);
   const [form, setForm] = useState(() => Object.keys(FORM_DEFAULTS).reduce((values, key) => ({
     ...values,
     [key]: searchParams.get(key) ?? FORM_DEFAULTS[key],
@@ -95,6 +99,16 @@ const Nutrition = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const applyStoredRace = () => {
+    if (!storedRace) return;
+    setForm(prev => Object.keys(FORM_DEFAULTS).reduce((values, key) => ({
+      ...values,
+      [key]: storedRace[key] !== undefined && storedRace[key] !== null && storedRace[key] !== ''
+        ? String(storedRace[key])
+        : prev[key],
+    }), prev));
   };
 
   const handleSubmit = async (e) => {
@@ -168,6 +182,32 @@ const Nutrition = () => {
           <Link to="/nutrition" className="btn-ghost flex items-center gap-2"><BookOpen size={16} /> Guide alimentaire</Link>
         </div>
       </div>
+
+      <div className="mb-6">
+        <RaceJourneySteps
+          contextLabel={storedRace?.raceName || null}
+          strategySearch={cameFromRace ? searchParams.toString() : buildStrategySearch(storedRace)}
+        />
+      </div>
+
+      {cameFromRace && (
+        <p className="glass-panel p-4 mb-6 text-sm" style={{ color: 'var(--text-secondary)', borderColor: 'var(--accent-blue)' }}>
+          Formulaire prérempli depuis ta préparation de course{storedRace?.raceName ? ` : ${storedRace.raceName}` : ''}.
+          Ajuste ce que tu veux avant de calculer.
+        </p>
+      )}
+
+      {!cameFromRace && storedRace && (
+        <div className="glass-panel p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Une préparation de course est enregistrée{storedRace.raceName ? ` : ${storedRace.raceName}` : ''}.
+            Reprendre ses informations ici ?
+          </p>
+          <button type="button" onClick={applyStoredRace} className="btn-ghost shrink-0 self-start">
+            Reprendre ma course
+          </button>
+        </div>
+      )}
       <section className="glass-panel p-6 mb-8">
         <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
           Nutrition pour mon effort
