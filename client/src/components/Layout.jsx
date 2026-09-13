@@ -87,28 +87,28 @@ const Layout = ({ children }) => {
       {/* Header unique — fixé en haut, menu déployable, aucune navigation horizontale */}
       <header className="glass-nav fixed top-0 inset-x-0 z-50">
         <div
-          className="max-w-6xl mx-auto px-4 sm:px-6 h-14 lg:h-16 flex items-center justify-between gap-3"
+          className="header-shell max-w-6xl mx-auto px-4 sm:px-6 h-14 lg:h-16 flex items-center justify-between gap-3"
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
           <div className="min-w-0 flex items-center gap-2 xl:gap-3">
-            <p className="font-mono text-[10px] xl:text-xs uppercase tracking-[.16em] truncate max-w-[8rem] xl:max-w-[11rem]" style={{ color: 'var(--text-light-secondary)' }}>
+            <p className="header-context font-mono uppercase tracking-[.16em] truncate" style={{ color: 'var(--text-light-secondary)' }}>
               {currentContext}
             </p>
-            <nav aria-label="Navigation principale" className="hidden lg:flex items-center gap-0.5 xl:gap-1 min-w-0">
+            <nav aria-label="Navigation principale" className="header-primary-nav hidden lg:flex items-center gap-0.5 xl:gap-1 min-w-0">
               {directNavItems.map(({ path, label, icon }) => (
                 <Link
                   key={path}
                   to={path}
                   title={label}
                   aria-label={label}
-                  className="flex items-center gap-2 px-2 xl:px-2.5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0"
+                  className="header-primary-link flex items-center gap-2 rounded-lg font-medium transition-colors whitespace-nowrap shrink-0"
                   style={{
                     color: isActive(path) ? 'var(--accent-blue)' : 'var(--text-light-secondary)',
                     background: isActive(path) ? 'rgba(255,255,255,0.08)' : 'transparent',
                   }}
                 >
                   {React.createElement(icon, { size: 16 })}
-                  <span className="hidden xl:inline">{label}</span>
+                  <span className="header-nav-label hidden xl:inline">{label}</span>
                 </Link>
               ))}
             </nav>
@@ -123,7 +123,7 @@ const Layout = ({ children }) => {
             )}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg transition-colors"
+              className="header-theme-button p-2 rounded-lg transition-colors"
               style={{ color: 'var(--text-muted)' }}
               aria-label={isDark ? 'Activer le mode clair' : 'Activer le mode sombre'}
               title={isDark ? 'Mode clair' : 'Mode sombre'}
@@ -132,7 +132,7 @@ const Layout = ({ children }) => {
             </button>
             <button
               onClick={() => setMenuOpen(open => !open)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-colors"
+              className="header-menu-button flex items-center gap-2 rounded-lg font-bold transition-colors"
               style={{
                 color: 'var(--text-primary)',
                 background: menuOpen ? 'rgba(255,255,255,0.10)' : 'transparent',

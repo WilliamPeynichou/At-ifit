@@ -285,6 +285,9 @@ test('le header fluide garde toutes les pages principales à un clic, sans logo'
   await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Préparer course/i })).toBeVisible();
   await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Nutrition/i })).toBeVisible();
   await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Natation/i })).toBeVisible();
+  await expect(header.locator('.header-shell')).toHaveCSS('container-type', 'inline-size');
+  await expect(header.locator('.header-context')).toHaveCSS('font-size', /px/);
+  await expect(header.locator('.header-primary-link').first()).toHaveCSS('font-size', /px/);
   await expect(header.getByRole('link', { name: /^Atifit$/i })).toHaveCount(0);
 });
 

@@ -216,6 +216,53 @@ select.input-cyber option {
     color: #e8e8e8;
   }
 
+  /* Le header répond à sa largeur utile, pas seulement à la largeur de fenêtre. */
+  .header-shell {
+    container-type: inline-size;
+    container-name: header;
+  }
+
+  .header-context {
+    font-size: clamp(0.56rem, 1.05cqi, 0.75rem);
+    line-height: 1;
+    max-width: clamp(5rem, 14cqi, 11rem);
+  }
+
+  .header-primary-link {
+    font-size: clamp(0.66rem, 1.12cqi, 0.875rem);
+    line-height: 1;
+    padding: clamp(0.42rem, 0.72cqi, 0.55rem) clamp(0.42rem, 0.78cqi, 0.65rem);
+  }
+
+  .header-primary-link svg {
+    width: clamp(0.82rem, 1.35cqi, 1rem);
+    height: clamp(0.82rem, 1.35cqi, 1rem);
+  }
+
+  .header-theme-button {
+    padding: clamp(0.42rem, 0.72cqi, 0.55rem);
+  }
+
+  .header-theme-button svg {
+    width: clamp(0.95rem, 1.5cqi, 1.25rem);
+    height: clamp(0.95rem, 1.5cqi, 1.25rem);
+  }
+
+  .header-menu-button {
+    font-size: clamp(0.7rem, 1.15cqi, 0.875rem);
+    line-height: 1;
+    padding: clamp(0.45rem, 0.74cqi, 0.55rem) clamp(0.55rem, 0.92cqi, 0.75rem);
+  }
+
+  .header-menu-button svg {
+    width: clamp(0.95rem, 1.5cqi, 1.25rem);
+    height: clamp(0.95rem, 1.5cqi, 1.25rem);
+  }
+
+  @container header (min-width: 1140px) {
+    .header-nav-label { display: inline; }
+  }
+
   /* ── Accent texts ── */
   .text-accent      { color: var(--accent-blue); }
   .text-neon-cyan   { color: var(--accent-blue); }
