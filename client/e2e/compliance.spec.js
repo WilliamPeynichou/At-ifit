@@ -94,6 +94,7 @@ test('pages légales publiques accessibles sans compte depuis le footer (mobile)
   await expect(page.getByText('Entrepreneur individuel (micro-entrepreneur)', { exact: true })).toBeVisible();
   await expect(page.getByText(/^Adresse professionnelle :/)).toBeVisible();
   await expect(page.getByText(/^Immatriculation \(SIREN \/ RCS selon situation\) :/)).toBeVisible();
+  await expect(page.getByText('TVA non applicable, art. 293 B du CGI', { exact: false })).toBeVisible();
   await expect(page.getByText('Railway Corporation').first()).toBeVisible();
   await expect(page.getByText(/pas un dispositif médical/).first()).toBeVisible();
 

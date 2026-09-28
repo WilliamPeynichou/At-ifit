@@ -21,7 +21,7 @@ export default function LegalNotice() {
           <p>Statut déclaré par l’éditeur : <strong style={{ color: 'var(--text-primary)' }}>{EDITOR.status}</strong>. Le service est gratuit, sans publicité, sans abonnement ni achat intégré.</p>
           <p>Adresse professionnelle : {EDITOR.businessAddress || missing}.</p>
           <p>Immatriculation (SIREN / RCS selon situation) : {EDITOR.siren || missing}.</p>
-          <p>Numéro de TVA intracommunautaire (si applicable) : {EDITOR.vatNumber || 'à confirmer selon le régime de TVA'}.</p>
+          <p>TVA : {EDITOR.vatNumber ? `n° ${EDITOR.vatNumber}` : 'TVA non applicable, art. 293 B du CGI'}.</p>
           <p>Téléphone professionnel : {EDITOR.businessPhone || missing}.</p>
           <p>Directeur de la publication : {EDITOR.publicationDirector}.</p>
           <p>Adresse électronique de contact : {contact}.</p>
