@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bike, CircleUserRound, HeartPulse, Loader2, LogOut, Pencil, Ruler, Save, Scale, ShieldCheck, Target, Unplug, UserRound } from 'lucide-react';
+import { Bike, CircleUserRound, Cookie, Download, FileText, HeartPulse, Loader2, LogOut, Pencil, Ruler, Save, Scale, ShieldCheck, Target, Trash2, Unplug, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
+import { useConsent } from '../context/ConsentContext';
 
 const GENDER_OPTIONS = [
   { value: 'male', label: 'Homme' },
@@ -39,6 +40,51 @@ export default function Profile() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [form, setForm] = useState({});
+  const { openPreferences } = useConsent();
+  const [exporting, setExporting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const exportData = async () => {
+    setExporting(true);
+    setError('');
+    try {
+      const res = await api.get('/user/export');
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `atifit-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setMessage('Export téléchargé.');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Export impossible pour le moment.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const deleteAccount = async event => {
+    event.preventDefault();
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await api.delete('/user', { data: { password: deletePassword, confirmation: deleteConfirmation } });
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      const status = err.response?.status;
+      setDeleteError(status === 403 ? 'Mot de passe incorrect.' : (err.response?.data?.error || 'Suppression impossible pour le moment.'));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -137,7 +183,7 @@ export default function Profile() {
             <label className="text-xs font-bold uppercase">Genre<select name="gender" value={form.gender || 'other'} onChange={update} className="input-cyber mt-2">{GENDER_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
             <label className="text-xs font-bold uppercase">Pays<select name="country" value={form.country || 'FR'} onChange={update} className="input-cyber mt-2"><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option><option value="GB">Royaume-Uni</option><option value="US">États-Unis</option><option value="IT">Italie</option><option value="TR">Turquie</option></select></label>
             <label className="text-xs font-bold uppercase">Taille (cm)<input name="height" type="number" min="100" max="250" value={form.height || ''} onChange={update} className="input-cyber mt-2" /></label>
-            <label className="text-xs font-bold uppercase">Âge<input name="age" type="number" min="16" max="100" value={form.age || ''} onChange={update} className="input-cyber mt-2" /></label>
+            <label className="text-xs font-bold uppercase">Âge<input name="age" type="number" min="15" max="100" value={form.age || ''} onChange={update} className="input-cyber mt-2" /></label>
             <label className="text-xs font-bold uppercase">Poids cible (kg)<input name="targetWeight" type="number" min="30" max="300" step="0.1" value={form.targetWeight || ''} onChange={update} className="input-cyber mt-2" /></label>
           </div>
           <div className="rounded-xl p-4 sm:p-5" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
@@ -168,6 +214,57 @@ export default function Profile() {
           <Link to="/new-user-weight" className="rounded-xl p-4 transition-colors" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><Scale size={19} style={{ color: 'var(--accent-blue)' }} /><h3 className="mt-3 font-bold">Suivi du poids</h3><p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Ajouter ou consulter tes mesures.</p></Link>
           <Link to="/strava-connect" className="rounded-xl p-4 transition-colors" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><Unplug size={19} style={{ color: 'var(--accent-blue)' }} /><h3 className="mt-3 font-bold">{user?.stravaConnected ? 'Gérer Strava' : 'Connecter Strava'}</h3><p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{user?.stravaConnected ? 'Synchronisation et données d’activité.' : 'Optionnel : améliore les prédictions.'}</p></Link>
           <button type="button" onClick={async () => { await logout(); navigate('/login'); }} className="rounded-xl p-4 text-left" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><LogOut size={19} style={{ color: '#d97757' }} /><h3 className="mt-3 font-bold">Se déconnecter</h3><p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Fermer cette session sur cet appareil.</p></button>
+        </div>
+      </section>
+
+      <section className="glass-panel p-5 sm:p-6" aria-labelledby="privacy-title">
+        <h2 id="privacy-title" className="text-2xl">Confidentialité et données</h2>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Tes droits RGPD, directement depuis ton compte.</p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-5">
+          <button type="button" onClick={exportData} disabled={exporting} className="rounded-xl p-4 text-left" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
+            {exporting ? <Loader2 size={19} className="animate-spin" style={{ color: 'var(--accent-blue)' }} /> : <Download size={19} style={{ color: 'var(--accent-blue)' }} />}
+            <h3 className="mt-3 font-bold">Exporter mes données</h3>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Profil, poids, objectifs, activités et traces GPS au format JSON.</p>
+          </button>
+          <button type="button" onClick={openPreferences} className="rounded-xl p-4 text-left" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
+            <Cookie size={19} style={{ color: 'var(--accent-blue)' }} />
+            <h3 className="mt-3 font-bold">Gérer les cookies</h3>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Autoriser ou refuser les cartes CARTO.</p>
+          </button>
+          <Link to="/confidentialite" className="rounded-xl p-4" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
+            <FileText size={19} style={{ color: 'var(--accent-blue)' }} />
+            <h3 className="mt-3 font-bold">Politique de confidentialité</h3>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Données traitées, durées, prestataires.</p>
+          </Link>
+        </div>
+
+        <div className="mt-6 rounded-xl p-4 sm:p-5" style={{ border: '1px solid rgba(217,119,87,0.55)', background: 'rgba(217,119,87,0.08)' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="font-bold flex items-center gap-2"><Trash2 size={17} style={{ color: '#d97757' }} /> Supprimer mon compte</h3>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Efface définitivement profil, poids, objectifs, activités et révoque l’accès Strava. Retire aussi ton consentement aux données de santé.</p>
+            </div>
+            {!deleteOpen && (
+              <button type="button" onClick={() => setDeleteOpen(true)} className="min-h-11 px-4 rounded-xl text-sm font-semibold shrink-0" style={{ background: '#141413', color: '#faf9f5' }}>Supprimer…</button>
+            )}
+          </div>
+          {deleteOpen && (
+            <form onSubmit={deleteAccount} className="mt-4 grid gap-3 sm:grid-cols-2" aria-label="Confirmer la suppression du compte">
+              <label className="text-xs font-bold uppercase">Mot de passe
+                <input type="password" name="deletePassword" autoComplete="current-password" required value={deletePassword} onChange={e => setDeletePassword(e.target.value)} className="input-cyber mt-2" />
+              </label>
+              <label className="text-xs font-bold uppercase">Tape SUPPRIMER
+                <input type="text" name="deleteConfirmation" required value={deleteConfirmation} onChange={e => setDeleteConfirmation(e.target.value)} className="input-cyber mt-2" autoComplete="off" />
+              </label>
+              {deleteError && <p role="alert" className="sm:col-span-2 text-sm font-semibold" style={{ color: '#d97757' }}>{deleteError}</p>}
+              <div className="sm:col-span-2 flex flex-wrap gap-2">
+                <button type="submit" disabled={deleting || deleteConfirmation !== 'SUPPRIMER' || !deletePassword} className="min-h-11 px-4 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ background: '#d97757', color: '#141413' }}>
+                  {deleting ? 'Suppression…' : 'Supprimer définitivement'}
+                </button>
+                <button type="button" onClick={() => { setDeleteOpen(false); setDeletePassword(''); setDeleteConfirmation(''); setDeleteError(''); }} className="min-h-11 px-4 rounded-xl text-sm font-semibold" style={{ border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}>Annuler</button>
+              </div>
+            </form>
+          )}
         </div>
       </section>
     </div>

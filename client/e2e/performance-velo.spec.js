@@ -245,7 +245,7 @@ test('guide nutrition cite Nicolas Aubineau et ouvre la préparation de course',
   await expect(page.getByText(/Clif Bar Energy Bar myrtilles-amandes/)).toBeVisible();
   await expect(page.getByText(/Aptonia Iso\+ Pêche/)).toBeVisible();
 
-  await page.getByRole('link', { name: /Préparer une course/i }).click();
+  await page.getByRole('main').getByRole('link', { name: /Préparer une course/i }).click();
   await expect(page.getByRole('heading', { name: /^Préparer une course$/i })).toBeVisible();
   await expect(page.getByLabel(/Objectif heures/i)).toBeVisible();
 });
@@ -410,6 +410,7 @@ test('la calculette mobile reste repliable et ne bloque pas le formulaire', asyn
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/preparer-course');
+  await page.getByTestId('cookie-banner').getByRole('button', { name: 'Tout refuser' }).click();
 
   const toggle = page.getByRole('button', { name: 'Calculette' });
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');

@@ -15,6 +15,7 @@ const { requireSuperAdmin, VALID_ROLES } = require('../middleware/roles');
 const { asyncHandler, sendSuccess, sendError } = require('../middleware/errorHandler');
 const { logAuditEvent } = require('../services/auditService');
 const { sanitizeForSuperAdmin } = require('../utils/sensitiveData');
+const { deleteUserData } = require('../services/userDataService');
 const { syncUserActivities, syncSince, enrichUserActivities, getSyncStatus } = require('../services/stravaSync');
 const router = express.Router();
 router.use(auth, requireSuperAdmin);
@@ -419,24 +420,6 @@ router.delete('/resources/:resource/:id', asyncHandler(async (req, res) => {
   });
   sendSuccess(res, { success: true, deleted: true, resource: req.params.resource, id: parseInt(req.params.id, 10) });
 }));
-
-async function deleteUserData(userId, categories, transaction) {
-  const allCategories = ['weights', 'goals', 'activities', 'refreshTokens'];
-  const selected = categories && categories.length ? categories : allCategories;
-  const counts = {};
-
-  if (selected.includes('activities')) {
-    const activities = await Activity.findAll({ where: { userId }, attributes: ['id'], transaction });
-    const activityIds = activities.map(a => a.id);
-    counts.activityStreams = activityIds.length ? await ActivityStream.destroy({ where: { activityId: activityIds }, transaction }) : 0;
-    counts.activities = await Activity.destroy({ where: { userId }, transaction });
-  }
-  if (selected.includes('weights')) counts.weights = await Weight.destroy({ where: { userId }, transaction });
-  if (selected.includes('goals')) counts.goals = await Goal.destroy({ where: { userId }, transaction });
-  if (selected.includes('refreshTokens')) counts.refreshTokens = await RefreshToken.destroy({ where: { userId }, transaction });
-
-  return { categories: selected, counts };
-}
 
 router.delete('/users/:id/data', asyncHandler(async (req, res) => {
   const userId = parseInt(req.params.id, 10);

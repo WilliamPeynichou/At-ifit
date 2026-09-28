@@ -151,6 +151,7 @@ const NewUserProfile = () => {
               <input
                 type="number"
                 name="age"
+                min="15"
                 value={formData.age}
                 onChange={handleChange}
                 className="input-cyber w-full"

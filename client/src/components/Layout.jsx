@@ -46,6 +46,9 @@ const PAGE_CONTEXT = {
   '/kcal-calculator': 'Calculateur kcal',
   '/sources': 'Sources',
   '/new-user-profile': 'Profil',
+  '/mentions-legales': 'Mentions légales',
+  '/confidentialite': 'Confidentialité',
+  '/cookies': 'Cookies',
 };
 
 const Layout = ({ children }) => {
@@ -225,7 +228,7 @@ const Layout = ({ children }) => {
       </main>
 
       {/* Footer */}
-      <div className="hidden lg:block mt-auto pt-6">
+      <div className="mt-auto pt-6">
         <Footer />
       </div>
 

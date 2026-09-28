@@ -9,7 +9,7 @@
  *   Corps / UI         → Outfit 400/500/600 — géométrique, distinctif
  *   Données / labels   → GeistMono — précision technique
  */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600&family=Geist+Mono:wght@300;400&display=swap');
+/* Polices auto-hébergées (@fontsource, importées dans main.jsx) : aucun appel à Google Fonts. */
 
 @import "tailwindcss";
 

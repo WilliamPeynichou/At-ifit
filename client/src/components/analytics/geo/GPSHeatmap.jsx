@@ -3,7 +3,10 @@ import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import polyline from '@mapbox/polyline';
 import 'leaflet/dist/leaflet.css';
 import api from '../../../api';
+import { Link } from 'react-router-dom';
+import { MapPinOff } from 'lucide-react';
 import { useTemporal } from '../../../context/TemporalContext';
+import { useConsent } from '../../../context/ConsentContext';
 
 const TYPE_COLORS = {
   Run: '#fc4c02',
@@ -31,6 +34,8 @@ const FitBounds = ({ paths }) => {
 
 const GPSHeatmap = () => {
   const { queryParams } = useTemporal();
+  const { allows, grant } = useConsent();
+  const allowsMaps = allows('maps');
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -117,6 +122,7 @@ const GPSHeatmap = () => {
       </div>
 
       <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--glass-border)', height: '600px' }}>
+        {allowsMaps ? (
         <MapContainer
           center={[48.8566, 2.3522]}
           zoom={10}
@@ -139,6 +145,22 @@ const GPSHeatmap = () => {
           ))}
           <FitBounds paths={paths} />
         </MapContainer>
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-center gap-4 p-6" data-testid="map-consent-gate" style={{ background: '#faf9f5', color: '#141413' }}>
+            <MapPinOff size={34} style={{ color: '#d97757' }} aria-hidden="true" />
+            <div className="max-w-md">
+              <h3 className="font-display text-2xl tracking-wide" style={{ color: '#141413' }}>Carte désactivée</h3>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: '#3d3d3a' }}>
+                Le fond de carte est fourni par CARTO / OpenStreetMap. L’afficher transmet ton adresse IP et la zone consultée à ce service tiers.
+                Tes {paths.length} traces restent disponibles dès que tu l’autorises.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button type="button" onClick={() => grant('maps')} className="min-h-11 px-4 rounded-xl text-sm font-semibold" style={{ background: '#141413', color: '#faf9f5' }}>Autoriser les cartes</button>
+              <Link to="/cookies" className="min-h-11 px-4 rounded-xl text-sm font-semibold inline-flex items-center" style={{ border: '1px solid #141413', color: '#141413' }}>En savoir plus</Link>
+            </div>
+          </div>
+        )}
       </div>
 
       <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>

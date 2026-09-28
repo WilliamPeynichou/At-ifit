@@ -10,6 +10,7 @@ const { authLimiter } = require('../middleware/rateLimiter');
 const logger = require('../utils/logger');
 const { logAuditEvent } = require('../services/auditService');
 
+const PRIVACY_POLICY_VERSION = '2026-09-28';
 const router = express.Router();
 
 /**
@@ -65,7 +66,12 @@ router.post('/register',
   authLimiter,
   validateRequest(validations.register),
   asyncHandler(async (req, res) => {
-    const { email, password, pseudo, country } = req.body;
+    const { email, password, pseudo, country, healthDataConsent, ageConfirmed } = req.body;
+
+    // RGPD art. 9 : consentement explicite requis pour les données de santé (poids, FC)
+    if (healthDataConsent !== true || ageConfirmed !== true) {
+      return sendError(res, 'Consentement données de santé et confirmation d’âge (15 ans et plus) requis', 400);
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -111,6 +117,17 @@ router.post('/register',
       category: 'auth',
       message: 'User registered',
       metadata: { email: user.email, role: user.role },
+    });
+
+    // Preuve proportionnée du consentement (sans donnée supplémentaire)
+    await logAuditEvent({
+      req,
+      userId: user.id,
+      actorUserId: user.id,
+      eventType: 'health_data_consent_granted',
+      category: 'privacy',
+      message: 'Explicit consent for health data processing',
+      metadata: { privacyPolicyVersion: PRIVACY_POLICY_VERSION, ageConfirmed: true },
     });
 
     sendSuccess(res, {

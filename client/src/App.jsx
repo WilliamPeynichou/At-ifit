@@ -3,6 +3,10 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ConsentProvider } from './context/ConsentContext';
+import CookieBanner from './components/CookieBanner';
+import Footer from './components/Footer';
+import { LegalRoute } from './components/legal/LegalDocument';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -32,6 +36,9 @@ const StravaCallback = lazy(() => import('./pages/StravaCallback'));
 const Chatbot = lazy(() => import('./components/Chatbot'));
 const Assistant = lazy(() => import('./pages/Assistant'));
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin'));
+const LegalNotice = lazy(() => import('./pages/legal/LegalNotice'));
+const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'));
+const CookiePolicy = lazy(() => import('./pages/legal/CookiePolicy'));
 
 function AppInner() {
   const { loading, user } = useAuth();
@@ -44,8 +51,11 @@ function AppInner() {
       <div className="relative z-10">
         <Suspense fallback={<CyclistLoader />}>
           <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<><Login /><Footer /></>} />
+          <Route path="/register" element={<><Register /><Footer /></>} />
+          <Route path="/mentions-legales" element={<LegalRoute><LegalNotice /></LegalRoute>} />
+          <Route path="/confidentialite" element={<LegalRoute><PrivacyPolicy /></LegalRoute>} />
+          <Route path="/cookies" element={<LegalRoute><CookiePolicy /></LegalRoute>} />
           <Route
             path="/"
             element={
@@ -253,6 +263,7 @@ function AppInner() {
           </Routes>
         </Suspense>
       </div>
+      <CookieBanner />
       {user && <div className="hidden md:block"><Suspense fallback={null}><Chatbot isOpen={isChatOpen} setIsOpen={setIsChatOpen} /></Suspense></div>}
     </div>
   );
@@ -264,7 +275,9 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <LanguageProvider>
-            <AppInner />
+            <ConsentProvider>
+              <AppInner />
+            </ConsentProvider>
           </LanguageProvider>
         </AuthProvider>
       </ThemeProvider>

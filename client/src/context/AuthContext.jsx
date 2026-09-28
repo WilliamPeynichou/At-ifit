@@ -177,9 +177,16 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const register = async (email, password, pseudo, country) => {
+  const register = async (email, password, pseudo, country, consents = {}) => {
     try {
-      const res = await api.post('/auth/register', { email, password, pseudo, country });
+      const res = await api.post('/auth/register', {
+        email,
+        password,
+        pseudo,
+        country,
+        healthDataConsent: consents.healthDataConsent === true,
+        ageConfirmed: consents.ageConfirmed === true,
+      });
       
       if (!res.data || !res.data.accessToken || !res.data.refreshToken || !res.data.user) {
         throw new Error('Invalid response format from server');

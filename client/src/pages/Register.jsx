@@ -10,6 +10,8 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pseudo, setPseudo] = useState('');
   const [country, setCountry] = useState('FR');
+  const [healthDataConsent, setHealthDataConsent] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -24,15 +26,20 @@ const Register = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+    if (password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+
+    if (!healthDataConsent || !ageConfirmed) {
+      setError('Merci de confirmer ton âge et ton consentement au traitement des données de santé.');
       return;
     }
 
     setLoading(true);
 
     try {
-      await register(email, password, pseudo, country);
+      await register(email, password, pseudo, country, { healthDataConsent, ageConfirmed });
       setTimeout(() => {
         navigate('/new-user-profile');
       }, 100);
@@ -163,6 +170,32 @@ const Register = () => {
               placeholder="••••••••"
             />
           </div>
+
+          <fieldset className="space-y-3 rounded-xl p-4" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
+            <legend className="px-1 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Tes données</legend>
+            <label className="flex items-start gap-3 text-xs leading-relaxed cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+              <input
+                type="checkbox"
+                name="ageConfirmed"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#d97757]"
+                required
+              />
+              <span>J’ai 15 ans ou plus et j’ai lu la <Link to="/confidentialite" target="_blank" className="underline font-semibold" style={{ color: 'var(--accent-blue)' }}>politique de confidentialité</Link>.</span>
+            </label>
+            <label className="flex items-start gap-3 text-xs leading-relaxed cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+              <input
+                type="checkbox"
+                name="healthDataConsent"
+                checked={healthDataConsent}
+                onChange={(e) => setHealthDataConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#d97757]"
+                required
+              />
+              <span>J’accepte explicitement qu’Atifit traite mes données de santé et d’effort (poids, fréquence cardiaque, activités) pour calculer mes analyses. Retrait possible à tout moment en supprimant mon compte depuis mon profil.</span>
+            </label>
+          </fieldset>
 
           <button
             type="submit"

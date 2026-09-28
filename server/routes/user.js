@@ -9,6 +9,9 @@ const { getValidStravaToken, fetchStravaActivities } = require('../utils/stravaH
 const { updateUserIMCAndCalories } = require('../utils/userCalculations');
 const logger = require('../utils/logger');
 const { sanitizeUserForSuperAdmin } = require('../utils/sensitiveData');
+const { deleteAccount, exportUserData } = require('../services/userDataService');
+const { revokeStravaToken } = require('../utils/stravaHelpers');
+const { logAuditEvent } = require('../services/auditService');
 
 /**
  * Calculate BMR using Mifflin-St Jeor equation
@@ -259,5 +262,43 @@ router.post('/calculate-calories',
     sendSuccess(res, result, 'Calories calculated successfully');
   })
 );
+
+// RGPD art. 15/20 : export portable des données du compte
+router.get('/export', auth, asyncHandler(async (req, res) => {
+  const data = await exportUserData(req.userId);
+  if (!data) return sendError(res, 'User not found', 404);
+  await logAuditEvent({ req, userId: req.userId, actorUserId: req.userId, eventType: 'user_data_export', category: 'privacy', message: 'User exported own data' });
+  res.setHeader('Content-Disposition', `attachment; filename="atifit-export-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(data);
+}));
+
+// RGPD art. 17 : suppression définitive du compte, mot de passe requis
+router.delete('/', auth, asyncHandler(async (req, res) => {
+  const { password, confirmation } = req.body || {};
+  if (confirmation !== 'SUPPRIMER') return sendError(res, 'Confirmation text required', 400);
+  if (!password) return sendError(res, 'Password required', 400);
+
+  const user = await User.findByPk(req.userId);
+  if (!user) return sendError(res, 'User not found', 404);
+  if (!(await user.comparePassword(password))) return sendError(res, 'Invalid password', 403);
+  if (user.role === 'super_admin') {
+    const superAdminCount = await User.count({ where: { role: 'super_admin' } });
+    if (superAdminCount <= 1) return sendError(res, 'Cannot delete the last super admin', 400);
+  }
+
+  if (user.stravaAccessToken) {
+    try {
+      await revokeStravaToken(user.stravaAccessToken);
+    } catch (error) {
+      logger.warn('Strava revoke failed during account deletion', { userId: req.userId, error: error.message });
+    }
+  }
+
+  const userId = user.id;
+  await deleteAccount(userId);
+  logger.info('User deleted own account');
+  sendSuccess(res, { deleted: true }, 'Account deleted');
+}));
 
 module.exports = router;
