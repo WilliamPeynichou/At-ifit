@@ -12,7 +12,7 @@ export const EDITOR = {
   name: 'William Peynichou',
   status: 'Entrepreneur individuel (micro-entrepreneur)',
   publicationDirector: 'William Peynichou',
-  contactEmail: import.meta.env.VITE_LEGAL_CONTACT_EMAIL || null,
+  contactEmail: import.meta.env.VITE_LEGAL_CONTACT_EMAIL || 'wilishkar@gmail.com',
   businessAddress: import.meta.env.VITE_LEGAL_BUSINESS_ADDRESS || null,
   businessPhone: import.meta.env.VITE_LEGAL_BUSINESS_PHONE || null,
   siren: import.meta.env.VITE_LEGAL_SIREN || null,
