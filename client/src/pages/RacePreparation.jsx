@@ -1,9 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { AlertTriangle, Bike, CalendarDays, Check, ChevronRight, Clock3, Flag, Loader2, PersonStanding, Target, Utensils, Waves } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import RacePaceCalculator from '../components/RacePaceCalculator';
 import RaceJourneySteps from '../components/RaceJourneySteps';
+import CoursePlanner from '../components/course-planner/CoursePlanner';
+import TriathlonPlanner from '../components/course-planner/TriathlonPlanner';
 import { saveRaceContext } from '../utils/raceContext';
 import { AUBINEAU_SOURCE, BASE_RULES, CARB_LOADING, getModelsByAthleteProfile, getProductRecommendations, RACE_PROTOCOLS } from '../data/nutritionKnowledge';
 
@@ -105,6 +107,14 @@ export default function RacePreparation() {
   }, [form, isTriathlon, targetTotalMinutes]);
 
   const update = event => setForm(current => ({ ...current, [event.target.name]: event.target.value }));
+
+  const handleTriathlonLeg = useCallback((leg, info) => setForm(current => ({
+    ...current,
+    raceName: current.raceName || info.name,
+    ...(leg === 'cycling'
+      ? { cyclingDistanceKm: info.distanceKm, cyclingElevationGainM: info.elevationGainM }
+      : { runningDistanceKm: info.distanceKm, runningElevationGainM: info.elevationGainM }),
+  })), []);
 
   const chooseSport = sport => setForm(current => ({
     ...current,
@@ -328,6 +338,29 @@ export default function RacePreparation() {
           <ChevronRight size={17} />
         </button>
       </form>
+
+      {(form.sport === 'running' || form.sport === 'cycling') && (
+        <CoursePlanner
+          key={form.sport}
+          sport={form.sport}
+          raceName={form.raceName}
+          targetMinutes={targetTotalMinutes}
+          onCourseLoaded={info => setForm(current => ({
+            ...current,
+            raceName: current.raceName || info.name,
+            distanceKm: info.distanceKm,
+            elevationGainM: info.elevationGainM,
+          }))}
+        />
+      )}
+
+      {isTriathlon && (
+        <TriathlonPlanner
+          form={form}
+          targetMinutes={targetTotalMinutes}
+          onLegLoaded={handleTriathlonLeg}
+        />
+      )}
 
       {result && (
         <div className="space-y-6" aria-live="polite">

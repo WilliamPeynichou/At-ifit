@@ -23,6 +23,7 @@ const Nutrition = lazy(() => import('./pages/Nutrition'));
 const RacePreparation = lazy(() => import('./pages/RacePreparation'));
 const Sources = lazy(() => import('./pages/Sources'));
 const FoodComparisons = lazy(() => import('./pages/FoodComparisons'));
+const MyPredictions = lazy(() => import('./pages/MyPredictions'));
 const Profile = lazy(() => import('./pages/Profile'));
 const RunningDashboard = lazy(() => import('./pages/RunningDashboard'));
 const SwimmingDashboard = lazy(() => import('./pages/SwimmingDashboard'));
@@ -146,6 +147,7 @@ function AppInner() {
               </ProtectedRoute>
             }
           />
+          <Route path="/profile/predictions" element={<ProtectedRoute><Layout><MyPredictions /></Layout></ProtectedRoute>} />
           <Route
             path="/profile"
             element={

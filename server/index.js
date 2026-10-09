@@ -133,6 +133,7 @@ async function initializeDatabase() {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/user/predictions', require('./routes/predictions'));
 app.use('/api/user', userRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/ai-coach', aiCoachRoutes);
