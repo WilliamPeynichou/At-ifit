@@ -10,6 +10,7 @@ const NEUTRAL_ROUTE = '#8a8a80';
 const SECTION_PALETTE = ['#6a9bcc', '#d97757', '#788c5d', '#e0b25a', '#a855f7', '#fc4c02'];
 const ALERT_COLOR = '#b91c1c';
 const HOVER_RADIUS_PX = 16;
+const PICK_RADIUS_PX = 60;
 const METERS_PER_DEG = 111320;
 const MAP_PADDING = [28, 28];
 
@@ -69,9 +70,9 @@ function routePositions(course, fromKm, toKm) {
   return [[start.lat, start.lon], ...inner, [end.lat, end.lon]];
 }
 
-function nearestKm(map, profile, latlng) {
+function nearestKm(map, profile, latlng, radiusPx = HOVER_RADIUS_PX) {
   const cosLat = Math.cos((latlng.lat * Math.PI) / 180);
-  const toLocal = (lat, lon) => [(lon - latlng.lon) * cosLat, lat - latlng.lat];
+  const toLocal = (lat, lon) => [(lon - latlng.lng) * cosLat, lat - latlng.lat];
   let best = Infinity;
   let km = null;
   for (let i = 1; i < profile.length; i += 1) {
@@ -92,7 +93,7 @@ function nearestKm(map, profile, latlng) {
     }
   }
   const metersPerPx = (156543.03392 * Math.cos((latlng.lat * Math.PI) / 180)) / 2 ** map.getZoom();
-  return Math.sqrt(best) * METERS_PER_DEG <= HOVER_RADIUS_PX * metersPerPx ? km : null;
+  return Math.sqrt(best) * METERS_PER_DEG <= radiusPx * metersPerPx ? km : null;
 }
 
 function FitRange({ course, zoomRange }) {
@@ -119,7 +120,7 @@ function RouteInteraction({ profile, onHover, onPick }) {
       });
     },
     click: e => {
-      const km = nearestKm(map, profile, e.latlng);
+      const km = nearestKm(map, profile, e.latlng, onPick ? PICK_RADIUS_PX : HOVER_RADIUS_PX);
       onHover(km);
       if (km !== null) onPick?.(km);
     },
@@ -283,9 +284,9 @@ export default function CourseMap({ course, plan = null, hoverKm = null, onHover
 
               {mode === 'grade' ? (
                 <>
-                  <Polyline positions={fullRoute} pathOptions={{ color: '#141413', weight: 9, opacity: 0.18, lineCap: 'round', lineJoin: 'round', interactive: false }} />
+                  <Polyline interactive={false} positions={fullRoute} pathOptions={{ color: '#141413', weight: 9, opacity: 0.18, lineCap: 'round', lineJoin: 'round', interactive: false }} />
                   {gradeRuns.map((run, i) => (
-                    <Polyline
+                    <Polyline interactive={false}
                       key={i}
                       positions={run.positions}
                       pathOptions={{ color: run.color, weight: 5, lineCap: 'round', lineJoin: 'round', interactive: false }}
@@ -294,9 +295,9 @@ export default function CourseMap({ course, plan = null, hoverKm = null, onHover
                 </>
               ) : (
                 <>
-                  <Polyline positions={fullRoute} pathOptions={{ color: NEUTRAL_ROUTE, weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round', interactive: false }} />
+                  <Polyline interactive={false} positions={fullRoute} pathOptions={{ color: NEUTRAL_ROUTE, weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round', interactive: false }} />
                   {sectionLines.map(line => (
-                    <Polyline
+                    <Polyline interactive={false}
                       key={line.id}
                       positions={line.positions}
                       pathOptions={{ color: line.color, weight: 6, lineCap: 'round', lineJoin: 'round', interactive: false }}
@@ -306,7 +307,7 @@ export default function CourseMap({ course, plan = null, hoverKm = null, onHover
               )}
 
               {zoomLine && (
-                <Polyline positions={zoomLine} pathOptions={{ color: '#141413', weight: 12, opacity: 0.22, lineCap: 'round', lineJoin: 'round', interactive: false }} />
+                <Polyline interactive={false} positions={zoomLine} pathOptions={{ color: '#141413', weight: 12, opacity: 0.22, lineCap: 'round', lineJoin: 'round', interactive: false }} />
               )}
 
               {start && (
@@ -350,6 +351,7 @@ export default function CourseMap({ course, plan = null, hoverKm = null, onHover
 
               {hoverPoint && (
                 <CircleMarker
+                  interactive={false}
                   center={[hoverPoint.lat, hoverPoint.lon]}
                   radius={7}
                   pathOptions={{ color: '#141413', weight: 2, fillColor: '#ffffff', fillOpacity: 1, interactive: false }}
