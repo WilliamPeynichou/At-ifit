@@ -84,8 +84,12 @@ const FORM_DEFAULTS = {
   sweatSodiumProfile: '',
 };
 
-const Nutrition = () => {
-  const [searchParams] = useSearchParams();
+const Nutrition = ({ embedded = false, initialSearch = '' }) => {
+  const [routerParams] = useSearchParams();
+  const searchParams = useMemo(
+    () => (embedded ? new URLSearchParams(initialSearch) : routerParams),
+    [embedded, initialSearch, routerParams],
+  );
   const storedRace = useMemo(() => loadRaceContext(), []);
   const cameFromRace = useMemo(() => Boolean(searchParams.get('sport')), [searchParams]);
   const [form, setForm] = useState(() => Object.keys(FORM_DEFAULTS).reduce((values, key) => ({
@@ -166,7 +170,8 @@ const Nutrition = () => {
   }) : [];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+    <div className={embedded ? '' : 'max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10'}>
+      {!embedded && (<>
       <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
         <h1 className="text-4xl font-black flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
@@ -208,6 +213,7 @@ const Nutrition = () => {
           </button>
         </div>
       )}
+      </>)}
       <section className="glass-panel p-6 mb-8">
         <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
           Nutrition pour mon effort

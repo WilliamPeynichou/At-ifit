@@ -15,7 +15,7 @@ function splitTarget({ targetMinutes, swimKm, bikeKm, bikeGainM, runKm, runGainM
   return { swim, bike, run: remaining - bike };
 }
 
-export default function TriathlonPlanner({ form, targetMinutes, onLegLoaded }) {
+export default function TriathlonPlanner({ form, targetMinutes, onLegLoaded, nutrition }) {
   const [start, setStart] = useState(() => {
     try { return window.localStorage.getItem(START_KEY) || '08:00'; } catch { return '08:00'; }
   });
@@ -113,6 +113,7 @@ export default function TriathlonPlanner({ form, targetMinutes, onLegLoaded }) {
         fixedStartTime={clock(bikeStart)}
         onPlan={onBike}
         onCourseLoaded={onBikeLoaded}
+        nutrition={nutrition}
       />
       <CoursePlanner
         sport="running"
@@ -123,6 +124,7 @@ export default function TriathlonPlanner({ form, targetMinutes, onLegLoaded }) {
         fixedStartTime={clock(runStart)}
         onPlan={onRun}
         onCourseLoaded={onRunLoaded}
+        nutrition={nutrition}
       />
     </div>
   );

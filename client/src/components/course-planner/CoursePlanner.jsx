@@ -5,6 +5,7 @@ import CourseProfileChart from './CourseProfileChart';
 import CourseMap from './CourseMap';
 import CourseEditors from './CourseEditors';
 import CourseRoadbook from './CourseRoadbook';
+import AidNutritionPlan from './AidNutritionPlan';
 
 const SECTION_COLORS = ['#6a9bcc', '#d97757', '#788c5d', '#a855f7', '#e0b25a'];
 const newId = () => (globalThis.crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -65,7 +66,7 @@ function suggestClimbs(course, sport) {
   }));
 }
 
-export default function CoursePlanner({ sport = 'running', raceName, targetMinutes, onCourseLoaded, storageId, legLabel, fixedStartTime, onPlan }) {
+export default function CoursePlanner({ sport = 'running', raceName, targetMinutes, onCourseLoaded, storageId, legLabel, fixedStartTime, onPlan, nutrition }) {
   const plannerSport = sport === 'cycling' ? 'cycling' : 'running';
   const storageKey = plannerStorageKey(storageId || plannerSport);
   const fileRef = useRef(null);
@@ -253,6 +254,8 @@ export default function CoursePlanner({ sport = 'running', raceName, targetMinut
           <Sparkles size={16} /> Détecter automatiquement les montées
         </button>
       )}
+
+      <AidNutritionPlan plan={plan} nutrition={nutrition} />
 
       <CourseRoadbook course={course} plan={plan} raceName={raceName || gpx.name} hoverKm={hoverKm} onHoverKm={setHoverKm} />
     </div>

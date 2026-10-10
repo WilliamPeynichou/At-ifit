@@ -1,11 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, Bike, CalendarDays, Check, ChevronRight, Clock3, Flag, Loader2, PersonStanding, Target, Utensils, Waves } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { AlertTriangle, Bike, Brain, CalendarDays, Check, ChevronRight, Clock3, Flag, Loader2, Map as MapIcon, PersonStanding, Target, Upload, Utensils, Waves } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import RacePaceCalculator from '../components/RacePaceCalculator';
 import RaceJourneySteps from '../components/RaceJourneySteps';
 import CoursePlanner from '../components/course-planner/CoursePlanner';
 import TriathlonPlanner from '../components/course-planner/TriathlonPlanner';
+import PersonalMl from '../components/predictions/PersonalMl';
+import PertPlanner from '../components/predictions/PertPlanner';
+import Nutrition from './Nutrition';
 import { saveRaceContext } from '../utils/raceContext';
 import { AUBINEAU_SOURCE, BASE_RULES, CARB_LOADING, getModelsByAthleteProfile, getProductRecommendations, RACE_PROTOCOLS } from '../data/nutritionKnowledge';
 
@@ -21,6 +24,13 @@ const TRIATHLON_FORMATS = [
   { id: 'm', label: 'Format M', swim: 1.5, bike: 40, run: 10, transition: 8, hours: 2, minutes: 40 },
   { id: 'half', label: 'Half / 70.3', swim: 1.9, bike: 90, run: 21.1, transition: 10, hours: 5, minutes: 30 },
   { id: 'ironman', label: 'Ironman', swim: 3.8, bike: 180, run: 42.2, transition: 15, hours: 11, minutes: 0 },
+];
+
+const TABS = [
+  { id: 'objectif', label: 'Objectif & plan', icon: Target },
+  { id: 'parcours', label: 'Parcours & ravitos', icon: MapIcon },
+  { id: 'nutrition', label: 'Nutrition', icon: Utensils },
+  { id: 'predictions', label: 'Prédictions', icon: Brain },
 ];
 
 const formatMinutes = value => (Number.isFinite(value)
@@ -71,6 +81,12 @@ export default function RacePreparation() {
     transitionMinutes: 8,
   });
   const [result, setResult] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = TABS.some(tab => tab.id === searchParams.get('onglet')) ? searchParams.get('onglet') : 'objectif';
+  const changeTab = id => {
+    setSearchParams(params => { params.set('onglet', id); return params; }, { replace: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -190,6 +206,11 @@ export default function RacePreparation() {
   };
 
   const predicted = result?.effort?.estimatedDurationMinutes?.target;
+  const nutritionRates = result?.during ? {
+    carbs: result.during.carbohydratesGPerHour.target,
+    fluid: result.during.fluidMlPerHour.target,
+    sodium: result.during.sodiumMgPerHour.target,
+  } : null;
   const gap = Number.isFinite(predicted) ? targetTotalMinutes - predicted : null;
   const legs = result?.effort?.legs;
   const productRecommendations = result && form.nutrition ? getProductRecommendations({
@@ -223,6 +244,72 @@ export default function RacePreparation() {
 
       <RaceJourneySteps contextLabel={form.raceName || null} strategySearch={strategySearch} />
 
+      <nav role="tablist" aria-label="Sections de la préparation" className="glass-panel p-1.5 grid grid-cols-2 md:grid-cols-4 gap-1.5 sticky top-2 z-[500]">
+        {TABS.map(tab => {
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => changeTab(tab.id)}
+              className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors"
+              style={{ background: active ? 'var(--accent-blue)' : 'transparent', color: active ? '#fff' : 'var(--text-primary)' }}
+            >
+              {React.createElement(tab.icon, { size: 16 })}
+              {tab.label}
+              {tab.id === 'parcours' && !active && (
+                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: '#d97757', color: '#fff' }}>GPX</span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {activeTab === 'parcours' && (
+        <div className="space-y-6" role="tabpanel">
+      {(form.sport === 'running' || form.sport === 'cycling') && (
+        <CoursePlanner
+          key={form.sport}
+          sport={form.sport}
+          raceName={form.raceName}
+          targetMinutes={targetTotalMinutes}
+          nutrition={nutritionRates}
+          onCourseLoaded={info => setForm(current => ({
+            ...current,
+            raceName: current.raceName || info.name,
+            distanceKm: info.distanceKm,
+            elevationGainM: info.elevationGainM,
+          }))}
+        />
+      )}
+
+      {isTriathlon && (
+        <TriathlonPlanner
+          form={form}
+          targetMinutes={targetTotalMinutes}
+          onLegLoaded={handleTriathlonLeg}
+          nutrition={nutritionRates}
+        />
+      )}
+        </div>
+      )}
+
+      {activeTab === 'nutrition' && (
+        <div role="tabpanel">
+          <Nutrition embedded initialSearch={strategySearch} />
+        </div>
+      )}
+
+      {activeTab === 'predictions' && (
+        <div className="space-y-6" role="tabpanel">
+          <PersonalMl />
+          <PertPlanner />
+        </div>
+      )}
+
+      {activeTab === 'objectif' && (
       <div className="grid lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem] gap-6 items-start">
         <div className="min-w-0 space-y-7">
       <form onSubmit={submit} className="glass-panel p-5 sm:p-6 space-y-6">
@@ -339,28 +426,14 @@ export default function RacePreparation() {
         </button>
       </form>
 
-      {(form.sport === 'running' || form.sport === 'cycling') && (
-        <CoursePlanner
-          key={form.sport}
-          sport={form.sport}
-          raceName={form.raceName}
-          targetMinutes={targetTotalMinutes}
-          onCourseLoaded={info => setForm(current => ({
-            ...current,
-            raceName: current.raceName || info.name,
-            distanceKm: info.distanceKm,
-            elevationGainM: info.elevationGainM,
-          }))}
-        />
-      )}
-
-      {isTriathlon && (
-        <TriathlonPlanner
-          form={form}
-          targetMinutes={targetTotalMinutes}
-          onLegLoaded={handleTriathlonLeg}
-        />
-      )}
+      <button type="button" onClick={() => changeTab('parcours')} className="glass-panel w-full p-5 flex items-center gap-4 text-left transition-transform hover:-translate-y-0.5" style={{ borderColor: '#d97757' }}>
+        <span className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: '#d97757', color: '#fff' }}><Upload size={20} /></span>
+        <span className="min-w-0">
+          <strong className="block text-lg">Importer le GPX de la course</strong>
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Profil, temps de passage, ravitos, sections à vitesse imposée et road book.</span>
+        </span>
+        <ChevronRight size={20} className="ml-auto shrink-0" />
+      </button>
 
       {result && (
         <div className="space-y-6" aria-live="polite">
@@ -571,6 +644,7 @@ export default function RacePreparation() {
           }}
         />
       </div>
+      )}
     </div>
   );
 }
