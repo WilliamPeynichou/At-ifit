@@ -18,7 +18,6 @@ const COLUMNS = [
     title: 'Nutrition & course',
     links: [
       { to: '/nutrition', label: 'Guide nutrition' },
-      { to: '/nutrition/strategie', label: 'Stratégie nutritionnelle' },
       { to: '/nutrition/comparatifs', label: 'Comparatifs produits' },
       { to: '/preparer-course', label: 'Préparer une course' },
       { to: '/kcal-calculator', label: 'Calculateur kcal' },

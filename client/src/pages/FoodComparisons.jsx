@@ -56,7 +56,7 @@ export default function FoodComparisons() {
             égale, puis rapproche-les de ta stratégie nutritionnelle ; le meilleur produit dépend aussi de ta tolérance.
           </p>
           <div className="flex flex-wrap gap-3 mt-6">
-            <Link to="/nutrition/strategie" className="btn-primary inline-flex items-center gap-2">Calculer ma stratégie <ChevronRight size={17} /></Link>
+            <Link to="/preparer-course?etape=4" className="btn-primary inline-flex items-center gap-2">Calculer ma stratégie <ChevronRight size={17} /></Link>
             <Link to="/nutrition" className="btn-ghost inline-flex items-center gap-2"><BookOpen size={16} /> Guide nutrition</Link>
             <Link to="/sources#comparatifs" className="btn-ghost inline-flex items-center gap-2"><Info size={16} /> Méthode et sources</Link>
           </div>

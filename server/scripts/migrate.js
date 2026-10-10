@@ -94,6 +94,7 @@ async function runMigrations() {
   await addColumnIfMissing('Users', 'stravaAccessToken',    'VARCHAR(600) NULL');
   await addColumnIfMissing('Users', 'stravaRefreshToken',   'VARCHAR(600) NULL');
   await addColumnIfMissing('Users', 'stravaExpiresAt',      'INT NULL');
+  await addColumnIfMissing('Users', 'nutritionProfile',     "JSON NULL COMMENT 'Profil nutrition général'");
 
   // Les rôles privilégiés ne sont jamais attribués automatiquement par une migration.
   // Utiliser une procédure administrative explicite et auditée pour promouvoir un compte.
@@ -169,6 +170,30 @@ async function runMigrations() {
   `);
   await createIndexIfMissing('AiUsageLogs', 'AiUsageLogs_user_created', '(\`userId\`, \`createdAt\`)');
   await createIndexIfMissing('AiUsageLogs', 'AiUsageLogs_usage_created', '(\`usageType\`, \`createdAt\`)');
+
+  // ── Courses préparées (assistant « Préparer une course ») ─────────────────
+  await createObservabilityTableIfMissing('Races', `
+    CREATE TABLE \`Races\` (
+      \`id\` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`userId\` INT NOT NULL,
+      \`name\` VARCHAR(120) NOT NULL,
+      \`sport\` VARCHAR(20) NOT NULL,
+      \`raceDate\` DATE NULL,
+      \`locationLabel\` VARCHAR(255) NULL,
+      \`distanceKm\` FLOAT NULL,
+      \`elevationGainM\` FLOAT NULL,
+      \`targetMinutes\` FLOAT NULL,
+      \`objective\` JSON NULL,
+      \`planner\` JSON NULL,
+      \`strategy\` JSON NULL,
+      \`trainingPlan\` JSON NULL,
+      \`createdAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`updatedAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT \`Races_userId_fk\` FOREIGN KEY (\`userId\`) REFERENCES \`Users\`(\`id\`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await createIndexIfMissing('Races', 'Races_user', '(\`userId\`)');
+  await createIndexIfMissing('Races', 'Races_user_updated', '(\`userId\`, \`updatedAt\`)');
 
   // ── Activities : colonnes enrichies (Phase 0 data analyse) ────────────────
   await addColumnIfMissing('Activities', 'elapsedTime',           'INT NULL');

@@ -13,15 +13,15 @@ import {
 
 const sportIcons = { cycling: Bike, running: PersonStanding, swimming: Waves, triathlon: FlaskConical };
 
-export default function NutritionGuide() {
+export default function NutritionGuide({ embedded = false }) {
   const [sport, setSport] = useState('running');
   const [protocolId, setProtocolId] = useState(RACE_PROTOCOLS[0].id);
   const guide = SPORT_FOOD_GUIDES[sport];
   const protocol = RACE_PROTOCOLS.find(item => item.id === protocolId);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
-      <header className="glass-panel p-6 sm:p-8 relative overflow-hidden">
+    <div className={embedded ? 'space-y-8' : 'max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8'}>
+      {!embedded && <header className="glass-panel p-6 sm:p-8 relative overflow-hidden">
         <div className="absolute right-0 top-0 h-full w-40 opacity-20" style={{ background: 'linear-gradient(135deg, transparent, var(--accent-blue))' }} />
         <div className="relative max-w-3xl">
           <p className="font-mono text-xs uppercase tracking-[.2em] mb-3" style={{ color: 'var(--accent-blue)' }}>Guide nutrition sportive</p>
@@ -31,14 +31,13 @@ export default function NutritionGuide() {
             Contenu adapté de la documentation de {AUBINEAU_SOURCE.author}.
           </p>
           <div className="flex flex-wrap gap-3 mt-6">
-            <Link className="btn-primary flex items-center gap-2" to="/nutrition/strategie">Calculer ma stratégie <ChevronRight size={17} /></Link>
-            <Link className="btn-ghost flex items-center gap-2" to="/preparer-course">Préparer une course</Link>
+            <Link className="btn-primary flex items-center gap-2" to="/preparer-course">Préparer une course <ChevronRight size={17} /></Link>
             <Link className="btn-ghost flex items-center gap-2" to="/kcal-calculator"><Calculator size={16} /> Besoins quotidiens</Link>
             <Link className="btn-ghost flex items-center gap-2" to="/nutrition/comparatifs"><Scale size={16} /> Comparer les produits</Link>
             <Link className="btn-ghost flex items-center gap-2" to="/sources"><BookOpen size={16} /> Sources et documentation</Link>
           </div>
         </div>
-      </header>
+      </header>}
 
       <section className="glass-panel p-6">
         <h2 className="text-2xl font-black mb-1">Les bases, quelle que soit la course</h2>

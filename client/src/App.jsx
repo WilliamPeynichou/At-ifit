@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -18,7 +18,6 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const StravaConnect = lazy(() => import('./pages/StravaConnect'));
 const StravaStats = lazy(() => import('./pages/StravaStats'));
 const CyclingDashboard = lazy(() => import('./pages/CyclingDashboard'));
-const NutritionGuide = lazy(() => import('./pages/NutritionGuide'));
 const Nutrition = lazy(() => import('./pages/Nutrition'));
 const RacePreparation = lazy(() => import('./pages/RacePreparation'));
 const Sources = lazy(() => import('./pages/Sources'));
@@ -112,7 +111,7 @@ function AppInner() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <NutritionGuide />
+                  <Nutrition />
                 </Layout>
               </ProtectedRoute>
             }
@@ -129,13 +128,7 @@ function AppInner() {
           />
           <Route
             path="/nutrition/strategie"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <Nutrition />
-                </Layout>
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/preparer-course" replace />}
           />
           <Route
             path="/preparer-course"

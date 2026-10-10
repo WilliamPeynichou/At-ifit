@@ -12,6 +12,7 @@ const Goal = require('./models/Goal');
 const AuditLog = require('./models/AuditLog');
 const StravaApiLog = require('./models/StravaApiLog');
 const AiUsageLog = require('./models/AiUsageLog');
+const Race = require('./models/Race');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const stravaRoutes = require('./routes/strava');
@@ -22,6 +23,7 @@ const goalsRoutes = require('./routes/goals');
 const cyclingRoutes = require('./routes/cycling');
 const nutritionRoutes = require('./routes/nutrition');
 const superAdminRoutes = require('./routes/superAdmin');
+const raceRoutes = require('./routes/races');
 const auth = require('./middleware/auth');
 const { validateRequest, validations } = require('./middleware/validation');
 const { errorHandler, notFoundHandler, asyncHandler, sendSuccess, sendError } = require('./middleware/errorHandler');
@@ -85,6 +87,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Les courses embarquent un tracé GPX sérialisé : parser dédié (2mb) monté avant le parser global 10kb
+app.use('/api/races', generalLimiter, express.json({ limit: '2mb' }), raceRoutes);
+
 // Limite la taille des payloads JSON
 app.use(express.json({ limit: '10kb' }));
 
@@ -118,6 +123,9 @@ StravaApiLog.belongsTo(User, { foreignKey: 'userId' });
 
 User.hasMany(AiUsageLog, { foreignKey: 'userId', onDelete: 'SET NULL' });
 AiUsageLog.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(Race, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Race.belongsTo(User, { foreignKey: 'userId' });
 
 // Database bootstrap. Le service n'écoute qu'une fois MySQL et les migrations prêts.
 const { runMigrations } = require('./scripts/migrate');

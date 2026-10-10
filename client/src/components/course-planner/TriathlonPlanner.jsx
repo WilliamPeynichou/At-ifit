@@ -4,9 +4,8 @@ import CoursePlanner from './CoursePlanner';
 import { formatClock, formatDuration, parseClock } from '../../utils/gpxCourse';
 
 const SWIM_MIN_PER_KM = 22;
-const START_KEY = 'atifit:course-planner:v1:triathlon-start';
 
-function splitTarget({ targetMinutes, swimKm, bikeKm, bikeGainM, runKm, runGainM, transitionMinutes }) {
+export function splitTarget({ targetMinutes, swimKm, bikeKm, bikeGainM, runKm, runGainM, transitionMinutes }) {
   const swim = swimKm * SWIM_MIN_PER_KM;
   const bikeWeight = (bikeKm / 30) * 60 * (1 + bikeGainM / 10000);
   const runWeight = runKm * 5.5 * (1 + runGainM / 2000);
@@ -15,10 +14,10 @@ function splitTarget({ targetMinutes, swimKm, bikeKm, bikeGainM, runKm, runGainM
   return { swim, bike, run: remaining - bike };
 }
 
-export default function TriathlonPlanner({ form, targetMinutes, onLegLoaded, nutrition }) {
-  const [start, setStart] = useState(() => {
-    try { return window.localStorage.getItem(START_KEY) || '08:00'; } catch { return '08:00'; }
-  });
+export default function TriathlonPlanner({ form, targetMinutes, value, onChange, onLegLoaded, nutrition, showAidPlan = true }) {
+  const start = value?.start || '08:00';
+  const bikeValue = value?.bike ?? null;
+  const runValue = value?.run ?? null;
   const [bikePlan, setBikePlan] = useState(null);
   const [runPlan, setRunPlan] = useState(null);
 
@@ -44,10 +43,8 @@ export default function TriathlonPlanner({ form, targetMinutes, onLegLoaded, nut
   const total = finish - startMin;
   const clock = minutes => formatClock(minutes).slice(0, 5);
 
-  const changeStart = value => {
-    setStart(value);
-    try { window.localStorage.setItem(START_KEY, value); } catch { /* stockage indisponible */ }
-  };
+  const patch = next => onChange?.({ start, bike: bikeValue, run: runValue, ...next });
+  const changeStart = next => patch({ start: next });
 
   const onBike = useCallback(p => setBikePlan(p), []);
   const onRun = useCallback(p => setRunPlan(p), []);
@@ -106,25 +103,29 @@ export default function TriathlonPlanner({ form, targetMinutes, onLegLoaded, nut
 
       <CoursePlanner
         sport="cycling"
-        storageId="triathlon-bike"
         legLabel="Vélo"
         raceName={form.raceName}
         targetMinutes={split.bike}
+        value={bikeValue}
+        onChange={next => patch({ bike: next })}
         fixedStartTime={clock(bikeStart)}
         onPlan={onBike}
         onCourseLoaded={onBikeLoaded}
         nutrition={nutrition}
+        showAidPlan={showAidPlan}
       />
       <CoursePlanner
         sport="running"
-        storageId="triathlon-run"
         legLabel="Course à pied"
         raceName={form.raceName}
         targetMinutes={split.run}
+        value={runValue}
+        onChange={next => patch({ run: next })}
         fixedStartTime={clock(runStart)}
         onPlan={onRun}
         onCourseLoaded={onRunLoaded}
         nutrition={nutrition}
+        showAidPlan={showAidPlan}
       />
     </div>
   );

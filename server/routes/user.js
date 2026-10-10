@@ -12,6 +12,8 @@ const { sanitizeUserForSuperAdmin } = require('../utils/sensitiveData');
 const { deleteAccount, exportUserData } = require('../services/userDataService');
 const { revokeStravaToken } = require('../utils/stravaHelpers');
 const { logAuditEvent } = require('../services/auditService');
+const { getTrainingSummary } = require('../services/trainingSummaryService');
+const { normalizeNutritionProfile, serializeNutritionProfile } = require('../utils/nutritionProfile');
 
 /**
  * Calculate BMR using Mifflin-St Jeor equation
@@ -262,6 +264,30 @@ router.post('/calculate-calories',
     sendSuccess(res, result, 'Calories calculated successfully');
   })
 );
+
+// Profil nutrition général (tolérance digestive, sueur, régime) — réutilisé par la stratégie course
+router.get('/nutrition-profile', auth, asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.userId, { attributes: ['id', 'nutritionProfile'] });
+  if (!user) return sendError(res, 'User not found', 404);
+  sendSuccess(res, serializeNutritionProfile(user.nutritionProfile));
+}));
+
+router.put('/nutrition-profile', auth, asyncHandler(async (req, res) => {
+  const { profile, errors } = normalizeNutritionProfile(req.body);
+  if (errors.length) return sendError(res, errors.join('. '), 400);
+
+  const user = await User.findByPk(req.userId, { attributes: ['id', 'nutritionProfile'] });
+  if (!user) return sendError(res, 'User not found', 404);
+
+  await user.update({ nutritionProfile: profile });
+  sendSuccess(res, serializeNutritionProfile(profile));
+}));
+
+// Synthèse de l'historique Strava sur 12 semaines (sans données brutes)
+router.get('/training-summary', auth, asyncHandler(async (req, res) => {
+  const summary = await getTrainingSummary(req.userId);
+  sendSuccess(res, summary);
+}));
 
 // RGPD art. 15/20 : export portable des données du compte
 router.get('/export', auth, asyncHandler(async (req, res) => {

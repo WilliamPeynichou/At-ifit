@@ -136,6 +136,11 @@ const User = sequelize.define('User', {
     allowNull: true,
     comment: 'Compte verrouillé jusqu\'à cette date après trop d\'échecs de connexion'
   },
+  nutritionProfile: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    comment: 'Profil nutrition général de l\'athlète (tolérance digestive, sueur, régime)'
+  },
   lastLoginAt: {
     type: DataTypes.DATE,
     allowNull: true,
