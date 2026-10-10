@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Check, Mountain } from 'lucide-react';
+import { CalendarDays, Check, Flag, Mountain, Route, Target } from 'lucide-react';
 import CoursePlanner from '../course-planner/CoursePlanner';
 import TriathlonPlanner from '../course-planner/TriathlonPlanner';
 import { GpxDropzone } from '../course-planner/GpxDropzone';
@@ -22,157 +22,191 @@ export function StepHeader({ step, title, text }) {
   );
 }
 
-function SportChooser({ sport, onChoose }) {
+/* Carte compacte réutilisable pour l'étape 1 */
+export function MiniCard({ label, title, icon, children, className = '' }) {
   return (
-    <div>
-      <p className={`${LABEL} mb-2`}>Discipline</p>
-      <div className="flex flex-wrap gap-2">
-        {SPORTS.map(item => (
-          <button
-            type="button"
-            key={item.id}
-            onClick={() => onChoose(item)}
-            aria-pressed={sport === item.id}
-            className="px-4 py-2.5 rounded-lg font-bold text-sm"
-            style={{
-              background: sport === item.id ? 'var(--accent-blue)' : 'var(--surface-subtle)',
-              color: sport === item.id ? '#fff' : 'var(--text-primary)',
-              border: '1px solid var(--glass-border)',
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
+    <div className={`glass-panel p-5 flex flex-col gap-4 ${className}`}>
+      <div>
+        <p className="font-mono text-[11px] uppercase tracking-[.2em] flex items-center gap-1.5" style={{ color: 'var(--accent-blue)' }}>
+          {icon && React.createElement(icon, { size: 13, 'aria-hidden': true })}{label}
+        </p>
+        {title && <h3 className="text-lg mt-1">{title}</h3>}
       </div>
+      {children}
     </div>
   );
 }
 
-/* Étape 1 : discipline + GPX en premier, ou saisie manuelle */
-export function StepGpx({ form, chooseSport, onGpxLoaded, onManual, gpxInfo, error }) {
+function Choice({ active, onClick, children, sub }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="px-3 py-2.5 rounded-lg font-bold text-sm text-left transition-colors"
+      style={{
+        background: active ? 'var(--accent-blue)' : 'var(--surface-subtle)',
+        color: active ? '#fff' : 'var(--text-primary)',
+        border: '1px solid var(--glass-border)',
+      }}
+    >
+      {children}
+      {sub && <span className="block text-[11px] font-normal opacity-80">{sub}</span>}
+    </button>
+  );
+}
+
+function averagePace(form) {
+  const minutes = totalTargetMinutes(form);
+  const km = form.sport === 'triathlon' ? totalTriathlonKm(form) : Number(form.distanceKm);
+  if (!(minutes > 0) || !(km > 0)) return null;
+  if (form.sport === 'cycling' || form.sport === 'triathlon') return `${(km / (minutes / 60)).toFixed(1).replace('.', ',')} km/h de moyenne`;
+  if (form.sport === 'swimming') {
+    const per100 = minutes / (km * 10);
+    return `${Math.floor(per100)}'${String(Math.round((per100 % 1) * 60)).padStart(2, '0')}" / 100 m`;
+  }
+  const pace = minutes / km;
+  return `${Math.floor(pace)}'${String(Math.round((pace % 1) * 60)).padStart(2, '0')}" / km de moyenne`;
+}
+
+/* Étape 1 : discipline, GPX, infos et objectif sur un seul écran */
+export function StepRace({ form, update, chooseSport, chooseFormat, onGpxLoaded, gpxInfo }) {
   const isTriathlon = form.sport === 'triathlon';
   const noTrack = form.sport === 'swimming';
+  const pace = averagePace(form);
   return (
-    <section className="glass-panel p-5 sm:p-6 space-y-5">
+    <section className="space-y-4">
       <StepHeader
         step={1}
-        title="Ton tracé GPX"
-        text="Commence par le GPX de la course : distance, dénivelé et temps estimé sont pré-remplis. Pas de GPX ou natation ? Passe en saisie manuelle."
+        title="Ta course"
+        text="Discipline, tracé et objectif sur un seul écran. Le GPX est facultatif : il pré-remplit distance, dénivelé et temps estimé."
       />
-      <SportChooser sport={form.sport} onChoose={chooseSport} />
-      {isTriathlon && (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Un triathlon a un tracé par discipline : vélo et course se chargent à l’étape 3.
-        </p>
-      )}
-      {!isTriathlon && !noTrack && (
-        <>
-          <GpxDropzone sport={form.sport === 'cycling' ? 'cycling' : 'running'} onLoaded={onGpxLoaded} />
-          {gpxInfo && (
-            <div className="rounded-xl p-4 flex flex-wrap gap-x-6 gap-y-2 items-center" style={cardStyle}>
-              <Check size={18} style={{ color: '#788c5d' }} />
-              <strong>{gpxInfo.name || 'Tracé importé'}</strong>
-              <span className="text-sm">{gpxInfo.distanceKm} km</span>
-              <span className="text-sm flex items-center gap-1"><Mountain size={14} />+{gpxInfo.elevationGainM} m</span>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <MiniCard label="Discipline" icon={Flag}>
+          <div className="grid grid-cols-2 gap-2">
+            {SPORTS.map(item => (
+              <Choice key={item.id} active={form.sport === item.id} onClick={() => chooseSport(item)}>{item.label}</Choice>
+            ))}
+          </div>
+          {isTriathlon && (
+            <div>
+              <p className={`${LABEL} mb-2`}>Format</p>
+              <div className="grid grid-cols-2 gap-2">
+                {TRIATHLON_FORMATS.map(preset => (
+                  <Choice key={preset.id} active={form.triathlonFormat === preset.id} onClick={() => chooseFormat(preset)} sub={`${preset.swim} / ${preset.bike} / ${preset.run} km`}>
+                    {preset.label}
+                  </Choice>
+                ))}
+              </div>
             </div>
           )}
-        </>
-      )}
-      {error && <p className="text-sm flex gap-2" style={{ color: '#d97757' }}><AlertTriangle size={18} />{error}</p>}
-      <button type="button" onClick={onManual} className="btn-ghost">
-        {noTrack ? 'Natation : continuer en saisie manuelle' : 'Pas de GPX : continuer en saisie manuelle'}
-      </button>
-    </section>
-  );
-}
+        </MiniCard>
 
-/* Étape 2 : objectif */
-export function StepObjective({ form, update, chooseFormat }) {
-  const isTriathlon = form.sport === 'triathlon';
-  return (
-    <section className="glass-panel p-5 sm:p-6 space-y-6">
-      <StepHeader step={2} title="Ton objectif" text="Nom, date, lieu et temps visé. Les champs pré-remplis depuis le GPX restent modifiables." />
-
-      {isTriathlon && (
-        <div className="rounded-xl p-4 space-y-4" style={cardStyle}>
-          <div>
-            <p className={`${LABEL} mb-2`}>Format</p>
-            <div className="flex flex-wrap gap-2">
-              {TRIATHLON_FORMATS.map(preset => (
-                <button
-                  type="button"
-                  key={preset.id}
-                  onClick={() => chooseFormat(preset)}
-                  aria-pressed={form.triathlonFormat === preset.id}
-                  className="px-3 py-2 rounded-lg text-sm font-bold"
-                  style={{
-                    background: form.triathlonFormat === preset.id ? 'var(--accent-blue)' : 'var(--bg-secondary)',
-                    color: form.triathlonFormat === preset.id ? '#fff' : 'var(--text-primary)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
-                  {preset.label}
-                </button>
-              ))}
+        <MiniCard label="Tracé GPX" icon={Route}>
+          {isTriathlon && (
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Un tracé par discipline : importe le vélo et la course à l’étape suivante.
+            </p>
+          )}
+          {noTrack && (
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Pas de tracé en natation : renseigne simplement la distance et ton objectif.
+            </p>
+          )}
+          {!isTriathlon && !noTrack && (gpxInfo ? (
+            <div className="space-y-3">
+              <div className="rounded-xl p-4 space-y-1" style={cardStyle}>
+                <p className="flex items-center gap-2 font-bold"><Check size={16} style={{ color: '#788c5d' }} />{gpxInfo.name || 'Tracé importé'}</p>
+                <p className="text-sm flex flex-wrap gap-x-4" style={{ color: 'var(--text-secondary)' }}>
+                  <span>{gpxInfo.distanceKm} km</span>
+                  <span className="inline-flex items-center gap-1"><Mountain size={13} />+{gpxInfo.elevationGainM} m</span>
+                </p>
+              </div>
+              <GpxDropzone compact sport={form.sport === 'cycling' ? 'cycling' : 'running'} onLoaded={onGpxLoaded} />
             </div>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Field>Natation (km)<input required className="input-cyber mt-2" type="number" min="0.1" max="50" step="0.1" name="swimmingDistanceKm" value={form.swimmingDistanceKm} onChange={update} /></Field>
-            <Field>Vélo (km)<input required className="input-cyber mt-2" type="number" min="1" max="1000" step="0.1" name="cyclingDistanceKm" value={form.cyclingDistanceKm} onChange={update} /></Field>
-            <Field>D+ vélo (m)<input className="input-cyber mt-2" type="number" min="0" max="20000" step="10" name="cyclingElevationGainM" value={form.cyclingElevationGainM} onChange={update} /></Field>
-            <Field>Course (km)<input required className="input-cyber mt-2" type="number" min="1" max="250" step="0.1" name="runningDistanceKm" value={form.runningDistanceKm} onChange={update} /></Field>
-            <Field>D+ course (m)<input className="input-cyber mt-2" type="number" min="0" max="10000" step="10" name="runningElevationGainM" value={form.runningElevationGainM} onChange={update} /></Field>
-            <Field>Transitions T1 + T2 (min)<input required className="input-cyber mt-2" type="number" min="0" max="180" name="transitionMinutes" value={form.transitionMinutes} onChange={update} /></Field>
-          </div>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total : {totalTriathlonKm(form).toFixed(1)} km enchaînés, transitions comprises.</p>
-        </div>
-      )}
+          ) : (
+            <>
+              <GpxDropzone sport={form.sport === 'cycling' ? 'cycling' : 'running'} onLoaded={onGpxLoaded} />
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Pas de GPX ? Remplis la distance ci-dessous, tu pourras l’ajouter plus tard.</p>
+            </>
+          ))}
+        </MiniCard>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Field>Nom de la course<input required className="input-cyber mt-2" name="raceName" value={form.raceName} onChange={update} placeholder={isTriathlon ? 'Ironman Nice' : 'Marathon de Paris'} /></Field>
-        <Field>Date<input className="input-cyber mt-2" type="date" name="date" value={form.date} onChange={update} /></Field>
-        <Field>Lieu<input className="input-cyber mt-2" name="locationLabel" value={form.locationLabel} onChange={update} placeholder="Annecy, France" /></Field>
-        <Field>Séances / semaine<input className="input-cyber mt-2" type="number" min="2" max="7" name="sessionsPerWeek" value={form.sessionsPerWeek} onChange={update} /></Field>
+        <MiniCard label="Infos course" icon={CalendarDays}>
+          <Field>Nom<input required className="input-cyber mt-2" name="raceName" value={form.raceName} onChange={update} placeholder={isTriathlon ? 'Ironman Nice' : 'Marathon de Paris'} /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field>Date<input className="input-cyber mt-2" type="date" name="date" value={form.date} onChange={update} /></Field>
+            <Field>Lieu<input className="input-cyber mt-2" name="locationLabel" value={form.locationLabel} onChange={update} placeholder="Annecy" /></Field>
+          </div>
+        </MiniCard>
       </div>
-      {!isTriathlon && (
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field>Distance (km)<input required className="input-cyber mt-2" type="number" min="0.1" step="0.001" name="distanceKm" value={form.distanceKm} onChange={update} /></Field>
-          <Field>D+ (m)<input className="input-cyber mt-2" type="number" min="0" name="elevationGainM" value={form.elevationGainM} onChange={update} /></Field>
-        </div>
-      )}
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field>Objectif heures<input required className="input-cyber mt-2" type="number" min="0" max="99" name="targetHours" value={form.targetHours} onChange={update} /></Field>
-        <Field>Minutes<input required className="input-cyber mt-2" type="number" min="0" max="59" name="targetMinutes" value={form.targetMinutes} onChange={update} /></Field>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <MiniCard label={isTriathlon ? 'Distances par discipline' : 'Distance & dénivelé'} icon={Mountain} className="lg:col-span-2">
+          {isTriathlon ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <Field>Natation (km)<input required className="input-cyber mt-2" type="number" min="0.1" max="50" step="0.1" name="swimmingDistanceKm" value={form.swimmingDistanceKm} onChange={update} /></Field>
+                <Field>Vélo (km)<input required className="input-cyber mt-2" type="number" min="1" max="1000" step="0.1" name="cyclingDistanceKm" value={form.cyclingDistanceKm} onChange={update} /></Field>
+                <Field>Course (km)<input required className="input-cyber mt-2" type="number" min="1" max="250" step="0.1" name="runningDistanceKm" value={form.runningDistanceKm} onChange={update} /></Field>
+                <Field>D+ vélo (m)<input className="input-cyber mt-2" type="number" min="0" max="20000" step="10" name="cyclingElevationGainM" value={form.cyclingElevationGainM} onChange={update} /></Field>
+                <Field>D+ course (m)<input className="input-cyber mt-2" type="number" min="0" max="10000" step="10" name="runningElevationGainM" value={form.runningElevationGainM} onChange={update} /></Field>
+                <Field>T1 + T2 (min)<input required className="input-cyber mt-2" type="number" min="0" max="180" name="transitionMinutes" value={form.transitionMinutes} onChange={update} /></Field>
+              </div>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total : {totalTriathlonKm(form).toFixed(1)} km enchaînés.</p>
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <Field>Distance (km)<input required className="input-cyber mt-2" type="number" min="0.1" step="0.001" name="distanceKm" value={form.distanceKm} onChange={update} /></Field>
+              <Field>D+ (m)<input className="input-cyber mt-2" type="number" min="0" name="elevationGainM" value={form.elevationGainM} onChange={update} disabled={noTrack} /></Field>
+            </div>
+          )}
+        </MiniCard>
+
+        <MiniCard label="Objectif" icon={Target}>
+          <div className="grid grid-cols-3 gap-3">
+            <Field>Heures<input required className="input-cyber mt-2" type="number" min="0" max="99" name="targetHours" value={form.targetHours} onChange={update} /></Field>
+            <Field>Min<input required className="input-cyber mt-2" type="number" min="0" max="59" name="targetMinutes" value={form.targetMinutes} onChange={update} /></Field>
+            <Field>Séances/sem<input className="input-cyber mt-2" type="number" min="2" max="7" name="sessionsPerWeek" value={form.sessionsPerWeek} onChange={update} /></Field>
+          </div>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Temps visé <strong className="text-lg" style={{ color: 'var(--text-primary)' }}>{formatMinutes(totalTargetMinutes(form))}</strong>
+            {pace && <span className="block text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{pace}</span>}
+          </p>
+        </MiniCard>
       </div>
-      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Temps visé : <strong>{formatMinutes(totalTargetMinutes(form))}</strong></p>
     </section>
   );
 }
 
-/* Étape 3 : parcours & ravitos (planificateur GPX contrôlé) */
+/* Étape 2 : parcours & ravitos (planificateur GPX contrôlé) */
 export function StepCourse({ form, planner, setPlanner, onCourseLoaded, onLegLoaded, targetMinutes }) {
   if (form.sport === 'triathlon') {
     return (
-      <TriathlonPlanner
+      <section className="space-y-4">
+        <StepHeader step={2} title="Parcours & ravitos" text="Importe le tracé vélo et le tracé course : temps de passage, ravitos et sections s’enchaînent avec la natation et les transitions." />
+        <TriathlonPlanner
         form={form}
         targetMinutes={targetMinutes}
         value={planner}
         onChange={setPlanner}
         onLegLoaded={onLegLoaded}
         showAidPlan={false}
-      />
+        />
+      </section>
     );
   }
   if (form.sport === 'swimming') {
     return (
       <section className="glass-panel p-5 sm:p-6">
-        <StepHeader step={3} title="Parcours & ravitos" text="La natation se fait en bassin ou en eau libre : pas de tracé à planifier, les ravitos ne s’appliquent pas." />
+        <StepHeader step={2} title="Parcours & ravitos" text="La natation se fait en bassin ou en eau libre : pas de tracé à planifier, les ravitos ne s’appliquent pas." />
       </section>
     );
   }
   return (
     <section className="space-y-4">
-      <StepHeader step={3} title="Parcours & ravitos" text="Ajuste les ravitaillements, les sections à allure imposée et le départ. La nutrition du jour J sera calculée à l’étape suivante." />
+      <StepHeader step={2} title="Parcours & ravitos" text="Clique sur le profil pour poser un ravito, glisse pour créer une section à allure imposée. La nutrition et le plan sont calculés à l’étape suivante." />
       <CoursePlanner
         sport={form.sport === 'cycling' ? 'cycling' : 'running'}
         raceName={form.raceName}

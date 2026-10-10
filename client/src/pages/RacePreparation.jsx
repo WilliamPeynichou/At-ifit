@@ -9,76 +9,78 @@ import { saveRaceContext } from '../utils/raceContext';
 import { buildTrainingPlan } from '../utils/trainingPlan';
 import { buildAiPrompt } from '../utils/aiPrompt';
 import {
-  DEFAULT_FORM, STEPS, buildLegPlan, buildRaceInput, buildTriathlonPlans, describeGpx, formFromRace,
+  DEFAULT_FORM, STEPS, buildEffortInput, buildLegPlan, buildRaceInput, buildTriathlonPlans, describeGpx, formFromRace,
   formatMinutes, summarizeRacePlan, totalTargetMinutes, totalTriathlonKm,
 } from '../components/race-wizard/raceModel';
-import { StepCourse, StepGpx, StepObjective } from '../components/race-wizard/steps';
-import StepNutrition from '../components/race-wizard/StepNutrition';
-import StepTraining from '../components/race-wizard/StepTraining';
-import StepSave from '../components/race-wizard/StepSave';
+import { StepCourse, StepRace } from '../components/race-wizard/steps';
+import StepStrategy from '../components/race-wizard/StepStrategy';
+import { previewEffortStrategy } from '../services/nutritionApi';
 
 const SPORT_LABELS = { running: 'Course à pied', cycling: 'Cyclisme', swimming: 'Natation', triathlon: 'Triathlon' };
 
-const clampStep = value => Math.min(6, Math.max(1, Number(value) || 1));
+const clampStep = value => Math.min(STEPS.length, Math.max(1, Number(value) || 1));
 
 const targetFromMinutes = minutes => (minutes > 0
   ? { targetHours: Math.floor(minutes / 60), targetMinutes: Math.round(minutes % 60) }
   : {});
 
 function MyRaces({ races, loading, activeId, onOpen, onDelete, onNew }) {
+  if (loading) return null;
+  if (races.length === 0) {
+    return (
+      <p className="text-sm flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+        <Flag size={14} />Tes courses sauvegardées apparaîtront ici pour revoir plan et stratégie.
+      </p>
+    );
+  }
   return (
-    <section className="glass-panel p-5 sm:p-6 space-y-4" aria-label="Mes courses">
+    <section aria-label="Mes courses" className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="font-mono text-xs uppercase tracking-[.2em]" style={{ color: 'var(--accent-blue)' }}>Mes courses</p>
-          <h2 className="text-xl mt-1">Stratégies enregistrées</h2>
-        </div>
-        <button type="button" className="btn-ghost inline-flex items-center gap-2" onClick={onNew}>
-          <Plus size={16} />Nouvelle course
-        </button>
+        <p className="font-mono text-xs uppercase tracking-[.2em]" style={{ color: 'var(--accent-blue)' }}>Mes courses · {races.length}</p>
+        {activeId && (
+          <button type="button" className="text-sm inline-flex items-center gap-1 underline" style={{ color: 'var(--text-secondary)' }} onClick={onNew}>
+            <Plus size={14} />Nouvelle course
+          </button>
+        )}
       </div>
-      {loading && <p className="text-sm flex items-center gap-2" style={{ color: 'var(--text-muted)' }}><Loader2 size={16} className="animate-spin" />Chargement…</p>}
-      {!loading && races.length === 0 && (
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Aucune course enregistrée. Prépare ta première ci-dessous puis sauvegarde-la à l’étape 6.</p>
-      )}
-      {races.length > 0 && (
-        <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {races.map(race => {
-            const active = String(race.id) === String(activeId);
-            return (
-              <li
-                key={race.id}
-                className="rounded-xl p-4 flex flex-col gap-2"
-                style={{ background: 'var(--surface-subtle)', border: `1px solid ${active ? 'var(--accent-blue)' : 'var(--glass-border)'}` }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <strong className="flex items-center gap-2"><Flag size={14} />{race.name}</strong>
-                  {active && <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--accent-blue)' }}>Ouverte</span>}
-                </div>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {SPORT_LABELS[race.sport] || race.sport}
-                  {race.raceDate ? ` · ${new Date(`${race.raceDate}T12:00:00`).toLocaleDateString('fr-FR')}` : ''}
-                  {race.distanceKm ? ` · ${Number(race.distanceKm).toFixed(1)} km` : ''}
-                  {race.targetMinutes ? ` · ${formatMinutes(Number(race.targetMinutes))}` : ''}
-                </p>
-                <div className="flex gap-2 mt-auto pt-1">
-                  <button type="button" className="btn-ghost text-sm inline-flex items-center gap-1" onClick={() => onOpen(race.id)} aria-label={`Reprendre ${race.name}`}>
+      <ul className="flex gap-3 overflow-x-auto pb-2 snap-x">
+        {races.map(race => {
+          const active = String(race.id) === String(activeId);
+          return (
+            <li
+              key={race.id}
+              className="glass-panel snap-start shrink-0 w-64 p-4 flex flex-col gap-2"
+              style={{ borderColor: active ? 'var(--accent-blue)' : undefined, boxShadow: active ? '0 0 0 1px var(--accent-blue)' : undefined }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <strong className="truncate">{race.name}</strong>
+                {active && <span className="text-[10px] uppercase font-bold shrink-0" style={{ color: 'var(--accent-blue)' }}>Ouverte</span>}
+              </div>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                {SPORT_LABELS[race.sport] || race.sport}
+                {race.raceDate ? ` · ${new Date(`${race.raceDate}T12:00:00`).toLocaleDateString('fr-FR')}` : ''}
+                {race.distanceKm ? ` · ${Number(race.distanceKm).toFixed(1)} km` : ''}
+                {race.targetMinutes ? ` · ${formatMinutes(Number(race.targetMinutes))}` : ''}
+              </p>
+              <div className="flex gap-3 mt-auto text-sm">
+                {!active && (
+                  <button type="button" className="inline-flex items-center gap-1 font-semibold" style={{ color: 'var(--accent-blue)' }} onClick={() => onOpen(race.id)} aria-label={`Reprendre ${race.name}`}>
                     <RotateCcw size={14} />Reprendre
                   </button>
-                  <button type="button" className="btn-ghost text-sm inline-flex items-center gap-1" onClick={() => onDelete(race)} aria-label={`Supprimer ${race.name}`}>
-                    <Trash2 size={14} />Supprimer
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                )}
+                <button type="button" className="inline-flex items-center gap-1 ml-auto" style={{ color: 'var(--text-muted)' }} onClick={() => onDelete(race)} aria-label={`Supprimer ${race.name}`}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
 
-function Stepper({ step, onGo }) {
+function Stepper({ step, onGo, recap }) {
   const progress = ((step - 1) / (STEPS.length - 1)) * 100;
   const current = STEPS[step - 1];
   return (
@@ -88,8 +90,12 @@ function Stepper({ step, onGo }) {
           <span className="font-mono text-xs uppercase tracking-[.2em]" style={{ color: 'var(--text-muted)' }}>Étape {step} / {STEPS.length}</span>
           <strong className="ml-2">{current.label}</strong>
         </p>
-        {step < STEPS.length && (
-          <p className="text-xs hidden sm:block" style={{ color: 'var(--text-muted)' }}>Ensuite : {STEPS[step].label}</p>
+        {recap.length > 0 && (
+          <p className="text-xs hidden sm:flex flex-wrap justify-end gap-1.5" aria-label="Résumé de la course">
+            {recap.map(item => (
+              <span key={item} className="px-2 py-0.5 rounded-md" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>{item}</span>
+            ))}
+          </p>
         )}
       </div>
       <div className="relative">
@@ -142,7 +148,9 @@ export default function RacePreparation() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [planner, setPlanner] = useState(null);
   const [strategy, setStrategy] = useState(null);
-  const [gpxError, setGpxError] = useState('');
+  const [strategyFor, setStrategyFor] = useState(null);
+  const [strategyBusy, setStrategyBusy] = useState(false);
+  const [strategyError, setStrategyError] = useState('');
 
   const [races, setRaces] = useState([]);
   const [racesLoading, setRacesLoading] = useState(true);
@@ -153,7 +161,6 @@ export default function RacePreparation() {
   const [profile, setProfile] = useState(null);
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
-  const [summaryError, setSummaryError] = useState('');
 
   const setParams = useCallback(patch => {
     setSearchParams(current => {
@@ -187,7 +194,7 @@ export default function RacePreparation() {
     getNutritionProfile().then(setProfile).catch(() => setProfile(null));
     getTrainingSummary()
       .then(setSummary)
-      .catch(() => setSummaryError('Historique Strava indisponible : plan basé sur des valeurs prudentes.'))
+      .catch(() => setSummary(null))
       .finally(() => setSummaryLoading(false));
   }, [refreshRaces]);
 
@@ -201,6 +208,7 @@ export default function RacePreparation() {
         setForm(formFromRace(race));
         setPlanner(race.planner || null);
         setStrategy(race.strategy || null);
+        setStrategyFor(race.strategy ? JSON.stringify(buildEffortInput(formFromRace(race))) : null);
         setLoadedId(race.id);
         setSaveError('');
       })
@@ -224,7 +232,6 @@ export default function RacePreparation() {
     }));
     setPlanner(null);
     setStrategy(null);
-    setGpxError('');
   };
 
   const chooseFormat = preset => setForm(current => ({
@@ -247,7 +254,6 @@ export default function RacePreparation() {
   })), []);
 
   const onGpxLoaded = ({ gpx, info, suggested }) => {
-    setGpxError('');
     setPlanner({
       gpx,
       stations: suggested?.stations || [],
@@ -256,7 +262,6 @@ export default function RacePreparation() {
       fatiguePercent: 4,
     });
     applyCourseInfo(info);
-    goTo(2);
   };
 
   const handleTriathlonLeg = useCallback((leg, info) => setForm(current => ({
@@ -271,6 +276,7 @@ export default function RacePreparation() {
     setForm(DEFAULT_FORM);
     setPlanner(null);
     setStrategy(null);
+    setStrategyFor(null);
     setLoadedId(null);
     setSaveError('');
     setParams({ course: null, etape: 1 });
@@ -321,8 +327,30 @@ export default function RacePreparation() {
     [form, planner, strategy, trainingPlan],
   );
 
+  // Stratégie nutrition calculée automatiquement à l'étape 3, recalculée si la course change.
+  const effortInput = useMemo(() => buildEffortInput(form), [form]);
+  const effortKey = JSON.stringify(effortInput);
+  const computeStrategy = useCallback(async () => {
+    setStrategyBusy(true);
+    setStrategyError('');
+    try {
+      setStrategy(await previewEffortStrategy(effortInput, profile || {}));
+      setStrategyFor(effortKey);
+    } catch (err) {
+      setStrategyError(err.response?.data?.error || 'Impossible de calculer la stratégie nutrition.');
+      setStrategyFor(effortKey);
+    } finally {
+      setStrategyBusy(false);
+    }
+  }, [effortInput, effortKey, profile]);
+
+  useEffect(() => {
+    if (step !== 3 || strategyBusy || strategyFor === effortKey) return;
+    computeStrategy();
+  }, [step, strategyBusy, strategyFor, effortKey, computeStrategy]);
+
   const prompt = useMemo(() => {
-    if (step !== 6) return '';
+    if (step !== 3) return '';
     const passage = summarizeRacePlan(form, planner);
     return buildAiPrompt({
       race: raceInput,
@@ -338,6 +366,17 @@ export default function RacePreparation() {
   }, [step, form, planner, raceInput, strategy, trainingPlan, summary, profile, user]);
 
   const canSave = Boolean(form.raceName.trim()) && targetMinutes > 0;
+  const recap = [
+    form.raceName.trim(),
+    `${(isTriathlon ? totalTriathlonKm(form) : Number(form.distanceKm) || 0).toFixed(1).replace('.', ',')} km`,
+    !isTriathlon && Number(form.elevationGainM) > 0 ? `+${form.elevationGainM} m` : null,
+    targetMinutes > 0 ? formatMinutes(targetMinutes) : null,
+    form.date ? new Date(`${form.date}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : null,
+  ].filter(Boolean);
+  // Pas de parcours à planifier en natation : on saute l'étape 2.
+  const skipCourse = form.sport === 'swimming';
+  const nextStep = step === 1 && skipCourse ? 3 : step + 1;
+  const prevStep = step === 3 && skipCourse ? 1 : step - 1;
 
   const save = async () => {
     setSaving(true);
@@ -364,23 +403,22 @@ export default function RacePreparation() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-24 lg:pb-10 space-y-7">
       <header>
-        <p className="font-mono text-xs uppercase tracking-[.2em]" style={{ color: 'var(--accent-blue)' }}>GPX → objectif → parcours → nutrition → plan → suivi IA</p>
+        <p className="font-mono text-xs uppercase tracking-[.2em]" style={{ color: 'var(--accent-blue)' }}>Course → parcours → stratégie</p>
         <h1 className="text-4xl sm:text-5xl font-black mt-2">Préparer une course</h1>
         <p className="mt-2 max-w-3xl" style={{ color: 'var(--text-secondary)' }}>
-          Importe ton tracé, place tes ravitos et tes allures, calcule ta nutrition puis ton plan semaine par semaine.
-          Sauvegarde ta stratégie pour la retrouver et la confier à Claude ou ChatGPT. Plan indicatif : adapte-le avec un coach en cas de blessure.
+          Trois étapes : ta course, ton parcours, ta stratégie. Nutrition et plan d’entraînement se calculent tout seuls,
+          tu sauvegardes et tu confies le suivi à Claude ou ChatGPT. Plan indicatif : adapte-le avec un coach en cas de blessure.
         </p>
       </header>
 
       <MyRaces races={races} loading={racesLoading} activeId={loadedId} onOpen={id => setParams({ course: id, etape: 3 })} onDelete={removeRace} onNew={startNew} />
 
-      <Stepper step={step} onGo={goTo} />
+      <Stepper step={step} onGo={goTo} recap={recap} />
 
       {step === 1 && (
-        <StepGpx form={form} chooseSport={chooseSport} onGpxLoaded={onGpxLoaded} onManual={() => goTo(2)} gpxInfo={gpxInfo} error={gpxError} />
+        <StepRace form={form} update={update} chooseSport={chooseSport} chooseFormat={chooseFormat} onGpxLoaded={onGpxLoaded} gpxInfo={gpxInfo} />
       )}
-      {step === 2 && <StepObjective form={form} update={update} chooseFormat={chooseFormat} />}
-      {step === 3 && (
+      {step === 2 && (
         <StepCourse
           form={form}
           planner={planner}
@@ -390,17 +428,36 @@ export default function RacePreparation() {
           targetMinutes={targetMinutes}
         />
       )}
-      {step === 4 && <StepNutrition form={form} legs={legs} strategy={strategy} onStrategy={setStrategy} profile={profile} />}
-      {step === 5 && <StepTraining plan={trainingPlan} summary={summary} summaryLoading={summaryLoading} summaryError={summaryError} />}
-      {step === 6 && <StepSave canSave={canSave} onSave={save} saving={saving} saveError={saveError} savedRace={loadedId} prompt={prompt} />}
+      {step === 3 && (
+        <StepStrategy
+          form={form}
+          legs={legs}
+          strategy={strategy}
+          strategyBusy={strategyBusy}
+          strategyError={strategyError}
+          onComputeStrategy={computeStrategy}
+          profile={profile}
+          trainingPlan={trainingPlan}
+          summary={summary}
+          summaryLoading={summaryLoading}
+          canSave={canSave}
+          onSave={save}
+          saving={saving}
+          saveError={saveError}
+          savedRace={loadedId}
+          prompt={prompt}
+        />
+      )}
 
       <div className="flex justify-between gap-3">
-        <button type="button" className="btn-ghost inline-flex items-center gap-2" onClick={() => goTo(step - 1)} disabled={step === 1}>
-          <ChevronLeft size={16} />Précédent
-        </button>
-        {step < 6 && (
-          <button type="button" className="btn-primary inline-flex items-center gap-2" onClick={() => goTo(step + 1)}>
-            {STEPS[step].label}<ChevronRight size={16} />
+        {step > 1 ? (
+          <button type="button" className="btn-ghost inline-flex items-center gap-2" onClick={() => goTo(prevStep)}>
+            <ChevronLeft size={16} />Précédent
+          </button>
+        ) : <span />}
+        {step < STEPS.length && (
+          <button type="button" className="btn-primary inline-flex items-center gap-2" onClick={() => goTo(nextStep)}>
+            {STEPS[nextStep - 1].label}<ChevronRight size={16} />
           </button>
         )}
       </div>

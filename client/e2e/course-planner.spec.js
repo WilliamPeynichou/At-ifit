@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+
+const EFFORT_PREVIEW = readFileSync(new URL('./fixtures/effort-preview.json', import.meta.url), 'utf8');
 
 function buildGpx() {
   const pts = [];
@@ -32,6 +35,7 @@ async function setup(page, errors, saved = []) {
     }
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: saved[0] || null }) });
   });
+  await page.route('**/api/nutrition/effort/preview', route => route.fulfill({ contentType: 'application/json', body: EFFORT_PREVIEW }));
   await page.route('**/*tile*/**', route => route.continue());
 }
 
@@ -58,7 +62,7 @@ async function dragOnProfile(page) {
 const gpxFile = () => ({ name: 'trail.gpx', mimeType: 'application/gpx+xml', buffer: Buffer.from(buildGpx()) });
 const stepButton = (page, label) => page.locator('button.btn-primary').filter({ hasText: label });
 
-test('assistant course à pied : GPX d’abord, ravitos, sauvegarde et prompt IA', async ({ page, context }) => {
+test('assistant course à pied : course en 1 écran, ravitos, stratégie auto, sauvegarde et prompt IA', async ({ page, context }) => {
   const errors = [];
   const saved = [];
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
@@ -66,10 +70,13 @@ test('assistant course à pied : GPX d’abord, ravitos, sauvegarde et prompt IA
   await page.goto('/preparer-course');
   await page.getByRole('button', { name: 'Tout refuser' }).click().catch(() => {});
 
+  // Étape 1 : discipline, GPX, infos et objectif sur le même écran
   await page.locator('input[type=file]').first().setInputFiles(gpxFile());
-  await expect(page).toHaveURL(/etape=2/);
   await expect(page.locator('input[name=distanceKm]')).not.toHaveValue('42.195');
+  await expect(page.getByText('Changer de GPX')).toBeVisible();
   await page.locator('input[name=raceName]').fill('Trail E2E');
+  await expect(page.getByLabel('Résumé de la course')).toContainText('Trail E2E');
+  await page.screenshot({ path: 'test-results/wizard-step1.png', fullPage: true });
 
   await stepButton(page, /Parcours/).click();
   await dragOnProfile(page);
@@ -99,18 +106,23 @@ test('assistant course à pied : GPX d’abord, ravitos, sauvegarde et prompt IA
   await expect(page.getByRole('dialog', { name: 'Parcours en plein écran' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Voir tout le parcours' }).click();
 
-  await stepButton(page, /Nutrition/).click();
+  // Étape 3 : stratégie calculée automatiquement, cartes résumé + onglets
+  await stepButton(page, /Stratégie/).click();
+  await expect(page).toHaveURL(/etape=3/);
+  await expect(page.getByText('Glucides', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Quoi prendre à chaque ravito').first()).toBeVisible();
+  await page.screenshot({ path: 'test-results/wizard-step3.png', fullPage: true });
 
-  await stepButton(page, /entraînement/).click();
-  await expect(page.getByRole('heading', { name: 'Plan d’entraînement' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Plan semaine par semaine' }).click();
+  await expect(page.getByText(/^S1 · /).first()).toBeVisible();
 
-  await stepButton(page, /Sauvegarde/).click();
   await page.getByRole('button', { name: 'Sauvegarder la course' }).click();
   await expect(page).toHaveURL(/course=7/);
-  await expect(page.getByRole('button', { name: 'Reprendre Trail E2E' })).toBeVisible();
+  await expect(page.getByText('Mes courses · 1')).toBeVisible();
   expect(saved[0].planner.stations.length).toBeGreaterThan(0);
+  expect(saved[0].strategy.during.carbohydratesGPerHour.target).toBe(40);
 
+  await page.getByRole('tab', { name: 'Prompt IA' }).click();
   const prompt = page.getByLabel('Prompt IA');
   await expect(prompt).toHaveValue(/Trail E2E/);
   await expect(prompt).toHaveValue(/semaine par semaine/);
@@ -120,19 +132,31 @@ test('assistant course à pied : GPX d’abord, ravitos, sauvegarde et prompt IA
   expect(errors.filter(e => !/Failed to load resource|net::ERR/.test(e))).toEqual([]);
 });
 
-test('assistant triathlon : tracés vélo et course à l’étape 3', async ({ page }) => {
+test('assistant triathlon : tracés vélo et course à l’étape 2', async ({ page }) => {
   const errors = [];
   await setup(page, errors);
   await page.goto('/preparer-course');
   await page.getByRole('button', { name: 'Tout refuser' }).click().catch(() => {});
   await page.getByRole('button', { name: 'Triathlon', exact: true }).click();
-  await page.getByRole('button', { name: /saisie manuelle/ }).click();
-  await expect(page).toHaveURL(/etape=2/);
+  await expect(page.getByRole('button', { name: /Ironman/ })).toBeVisible();
   await stepButton(page, /Parcours/).click();
+  await expect(page).toHaveURL(/etape=2/);
   await page.locator('input[type=file]').first().setInputFiles(gpxFile());
   await dragOnProfile(page);
   await page.screenshot({ path: 'test-results/wizard-tri.png', fullPage: true });
-  await stepButton(page, /Nutrition/).click();
+  await stepButton(page, /Stratégie/).click();
   await expect(page.getByText('Quoi prendre à chaque ravito').first()).toBeVisible();
+  expect(errors.filter(e => !/Failed to load resource|net::ERR/.test(e))).toEqual([]);
+});
+
+test('natation : pas d’étape parcours', async ({ page }) => {
+  const errors = [];
+  await setup(page, errors);
+  await page.goto('/preparer-course');
+  await page.getByRole('button', { name: 'Tout refuser' }).click().catch(() => {});
+  await page.getByRole('button', { name: 'Natation', exact: true }).click();
+  await stepButton(page, /Stratégie/).click();
+  await expect(page).toHaveURL(/etape=3/);
+  await expect(page.getByText('Glucides', { exact: true }).first()).toBeVisible();
   expect(errors.filter(e => !/Failed to load resource|net::ERR/.test(e))).toEqual([]);
 });

@@ -16,12 +16,9 @@ export const TRIATHLON_FORMATS = [
 ];
 
 export const STEPS = [
-  { id: 1, label: 'Import GPX' },
-  { id: 2, label: 'Objectif' },
-  { id: 3, label: 'Parcours & ravitos' },
-  { id: 4, label: 'Nutrition course' },
-  { id: 5, label: 'Plan d’entraînement' },
-  { id: 6, label: 'Sauvegarde & IA' },
+  { id: 1, label: 'Course & objectif' },
+  { id: 2, label: 'Parcours & ravitos' },
+  { id: 3, label: 'Stratégie & suivi' },
 ];
 
 export const DEFAULT_FORM = {

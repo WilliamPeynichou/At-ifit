@@ -77,7 +77,7 @@ export function GpxDropzone({ onLoaded, compact = false, sport = 'running' }) {
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={e => { e.preventDefault(); setDragging(false); loadFile(e.dataTransfer.files?.[0]); }}
-        className="w-full rounded-2xl p-10 flex flex-col items-center justify-center gap-3 transition-all"
+        className="w-full rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 transition-all"
         style={{
           border: `2px dashed ${dragging ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
           background: dragging ? 'var(--accent-blue-light)' : 'var(--surface-subtle)',
