@@ -228,22 +228,20 @@ export function runningGradeFactor(grade) {
 
 const CYCLING = { massKg: 82, crr: 0.005, cda: 0.32, rho: 1.2, g: 9.81, maxSpeedMs: 70 / 3.6, minSpeedMs: 4 / 3.6 };
 
-/** Vitesse (m/s) à puissance donnée sur une pente donnée (Newton). */
+/** Vitesse (m/s) à puissance donnée sur une pente donnée (dichotomie, racine positive unique). */
 export function cyclingSpeedForPower(power, grade) {
   const { massKg, crr, cda, rho, g, maxSpeedMs, minSpeedMs } = CYCLING;
   const theta = Math.atan(grade);
   const resist = massKg * g * (Math.sin(theta) + crr * Math.cos(theta));
   const k = 0.5 * rho * cda;
-  let v = 8;
-  for (let i = 0; i < 40; i += 1) {
-    const f = k * v ** 3 + resist * v - power;
-    const df = 3 * k * v ** 2 + resist;
-    if (Math.abs(df) < 1e-9) break;
-    const next = v - f / df;
-    if (!Number.isFinite(next)) break;
-    v = Math.max(0.3, next);
+  const f = v => k * v ** 3 + resist * v - power;
+  let lo = 0.05;
+  let hi = 40;
+  for (let i = 0; i < 60; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) > 0) hi = mid; else lo = mid;
   }
-  return Math.max(minSpeedMs, Math.min(maxSpeedMs, v));
+  return Math.max(minSpeedMs, Math.min(maxSpeedMs, (lo + hi) / 2));
 }
 
 /* ------------------------------------------------------------------ */
