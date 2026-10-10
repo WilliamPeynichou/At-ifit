@@ -1,4 +1,4 @@
-import { createElement, useId, useMemo, useState } from 'react';
+import { createElement, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ReferenceArea, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Droplets, Flag, Maximize2, MousePointer2, Users, Utensils, ZoomIn, ZoomOut } from 'lucide-react';
 import { formatDuration, gradeColor, pointAtKm } from '../../utils/gpxCourse';
@@ -43,14 +43,49 @@ function yDomainFor(minEle, maxEle) {
   return [Math.floor((minEle - pad) / 10) * 10, Math.ceil((maxEle + pad) / 10) * 10];
 }
 
-function StationLabel({ viewBox, station }) {
-  if (!viewBox) return null;
-  const meta = KIND_META[station.kind] ?? KIND_META.aid;
-  return (
-    <text x={viewBox.x + 6} y={viewBox.y + 14} fill={meta.color} fontSize={11} fontWeight={700}>
-      {station.name}
-    </text>
-  );
+const LABEL_FONT = 11;
+const ROW_H = 15;
+const CHAR_W = 6.6;
+const Y_AXIS_W = 56;
+const RIGHT_PAD = 12;
+const MAX_LABEL_CHARS = 22;
+
+const shorten = text => (text.length > MAX_LABEL_CHARS ? `${text.slice(0, MAX_LABEL_CHARS - 1)}…` : text);
+
+/**
+ * Range les étiquettes en lignes sans chevauchement (glouton, en pixels).
+ * Chaque item : { id, x (px), text }. Retourne { placed: [{...item, row, anchor}], rows }.
+ */
+function layoutLabels(items, plotWidth, maxRows = 4) {
+  const rowsEnd = [];
+  const placed = [];
+  [...items].sort((a, b) => a.x - b.x).forEach(item => {
+    const text = shorten(item.text);
+    const width = text.length * CHAR_W + 8;
+    // Ancrage à droite si l'étiquette déborderait du graphe.
+    const left = item.x + width > plotWidth ? item.x - width : item.x;
+    let row = rowsEnd.findIndex(end => end <= left);
+    if (row === -1) {
+      if (rowsEnd.length >= maxRows) return; // trop dense : visible au survol / dans la liste
+      row = rowsEnd.length;
+      rowsEnd.push(0);
+    }
+    rowsEnd[row] = left + width + 4;
+    placed.push({ ...item, text, row, left });
+  });
+  return { placed, rows: rowsEnd.length };
+}
+
+function useWidth() {
+  const ref = useRef(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    if (!ref.current || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width];
 }
 
 function ProfileTooltip({ active, payload, plan }) {
@@ -89,6 +124,7 @@ const MIN_ZOOM_KM = 0.3;
 const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, onAddAt, onSelectRange, zoomRange = null, onZoom }) => {
   const [drag, setDrag] = useState(null);
   const [tool, setTool] = useState('edit');
+  const [chartRef, chartWidth] = useWidth();
   const idPrefix = useId().replace(/[^a-zA-Z0-9]/g, '');
   const strokeId = `${idPrefix}-grade`;
   const fillId = `${idPrefix}-fill`;
@@ -124,6 +160,34 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
   const center = hoverKm ?? (viewFrom + viewTo) / 2;
   const zoomIn = () => setView(center - span / 4, center + span / 4);
   const zoomOut = () => setView(center - span, center + span);
+  const plotWidth = Math.max(1, chartWidth - Y_AXIS_W - RIGHT_PAD);
+  const xTicks = useMemo(() => {
+    const count = Math.max(2, Math.floor(plotWidth / 70));
+    const raw = span / count;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const stepKm = [1, 2, 5, 10].map(m => m * mag).find(v => v >= raw) || raw;
+    const ticks = [];
+    for (let t = Math.ceil(viewFrom / stepKm) * stepKm; t <= viewTo + 1e-9; t += stepKm) ticks.push(Number(t.toFixed(3)));
+    return ticks;
+  }, [plotWidth, span, viewFrom, viewTo]);
+  const toPx = km => ((km - viewFrom) / (span || 1)) * plotWidth;
+  const visibleSections = (plan?.sections ?? []).filter(sec => sec.toKm > viewFrom && sec.fromKm < viewTo);
+  const visibleStations = (plan?.stations ?? []).filter(st => st.km >= viewFrom && st.km <= viewTo);
+  const sectionLayout = layoutLabels(
+    visibleSections.map(sec => ({ id: sec.id, x: toPx(Math.max(sec.fromKm, viewFrom)) + 3, text: sec.name, color: sec.color })),
+    plotWidth,
+    3,
+  );
+  const stationLayout = layoutLabels(
+    visibleStations.map(st => ({ id: st.id, x: toPx(st.km) + 4, text: st.name, color: (KIND_META[st.kind] ?? KIND_META.aid).color })),
+    plotWidth,
+    3,
+  );
+  const sectionBand = sectionLayout.rows * ROW_H;
+  const stationBand = stationLayout.rows * ROW_H;
+  const topMargin = 10 + sectionBand + stationBand;
+  const hiddenLabels = visibleSections.length + visibleStations.length - sectionLayout.placed.length - stationLayout.placed.length;
+
   const handleWheel = event => {
     if (!event.ctrlKey && !event.metaKey) return;
     event.preventDefault();
@@ -241,11 +305,11 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
         </div>
       </div>
 
-      <div className="mt-4 h-72 w-full sm:h-80 lg:h-96" onWheel={handleWheel} onDoubleClick={() => onZoom?.(null)}>
+      <div ref={chartRef} className="relative mt-4 h-72 w-full sm:h-80 lg:h-96" onWheel={handleWheel} onDoubleClick={() => onZoom?.(null)}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
-            margin={{ top: 12, right: 12, bottom: 0, left: 0 }}
+            margin={{ top: topMargin, right: RIGHT_PAD, bottom: 0, left: 0 }}
             onMouseMove={handleMove}
             onMouseDown={handleDown}
             onMouseUp={handleUp}
@@ -275,7 +339,6 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
                 fill={section.color}
                 fillOpacity={0.14}
                 stroke="none"
-                label={{ value: section.name, position: 'insideTopLeft', fill: section.color, fontSize: 11, fontWeight: 700 }}
               />
             ))}
 
@@ -291,8 +354,7 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
               fill={`url(#${fillId})`}
               dot={false}
               activeDot={false}
-              isAnimationActive
-              animationDuration={600}
+              isAnimationActive={false}
             />
 
             {(plan?.stations ?? []).map(station => (
@@ -303,7 +365,6 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
                 stroke={(KIND_META[station.kind] ?? KIND_META.aid).color}
                 strokeDasharray="4 4"
                 strokeWidth={1.5}
-                label={<StationLabel station={station} />}
               />
             ))}
 
@@ -312,10 +373,12 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
               type="number"
               domain={[viewFrom, viewTo]}
               allowDataOverflow
+              ticks={xTicks}
+              interval={0}
               tick={AXIS_TICK}
               tickLine={false}
               axisLine={false}
-              tickFormatter={v => (span < 5 ? `${v.toFixed(1)} km` : `${Math.round(v)} km`)}
+              tickFormatter={v => `${Number.isInteger(v) ? v : v.toFixed(1)} km`}
               stroke="#a8a29e"
             />
             <YAxis
@@ -337,7 +400,34 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
             )}
           </AreaChart>
         </ResponsiveContainer>
+        {chartWidth > 0 && (
+          <div className="pointer-events-none absolute inset-x-0 top-0" style={{ height: topMargin }} aria-hidden="true">
+            {sectionLayout.placed.map(item => (
+              <span
+                key={`s-${item.id}`}
+                className="absolute whitespace-nowrap rounded px-1 font-bold leading-[13px]"
+                style={{ left: Y_AXIS_W + item.left, top: 4 + item.row * ROW_H, fontSize: LABEL_FONT, color: item.color, background: `color-mix(in srgb, ${item.color} 14%, transparent)` }}
+              >
+                {item.text}
+              </span>
+            ))}
+            {stationLayout.placed.map(item => (
+              <span
+                key={`r-${item.id}`}
+                className="absolute whitespace-nowrap font-bold leading-[13px]"
+                style={{ left: Y_AXIS_W + item.left, top: 4 + sectionBand + item.row * ROW_H, fontSize: LABEL_FONT, color: item.color }}
+              >
+                {item.text}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
+      {hiddenLabels > 0 && (
+        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          {hiddenLabels} étiquette{hiddenLabels > 1 ? 's' : ''} masquée{hiddenLabels > 1 ? 's' : ''} faute de place : zoome pour les voir.
+        </p>
+      )}
 
       <p className="mt-3 font-mono text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
         {tool === 'zoom'

@@ -502,3 +502,6 @@ select.input-cyber option {
 
 /* Fond OSM assombri pour la heatmap */
 .map-tiles-dark { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.9); }
+
+/* Profil altimétrique : pas de contour de focus sur le SVG interne (le bloc parent garde le focus visible) */
+.recharts-wrapper:focus, .recharts-surface:focus, .recharts-wrapper *:focus { outline: none; }
