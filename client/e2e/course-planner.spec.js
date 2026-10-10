@@ -56,7 +56,7 @@ async function dragOnProfile(page) {
 }
 
 const gpxFile = () => ({ name: 'trail.gpx', mimeType: 'application/gpx+xml', buffer: Buffer.from(buildGpx()) });
-const stepButton = (page, label) => page.getByRole('navigation', { name: 'Étapes de la préparation' }).getByRole('button', { name: label });
+const stepButton = (page, label) => page.locator('button.btn-primary').filter({ hasText: label });
 
 test('assistant course à pied : GPX d’abord, ravitos, sauvegarde et prompt IA', async ({ page, context }) => {
   const errors = [];

@@ -79,30 +79,56 @@ function MyRaces({ races, loading, activeId, onOpen, onDelete, onNew }) {
 }
 
 function Stepper({ step, onGo }) {
+  const progress = ((step - 1) / (STEPS.length - 1)) * 100;
+  const current = STEPS[step - 1];
   return (
-    <nav aria-label="Étapes de la préparation" className="glass-panel p-1.5 grid grid-cols-3 md:grid-cols-6 gap-1.5 sticky top-2 z-[500]">
-      {STEPS.map(item => {
-        const active = item.id === step;
-        const done = item.id < step;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onGo(item.id)}
-            aria-current={active ? 'step' : undefined}
-            className="flex items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-xs sm:text-sm font-bold transition-colors"
-            style={{ background: active ? 'var(--accent-blue)' : 'transparent', color: active ? '#fff' : 'var(--text-primary)' }}
-          >
-            <span
-              className="w-5 h-5 rounded-full grid place-items-center text-[11px] shrink-0"
-              style={{ background: active ? 'rgba(255,255,255,.25)' : done ? '#788c5d' : 'var(--surface-subtle)', color: done && !active ? '#fff' : 'inherit' }}
-            >
-              {done ? <Check size={12} /> : item.id}
-            </span>
-            <span className="truncate">{item.label}</span>
-          </button>
-        );
-      })}
+    <nav aria-label="Étapes de la préparation" className="glass-panel px-4 sm:px-6 py-4 sticky top-2 z-[500]">
+      <div className="flex items-baseline justify-between gap-3 mb-3">
+        <p className="text-sm">
+          <span className="font-mono text-xs uppercase tracking-[.2em]" style={{ color: 'var(--text-muted)' }}>Étape {step} / {STEPS.length}</span>
+          <strong className="ml-2">{current.label}</strong>
+        </p>
+        {step < STEPS.length && (
+          <p className="text-xs hidden sm:block" style={{ color: 'var(--text-muted)' }}>Ensuite : {STEPS[step].label}</p>
+        )}
+      </div>
+      <div className="relative">
+        <div className="absolute left-0 right-0 top-[9px] h-[2px] rounded" style={{ background: 'var(--glass-border)' }} aria-hidden="true" />
+        <div className="absolute left-0 top-[9px] h-[2px] rounded transition-all duration-500" style={{ width: `${progress}%`, background: 'var(--accent-blue)' }} aria-hidden="true" />
+        <ol className="relative flex justify-between">
+          {STEPS.map(item => {
+            const active = item.id === step;
+            const done = item.id < step;
+            const dot = (
+              <span
+                className="w-5 h-5 rounded-full grid place-items-center text-[10px] font-bold transition-colors"
+                style={{
+                  background: done || active ? 'var(--accent-blue)' : 'var(--bg-secondary, #fff)',
+                  border: `2px solid ${done || active ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
+                  color: done || active ? '#fff' : 'var(--text-muted)',
+                  boxShadow: active ? '0 0 0 4px color-mix(in srgb, var(--accent-blue) 20%, transparent)' : 'none',
+                }}
+              >
+                {done ? <Check size={11} /> : item.id}
+              </span>
+            );
+            const label = (
+              <span className="hidden md:block text-[11px] mt-1.5 whitespace-nowrap" style={{ color: active ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: active ? 700 : 400 }}>
+                {item.label}
+              </span>
+            );
+            return (
+              <li key={item.id} className="flex flex-col items-center" aria-current={active ? 'step' : undefined}>
+                {done ? (
+                  <button type="button" onClick={() => onGo(item.id)} className="flex flex-col items-center hover:opacity-80" title={`Revenir à : ${item.label}`} aria-label={`Revenir à l’étape ${item.id} : ${item.label}`}>
+                    {dot}{label}
+                  </button>
+                ) : (<>{dot}{label}</>)}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </nav>
   );
 }
