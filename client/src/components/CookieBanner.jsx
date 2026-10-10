@@ -106,7 +106,7 @@ export default function CookieBanner() {
               <h2 className="font-display text-xl tracking-wide" style={{ color: '#141413' }}>Cookies et contenus tiers</h2>
               <p className="mt-1 text-xs leading-relaxed" style={{ color: '#3d3d3a' }}>
                 Atifit n’utilise ni publicité ni mesure d’audience. Seul le stockage nécessaire au fonctionnement est actif.
-                Avec ton accord, nous chargeons aussi les fonds de carte CARTO pour tes traces GPS. Tu peux changer d’avis à tout moment via « Gérer les cookies » en bas de page.
+                Avec ton accord, nous chargeons aussi les fonds de carte OpenStreetMap / OpenTopoMap pour tes traces GPS. Tu peux changer d’avis à tout moment via « Gérer les cookies » en bas de page.
               </p>
               <Link to="/cookies" className="inline-block mt-2 text-xs underline font-semibold" style={{ color: '#141413' }}>En savoir plus</Link>
             </div>

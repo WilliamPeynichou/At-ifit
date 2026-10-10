@@ -74,9 +74,9 @@ const DATA_SOURCES = [
     usedFor: 'Durées estimées, dépense énergétique, sorties comparables, statistiques et profils d’effort.',
   },
   {
-    name: 'CARTO',
-    detail: 'Service cartographique utilisé côté serveur avec un jeton d’accès stocké en variable d’environnement.',
-    usedFor: 'Fonds de carte et couches géographiques ; aucun jeton n’est exposé au navigateur.',
+    name: 'OpenStreetMap / OpenTopoMap',
+    detail: 'Tuiles cartographiques libres chargées par le navigateur, uniquement après ton accord.',
+    usedFor: 'Fonds de carte (plan et relief) des tracés GPX et des traces GPS.',
   },
   {
     name: 'Services météo',

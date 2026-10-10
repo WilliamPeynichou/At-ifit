@@ -61,11 +61,11 @@ export const PROCESSORS = [
     url: 'https://open-meteo.com/en/terms',
   },
   {
-    name: 'CartoDB Inc. (CARTO) / OpenStreetMap',
+    name: 'OpenStreetMap Foundation / OpenTopoMap',
     role: 'Fond de carte des traces GPS, chargé seulement après ton accord',
     data: 'Adresse IP et zone de carte affichée (requêtes de tuiles)',
-    location: 'États-Unis (Data Privacy Framework)',
-    url: 'https://carto.com/privacy',
+    location: 'Royaume-Uni et Allemagne (pays reconnus adéquats / UE)',
+    url: 'https://osmfoundation.org/wiki/Privacy_Policy',
   },
 ];
 

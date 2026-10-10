@@ -18,8 +18,8 @@ export const CONSENT_CATEGORIES = [
   {
     id: 'maps',
     label: 'Cartes interactives',
-    provider: 'CARTO / OpenStreetMap',
-    description: 'Affiche le fond de carte de tes traces GPS. Ton navigateur contacte alors les serveurs de tuiles CARTO (adresse IP, zone affichée).',
+    provider: 'OpenStreetMap / OpenTopoMap',
+    description: 'Affiche le fond de carte de tes traces GPS. Ton navigateur contacte alors les serveurs de tuiles OpenStreetMap et OpenTopoMap (adresse IP, zone affichée).',
   },
 ];
 

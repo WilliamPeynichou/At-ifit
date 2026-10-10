@@ -1,6 +1,6 @@
-import { useId, useMemo, useState } from 'react';
+import { createElement, useId, useMemo, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ReferenceArea, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Droplets, Flag, Users, Utensils } from 'lucide-react';
+import { Droplets, Flag, Maximize2, MousePointer2, Users, Utensils, ZoomIn, ZoomOut } from 'lucide-react';
 import { formatDuration, gradeColor, pointAtKm } from '../../utils/gpxCourse';
 
 const KIND_META = {
@@ -23,14 +23,15 @@ const GRADE_BINS = [
 const AXIS_TICK = { fill: '#a8a29e', fontSize: 11 };
 const MAX_GRADIENT_STOPS = 240;
 
-function buildGradeStops(profile, totalKm) {
+function buildGradeStops(profile, fromKm, toKm) {
+  const span = toKm - fromKm || 1;
   const step = Math.max(1, Math.floor(profile.length / MAX_GRADIENT_STOPS));
   const stops = [];
   for (let i = 0; i < profile.length; i += step) {
     const end = Math.min(profile.length, i + step);
     let sum = 0;
     for (let j = i; j < end; j += 1) sum += profile[j].grade;
-    stops.push({ offset: `${(profile[i].km / totalKm) * 100}%`, color: gradeColor(sum / (end - i)) });
+    stops.push({ offset: `${((profile[i].km - fromKm) / span) * 100}%`, color: gradeColor(sum / (end - i)) });
   }
   const last = profile[profile.length - 1];
   stops.push({ offset: '100%', color: gradeColor(last.grade) });
@@ -83,8 +84,11 @@ function ProfileTooltip({ active, payload, plan }) {
   );
 }
 
-const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, onAddAt, onSelectRange }) => {
+const MIN_ZOOM_KM = 0.3;
+
+const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, onAddAt, onSelectRange, zoomRange = null, onZoom }) => {
   const [drag, setDrag] = useState(null);
+  const [tool, setTool] = useState('edit');
   const idPrefix = useId().replace(/[^a-zA-Z0-9]/g, '');
   const strokeId = `${idPrefix}-grade`;
   const fillId = `${idPrefix}-fill`;
@@ -92,15 +96,46 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
   const { profile, stats } = course;
   const totalKm = stats.distanceKm || 1;
 
-  const gradeStops = useMemo(() => buildGradeStops(profile, totalKm), [profile, totalKm]);
-  const yDomain = useMemo(() => yDomainFor(stats.minEle, stats.maxEle), [stats.minEle, stats.maxEle]);
+  const viewFrom = zoomRange ? Math.max(0, zoomRange.fromKm) : 0;
+  const viewTo = zoomRange ? Math.min(totalKm, zoomRange.toKm) : totalKm;
+  const zoomed = viewFrom > 0 || viewTo < totalKm;
+  const data = useMemo(() => {
+    if (!zoomed) return profile;
+    let first = profile.findIndex(p => p.km >= viewFrom);
+    let last = profile.findIndex(p => p.km > viewTo);
+    first = Math.max(0, first - 1);
+    last = last === -1 ? profile.length : Math.min(profile.length, last + 1);
+    return profile.slice(first, last);
+  }, [profile, zoomed, viewFrom, viewTo]);
+  const gradeStops = useMemo(() => buildGradeStops(data, data[0].km, data[data.length - 1].km), [data]);
+  const yDomain = useMemo(() => {
+    const eles = data.map(p => p.ele);
+    return yDomainFor(Math.min(...eles), Math.max(...eles));
+  }, [data]);
+  const span = viewTo - viewFrom;
+  const setView = (from, to) => {
+    const width = Math.max(MIN_ZOOM_KM, to - from);
+    let a = from;
+    let b = from + width;
+    if (b > totalKm) { b = totalKm; a = Math.max(0, b - width); }
+    if (a < 0) { a = 0; b = Math.min(totalKm, width); }
+    onZoom?.(a <= 0 && b >= totalKm ? null : { fromKm: a, toKm: b });
+  };
+  const center = hoverKm ?? (viewFrom + viewTo) / 2;
+  const zoomIn = () => setView(center - span / 4, center + span / 4);
+  const zoomOut = () => setView(center - span, center + span);
+  const handleWheel = event => {
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    if (event.deltaY < 0) zoomIn(); else zoomOut();
+  };
   const hoverPoint = useMemo(() => (hoverKm == null ? null : pointAtKm(course, hoverKm)), [course, hoverKm]);
   const kindsInPlan = useMemo(() => {
     const kinds = new Set((plan?.stations ?? []).map(s => s.kind));
     return [...kinds].filter(k => KIND_META[k]);
   }, [plan]);
 
-  const kmFromState = state => profile[Number(state?.activeTooltipIndex)]?.km;
+  const kmFromState = state => data[Number(state?.activeTooltipIndex)]?.km;
 
   const handleMove = state => {
     const km = kmFromState(state);
@@ -118,7 +153,11 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
     if (!drag) return;
     const fromKm = Math.min(drag.fromKm, drag.toKm);
     const toKm = Math.max(drag.fromKm, drag.toKm);
-    if (toKm - fromKm > 0.2) onSelectRange?.({ fromKm, toKm });
+    const threshold = Math.max(0.02, span * 0.012);
+    if (tool === 'zoom') {
+      if (toKm - fromKm > threshold) setView(fromKm, toKm);
+      else setView(fromKm - span / 4, fromKm + span / 4);
+    } else if (toKm - fromKm > threshold) onSelectRange?.({ fromKm, toKm });
     else onAddAt?.(drag.fromKm);
     setDrag(null);
   };
@@ -133,12 +172,15 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
       onHoverKm?.(null);
       return;
     }
+    if (event.key === '+' || event.key === '=') { zoomIn(); return; }
+    if (event.key === '-') { zoomOut(); return; }
+    if (event.key === '0') { onZoom?.(null); return; }
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
-    const step = totalKm / 150;
-    const base = hoverKm ?? 0;
+    const step = span / 150;
+    const base = hoverKm ?? viewFrom;
     const next = event.key === 'ArrowRight' ? base + step : base - step;
-    onHoverKm?.(Math.min(totalKm, Math.max(0, next)));
+    onHoverKm?.(Math.min(viewTo, Math.max(viewFrom, next)));
   };
 
   return (
@@ -170,16 +212,45 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
         </dl>
       </div>
 
-      <div className="mt-5 h-64 w-full sm:h-72 lg:h-80">
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div role="group" aria-label="Outil du profil" className="inline-flex rounded-xl p-1" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
+          {[
+            { id: 'edit', label: 'Ravitos & sections', icon: MousePointer2 },
+            { id: 'zoom', label: 'Zoom', icon: ZoomIn },
+          ].map(({ id, label, icon }) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={tool === id}
+              onClick={() => setTool(id)}
+              className="min-h-9 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              style={tool === id ? { background: 'var(--accent-blue)', color: '#fff' } : { color: 'var(--text-secondary)' }}
+            >
+              {createElement(icon, { size: 14, 'aria-hidden': true })}{label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-[11px] tabular-nums mr-2" style={{ color: 'var(--text-muted)' }}>
+            {zoomed ? `${viewFrom.toFixed(1)} → ${viewTo.toFixed(1)} km` : `0 → ${totalKm.toFixed(1)} km`}
+          </span>
+          <button type="button" className="btn-ghost !p-2" onClick={zoomIn} disabled={span <= MIN_ZOOM_KM} aria-label="Zoomer sur le profil" title="Zoomer (+)"><ZoomIn size={15} /></button>
+          <button type="button" className="btn-ghost !p-2" onClick={zoomOut} disabled={!zoomed} aria-label="Dézoomer le profil" title="Dézoomer (−)"><ZoomOut size={15} /></button>
+          <button type="button" className="btn-ghost !p-2" onClick={() => onZoom?.(null)} disabled={!zoomed} aria-label="Voir tout le parcours" title="Tout voir (0)"><Maximize2 size={15} /></button>
+        </div>
+      </div>
+
+      <div className="mt-4 h-72 w-full sm:h-80 lg:h-96" onWheel={handleWheel} onDoubleClick={() => onZoom?.(null)}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
-            data={profile}
+            data={data}
             margin={{ top: 12, right: 12, bottom: 0, left: 0 }}
             onMouseMove={handleMove}
             onMouseDown={handleDown}
             onMouseUp={handleUp}
             onMouseLeave={handleLeave}
-            style={{ cursor: drag ? 'col-resize' : 'crosshair', userSelect: 'none' }}
+            style={{ cursor: tool === 'zoom' ? 'zoom-in' : drag ? 'col-resize' : 'crosshair', userSelect: 'none' }}
           >
             <defs>
               <linearGradient id={strokeId} x1="0" y1="0" x2="1" y2="0">
@@ -200,6 +271,7 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
                 key={section.id}
                 x1={section.fromKm}
                 x2={section.toKm}
+                ifOverflow="hidden"
                 fill={section.color}
                 fillOpacity={0.14}
                 stroke="none"
@@ -227,6 +299,7 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
               <ReferenceLine
                 key={station.id}
                 x={station.km}
+                ifOverflow="hidden"
                 stroke={(KIND_META[station.kind] ?? KIND_META.aid).color}
                 strokeDasharray="4 4"
                 strokeWidth={1.5}
@@ -237,11 +310,12 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
             <XAxis
               dataKey="km"
               type="number"
-              domain={[0, totalKm]}
+              domain={[viewFrom, viewTo]}
+              allowDataOverflow
               tick={AXIS_TICK}
               tickLine={false}
               axisLine={false}
-              tickFormatter={v => `${Math.round(v)} km`}
+              tickFormatter={v => (span < 5 ? `${v.toFixed(1)} km` : `${Math.round(v)} km`)}
               stroke="#a8a29e"
             />
             <YAxis
@@ -266,7 +340,9 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
       </div>
 
       <p className="mt-3 font-mono text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-        Clique pour ajouter un ravito · glisse pour créer une section
+        {tool === 'zoom'
+          ? 'Glisse pour zoomer sur une portion · clic pour zoomer autour d’un point · double-clic pour tout voir'
+          : 'Clique pour ajouter un ravito · glisse pour créer une section · Ctrl + molette pour zoomer'}
       </p>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -294,7 +370,7 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
       </div>
 
       <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-        Survolez le profil ou utilisez les flèches ← → pour lire un point, Échap pour l’effacer.
+        Survole le profil ou utilise les flèches ← → pour lire un point · + / − / 0 pour zoomer · Échap pour effacer.
       </p>
     </section>
   );

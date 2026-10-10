@@ -24,7 +24,7 @@ export default function CookiePolicy() {
       content: (
         <>
           <p><strong style={strong}>Atifit ne dépose aucun cookie publicitaire ni de mesure d’audience.</strong> Le serveur ne dépose pas de cookie : la session utilise le stockage local de ton navigateur.</p>
-          <p>Seul un contenu tiers est soumis à ton accord : les fonds de carte CARTO. Refuser ne bloque aucune autre fonction.</p>
+          <p>Seul un contenu tiers est soumis à ton accord : les fonds de carte OpenStreetMap / OpenTopoMap. Refuser ne bloque aucune autre fonction.</p>
           <div className="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
             <p data-testid="consent-status">
               Ton choix actuel : {consent
@@ -57,7 +57,7 @@ export default function CookiePolicy() {
             headers={['Contenu', 'Fournisseur', 'Ce qui est transmis', 'Durée du choix']}
             rows={CONSENT_CATEGORIES.map(c => [c.label, c.provider, c.description, '6 mois'])}
           />
-          <p>Avant ton accord, la carte n’est pas chargée et aucune requête n’est envoyée à CARTO. Après retrait, la carte n’est plus chargée.</p>
+          <p>Avant ton accord, la carte n’est pas chargée et aucune requête n’est envoyée à OpenStreetMap ou OpenTopoMap. Après retrait, la carte n’est plus chargée.</p>
         </>
       ),
     },

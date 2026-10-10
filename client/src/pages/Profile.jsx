@@ -230,7 +230,7 @@ export default function Profile() {
           <button type="button" onClick={openPreferences} className="rounded-xl p-4 text-left" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
             <Cookie size={19} style={{ color: 'var(--accent-blue)' }} />
             <h3 className="mt-3 font-bold">Gérer les cookies</h3>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Autoriser ou refuser les cartes CARTO.</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Autoriser ou refuser les cartes OpenStreetMap / OpenTopoMap.</p>
           </button>
           <Link to="/confidentialite" className="rounded-xl p-4" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
             <FileText size={19} style={{ color: 'var(--accent-blue)' }} />

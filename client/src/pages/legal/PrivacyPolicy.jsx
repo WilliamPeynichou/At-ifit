@@ -99,7 +99,7 @@ export default function PrivacyPolicy() {
     {
       id: 'cookies',
       title: 'Cookies et stockage local',
-      content: <p>Voir la <Link to="/cookies" className="underline font-semibold" style={strong}>politique cookies</Link> : uniquement du stockage nécessaire, et les cartes CARTO seulement avec ton accord.</p>,
+      content: <p>Voir la <Link to="/cookies" className="underline font-semibold" style={strong}>politique cookies</Link> : uniquement du stockage nécessaire, et les cartes OpenStreetMap / OpenTopoMap seulement avec ton accord.</p>,
     },
   ];
 

@@ -499,3 +499,6 @@ select.input-cyber option {
   ::-webkit-scrollbar-thumb { background: rgba(0, 85, 255, 0.2); border-radius: 0; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(0, 85, 255, 0.5); }
 }
+
+/* Fond OSM assombri pour la heatmap */
+.map-tiles-dark { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.9); }

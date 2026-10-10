@@ -32,7 +32,7 @@ async function setup(page, errors, saved = []) {
     }
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: saved[0] || null }) });
   });
-  await page.route('**/{tile,basemaps}**', route => route.abort());
+  await page.route('**/*tile*/**', route => route.continue());
 }
 
 async function dragOnProfile(page) {
@@ -74,6 +74,30 @@ test('assistant course à pied : GPX d’abord, ravitos, sauvegarde et prompt IA
   await stepButton(page, /Parcours/).click();
   await dragOnProfile(page);
   await page.screenshot({ path: 'test-results/wizard-run.png', fullPage: true });
+
+  // Zoom du profil puis retour vue complète
+  await page.getByRole('button', { name: 'Zoomer sur le profil' }).click();
+  await expect(page.getByText(/→ .* km/).first()).not.toHaveText(/^0 → /);
+  await page.getByRole('button', { name: 'Voir tout le parcours' }).click();
+  await page.getByRole('button', { name: 'Zoom', exact: true }).click();
+  const zchart = page.locator('.recharts-surface').first();
+  const zbox = await zchart.boundingBox();
+  await page.mouse.move(zbox.x + zbox.width * 0.2, zbox.y + zbox.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(zbox.x + zbox.width * 0.5, zbox.y + zbox.height * 0.5, { steps: 6 });
+  await page.mouse.up();
+  await expect(page.getByRole('button', { name: 'Voir tout le parcours' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Ravitos & sections' }).click();
+
+  // Plein écran profil + carte
+  await page.getByRole('button', { name: /Plein écran profil/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Parcours en plein écran' })).toBeVisible();
+  await page.getByRole('button', { name: 'Autoriser les cartes' }).click().catch(() => {});
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: 'test-results/wizard-fullscreen.png' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Parcours en plein écran' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Voir tout le parcours' }).click();
 
   await stepButton(page, /Nutrition/).click();
   await expect(page.getByText('Quoi prendre à chaque ravito').first()).toBeVisible();

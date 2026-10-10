@@ -47,7 +47,7 @@ export default function LegalNotice() {
           <p>La licence applicable au code et aux créations originales doit être précisée par l’éditeur ; aucune autorisation de réutilisation n’est accordée par ces mentions.</p>
           <p>La documentation nutritionnelle (comparatifs de gels, barres, boissons, électrolytes et récupération) provient des travaux de <a href="https://www.nicolas-aubineau.com/" {...ext}>Nicolas Aubineau</a>. Cette documentation est publique ; elle est reprise avec attribution et lien vers la source ; le détail figure sur la page <Link to="/sources" className="underline font-semibold" style={{ color: 'var(--text-primary)' }}>Sources</Link>.</p>
           <p>Les marques et noms de produits cités (dont Strava et les marques de nutrition sportive) appartiennent à leurs titulaires. Leur mention est informative et n’implique aucun partenariat ni rémunération.</p>
-          <p>Données cartographiques © contributeurs <a href="https://www.openstreetmap.org/copyright" {...ext}>OpenStreetMap</a> (ODbL), fonds de carte © <a href="https://carto.com/attributions" {...ext}>CARTO</a>. Polices Bebas Neue, Outfit et Geist Mono sous licence SIL Open Font License, hébergées sur nos serveurs.</p>
+          <p>Données cartographiques © contributeurs <a href="https://www.openstreetmap.org/copyright" {...ext}>OpenStreetMap</a> (ODbL), fonds de carte © <a href="https://opentopomap.org" {...ext}>OpenTopoMap</a> (CC-BY-SA). Polices Bebas Neue, Outfit et Geist Mono sous licence SIL Open Font License, hébergées sur nos serveurs.</p>
         </>
       ),
     },

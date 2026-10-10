@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { MapPinOff } from 'lucide-react';
 import { useTemporal } from '../../../context/TemporalContext';
 import { useConsent } from '../../../context/ConsentContext';
+import { MAP_TILES } from '../../../utils/mapTiles';
 
 const TYPE_COLORS = {
   Run: '#fc4c02',
@@ -129,8 +130,9 @@ const GPSHeatmap = () => {
           style={{ height: '100%', width: '100%', background: '#1a1a1f' }}
         >
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; OpenStreetMap &copy; CARTO'
+            url={MAP_TILES.plan.url}
+            attribution={MAP_TILES.plan.attribution}
+            className="map-tiles-dark"
           />
           {paths.map(p => (
             <Polyline
@@ -151,7 +153,7 @@ const GPSHeatmap = () => {
             <div className="max-w-md">
               <h3 className="font-display text-2xl tracking-wide" style={{ color: '#141413' }}>Carte désactivée</h3>
               <p className="mt-2 text-sm leading-relaxed" style={{ color: '#3d3d3a' }}>
-                Le fond de carte est fourni par CARTO / OpenStreetMap. L’afficher transmet ton adresse IP et la zone consultée à ce service tiers.
+                Le fond de carte est fourni par OpenStreetMap. L’afficher transmet ton adresse IP et la zone consultée à ce service tiers.
                 Tes {paths.length} traces restent disponibles dès que tu l’autorises.
               </p>
             </div>

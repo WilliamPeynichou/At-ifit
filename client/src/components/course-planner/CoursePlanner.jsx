@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Mountain, RotateCcw, Route, Sparkles, Timer } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { AlertTriangle, Maximize2, Minimize2, Mountain, RotateCcw, Route, Sparkles, Timer } from 'lucide-react';
 import { buildCourse, computePlan } from '../../utils/gpxCourse';
 import CourseProfileChart from './CourseProfileChart';
 import CourseMap from './CourseMap';
@@ -19,6 +20,8 @@ export default function CoursePlanner({ sport = 'running', raceName, targetMinut
   const startTime = fixedStartTime || value?.startTime || '08:00';
   const fatiguePercent = value?.fatiguePercent ?? 4;
   const [hoverKm, setHoverKm] = useState(null);
+  const [zoomRange, setZoomRange] = useState(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const patch = next => onChange?.({ gpx, stations, sections, startTime: value?.startTime || '08:00', fatiguePercent, ...next });
 
@@ -44,7 +47,17 @@ export default function CoursePlanner({ sport = 'running', raceName, targetMinut
     onPlan?.(plan ? { totalMinutes: plan.totalMinutes, finishClock: plan.finishClock } : null);
   }, [plan, onPlan]);
 
+  useEffect(() => {
+    if (!fullscreen) return undefined;
+    const onKey = e => { if (e.key === 'Escape') setFullscreen(false); };
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = previous; };
+  }, [fullscreen]);
+
   const handleLoaded = ({ gpx: loadedGpx, info, suggested }) => {
+    setZoomRange(null);
     patch({ gpx: loadedGpx, stations: suggested.stations, sections: suggested.sections });
     onCourseLoaded?.(info);
   };
@@ -114,15 +127,34 @@ export default function CoursePlanner({ sport = 'running', raceName, targetMinut
           ({plannerSport === 'cycling' ? 'modèle de puissance aéro + gravité' : 'coût énergétique de Minetti'}) · arrivée prévue <strong>{plan.finishClock}</strong>
         </p>
 
-        <CourseProfileChart
-          course={course}
-          plan={plan}
-          hoverKm={hoverKm}
-          onHoverKm={setHoverKm}
-          onAddAt={addStationAt}
-          onSelectRange={addSectionRange}
-        />
-        <CourseMap course={course} plan={plan} hoverKm={hoverKm} onHoverKm={setHoverKm} />
+        {(content => (fullscreen ? createPortal(content, document.body) : content))(
+        <div
+          className={fullscreen ? 'fixed inset-0 z-[2000] overflow-auto p-4 sm:p-6 space-y-4' : 'space-y-5'}
+          style={fullscreen ? { background: 'var(--bg-primary, #faf9f5)' } : undefined}
+          role={fullscreen ? 'dialog' : undefined}
+          aria-modal={fullscreen ? 'true' : undefined}
+          aria-label={fullscreen ? 'Parcours en plein écran' : undefined}
+        >
+          <div className="flex justify-end">
+            <button type="button" className="btn-ghost inline-flex items-center gap-2 text-sm" onClick={() => setFullscreen(v => !v)}>
+              {fullscreen ? <><Minimize2 size={15} />Quitter le plein écran</> : <><Maximize2 size={15} />Plein écran profil + carte</>}
+            </button>
+          </div>
+          <div className={fullscreen ? 'grid xl:grid-cols-2 gap-4 items-start' : 'space-y-5'}>
+            <CourseProfileChart
+              course={course}
+              plan={plan}
+              hoverKm={hoverKm}
+              onHoverKm={setHoverKm}
+              onAddAt={addStationAt}
+              onSelectRange={addSectionRange}
+              zoomRange={zoomRange}
+              onZoom={setZoomRange}
+            />
+            <CourseMap key={fullscreen ? 'fs' : 'inline'} course={course} plan={plan} hoverKm={hoverKm} onHoverKm={setHoverKm} onAddAt={addStationAt} zoomRange={zoomRange} />
+          </div>
+        </div>,
+        )}
       </section>
 
       <CourseEditors

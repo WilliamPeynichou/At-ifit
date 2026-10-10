@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPinOff, Route } from 'lucide-react';
+import { MapPinOff, Plus, Route } from 'lucide-react';
 import { useConsent } from '../../context/ConsentContext';
+import { MAP_PROVIDER_LABEL, MAP_TILES } from '../../utils/mapTiles';
 import { formatDuration, formatPace, gradeColor, pointAtKm } from '../../utils/gpxCourse';
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-const TILE_ATTRIBUTION = '&copy; OpenStreetMap &copy; CARTO';
 const NEUTRAL_ROUTE = '#8a8a80';
 const SECTION_PALETTE = ['#6a9bcc', '#d97757', '#788c5d', '#e0b25a', '#a855f7', '#fc4c02'];
 const ALERT_COLOR = '#b91c1c';
@@ -96,7 +95,16 @@ function nearestKm(map, profile, latlng) {
   return Math.sqrt(best) * METERS_PER_DEG <= HOVER_RADIUS_PX * metersPerPx ? km : null;
 }
 
-function RouteInteraction({ profile, onHover }) {
+function FitRange({ course, zoomRange }) {
+  const map = useMap();
+  useEffect(() => {
+    const positions = zoomRange ? routePositions(course, zoomRange.fromKm, zoomRange.toKm) : course.profile.map(p => [p.lat, p.lon]);
+    if (positions.length > 1) map.flyToBounds(positions, { padding: MAP_PADDING, duration: 0.6 });
+  }, [map, course, zoomRange]);
+  return null;
+}
+
+function RouteInteraction({ profile, onHover, onPick }) {
   const map = useMap();
   const frame = useRef(0);
 
@@ -110,7 +118,11 @@ function RouteInteraction({ profile, onHover }) {
         onHover(nearestKm(map, profile, e.latlng));
       });
     },
-    click: e => onHover(nearestKm(map, profile, e.latlng)),
+    click: e => {
+      const km = nearestKm(map, profile, e.latlng);
+      onHover(km);
+      if (km !== null) onPick?.(km);
+    },
     mouseout: () => {
       cancelAnimationFrame(frame.current);
       frame.current = 0;
@@ -148,8 +160,12 @@ function LegendItem({ color, label }) {
   );
 }
 
-export default function CourseMap({ course, plan = null, hoverKm = null, onHoverKm = () => {} }) {
+export default function CourseMap({ course, plan = null, hoverKm = null, onHoverKm = () => {}, onAddAt, zoomRange = null }) {
   const { allows, grant } = useConsent();
+  const [addMode, setAddMode] = useState(false);
+  const [baseLayer, setBaseLayer] = useState('topo');
+  const tiles = MAP_TILES[baseLayer];
+  const zoomLine = useMemo(() => (zoomRange ? routePositions(course, zoomRange.fromKm, zoomRange.toKm) : null), [course, zoomRange]);
   const [colorMode, setColorMode] = useState('grade');
   const { profile, bounds, stats, waypoints = [] } = course;
   const hasSections = Boolean(plan?.sections?.length);
@@ -221,17 +237,49 @@ export default function CourseMap({ course, plan = null, hoverKm = null, onHover
         </div>
       </header>
 
+      {onAddAt && (
+        <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <button
+            type="button"
+            aria-pressed={addMode}
+            onClick={() => setAddMode(v => !v)}
+            className="min-h-9 px-3 rounded-lg font-semibold inline-flex items-center gap-1.5"
+            style={addMode
+              ? { background: 'var(--accent-blue)', color: '#fff' }
+              : { background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+          >
+            <Plus size={14} aria-hidden="true" />{addMode ? 'Clique sur le tracé pour poser un ravito' : 'Ajouter un ravito sur la carte'}
+          </button>
+          <span className="inline-flex rounded-lg p-0.5" role="group" aria-label="Fond de carte" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
+            {Object.values(MAP_TILES).map(t => (
+              <button
+                key={t.id}
+                type="button"
+                aria-pressed={baseLayer === t.id}
+                onClick={() => setBaseLayer(t.id)}
+                className="min-h-8 px-2.5 rounded-md font-semibold"
+                style={baseLayer === t.id ? { background: 'var(--accent-blue)', color: '#fff' } : { color: 'var(--text-secondary)' }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </span>
+          <span>Molette pour zoomer · glisser pour se déplacer · la portion zoomée du profil est surlignée.</span>
+        </div>
+      )}
+
       <div className="relative h-[340px] sm:h-[440px] rounded-2xl overflow-hidden" style={{ border: '1px solid var(--glass-border)' }}>
         {allows('maps') ? (
           <>
             <MapContainer
               bounds={bounds}
               boundsOptions={{ padding: MAP_PADDING }}
-              scrollWheelZoom={false}
-              style={{ height: '100%', width: '100%' }}
+              scrollWheelZoom
+              style={{ height: '100%', width: '100%', cursor: addMode ? 'crosshair' : undefined }}
             >
-              <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
-              <RouteInteraction profile={profile} onHover={onHoverKm} />
+              <TileLayer key={tiles.id} url={tiles.url} attribution={tiles.attribution} maxZoom={tiles.maxZoom} />
+              <RouteInteraction profile={profile} onHover={onHoverKm} onPick={addMode ? onAddAt : undefined} />
+              <FitRange course={course} zoomRange={zoomRange} />
 
               {mode === 'grade' ? (
                 <>
@@ -255,6 +303,10 @@ export default function CourseMap({ course, plan = null, hoverKm = null, onHover
                     />
                   ))}
                 </>
+              )}
+
+              {zoomLine && (
+                <Polyline positions={zoomLine} pathOptions={{ color: '#141413', weight: 12, opacity: 0.22, lineCap: 'round', lineJoin: 'round', interactive: false }} />
               )}
 
               {start && (
@@ -320,7 +372,7 @@ export default function CourseMap({ course, plan = null, hoverKm = null, onHover
           <div className="h-full flex flex-col items-center justify-center text-center gap-4 p-6" style={{ background: '#faf9f5', color: '#141413' }}>
             <MapPinOff size={30} style={{ color: '#d97757' }} aria-hidden="true" />
             <p className="text-sm max-w-sm">
-              Le fond de carte est fourni par CARTO / OpenStreetMap. Autorise les cartes interactives pour afficher le parcours.
+              Le fond de carte est fourni par {MAP_PROVIDER_LABEL}. Autorise les cartes interactives pour afficher le parcours.
             </p>
             <button
               type="button"
