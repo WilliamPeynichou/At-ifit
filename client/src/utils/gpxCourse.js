@@ -244,6 +244,22 @@ export function cyclingSpeedForPower(power, grade) {
   return Math.max(minSpeedMs, Math.min(maxSpeedMs, (lo + hi) / 2));
 }
 
+/**
+ * Temps de référence d'un parcours pour un amateur entraîné :
+ * course à 6'00"/km sur le plat (pente via Minetti), vélo à 180 W constants.
+ */
+export function estimateCourseMinutes(course, sport = 'running', { flatPaceMinKm = 6, powerW = 180 } = {}) {
+  const { profile } = course;
+  let minutes = 0;
+  for (let i = 1; i < profile.length; i += 1) {
+    const lengthKm = profile[i].km - profile[i - 1].km;
+    minutes += sport === 'cycling'
+      ? (lengthKm * 1000) / cyclingSpeedForPower(powerW, profile[i].grade) / 60
+      : lengthKm * flatPaceMinKm * runningGradeFactor(profile[i].grade);
+  }
+  return minutes;
+}
+
 /* ------------------------------------------------------------------ */
 /* Planning                                                             */
 /* ------------------------------------------------------------------ */

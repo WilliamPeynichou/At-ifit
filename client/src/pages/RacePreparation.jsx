@@ -281,6 +281,10 @@ export default function RacePreparation() {
             raceName: current.raceName || info.name,
             distanceKm: info.distanceKm,
             elevationGainM: info.elevationGainM,
+            ...(info.estimatedMinutes > 0 ? {
+              targetHours: Math.floor(info.estimatedMinutes / 60),
+              targetMinutes: info.estimatedMinutes % 60,
+            } : {}),
           }))}
         />
       )}

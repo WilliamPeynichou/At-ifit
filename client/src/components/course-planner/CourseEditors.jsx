@@ -203,7 +203,7 @@ function SectionRow({ section, sport, issue, result, onPatch, onRemove, onHoverK
         <Metrics
           items={[
             ['Durée', formatDuration(result.minutes)],
-            ['Allure', formatPace(result.avgPaceMinKm)],
+            ...(sport === 'cycling' ? [] : [['Allure', formatPace(result.avgPaceMinKm)]]),
             ['Vitesse', `${formatOneDecimal(result.avgSpeedKmh)} km/h`],
             ['D+ / D−', `${result.gainM} / ${result.lossM} m`],
             ['Passage', `${result.enterClock} → ${result.exitClock}`],

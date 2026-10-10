@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, FileUp, Mountain, RotateCcw, Route, Sparkles, Timer, Upload } from 'lucide-react';
-import { buildCourse, computePlan, parseGpx, plannerStorageKey } from '../../utils/gpxCourse';
+import { buildCourse, computePlan, estimateCourseMinutes, parseGpx, plannerStorageKey } from '../../utils/gpxCourse';
 import CourseProfileChart from './CourseProfileChart';
 import CourseMap from './CourseMap';
 import CourseEditors from './CourseEditors';
@@ -129,6 +129,7 @@ export default function CoursePlanner({ sport = 'running', raceName, targetMinut
         name: parsed.name,
         distanceKm: Number(built.stats.distanceKm.toFixed(2)),
         elevationGainM: built.stats.gainM,
+        estimatedMinutes: Math.round(estimateCourseMinutes(built, plannerSport)),
       });
     } catch (err) {
       setError(err.message || 'Impossible de lire ce GPX.');

@@ -34,6 +34,9 @@ for (const sport of ['Course à pied', 'Triathlon']) {
     const inputs = page.locator('input[type=file]');
     await inputs.first().setInputFiles({ name: 'trail.gpx', mimeType: 'application/gpx+xml', buffer: Buffer.from(buildGpx()) });
     await expect(page.getByText('Quoi prendre à chaque ravito').first()).toBeVisible();
+    if (sport !== 'Triathlon') {
+      await expect(page.getByText(/Objectif 4h00/)).toHaveCount(0);
+    }
     await expect(page.getByRole('group', { name: 'Profil altimétrique du parcours' }).first()).toBeVisible();
 
     const chart = page.locator('.recharts-surface').first();
