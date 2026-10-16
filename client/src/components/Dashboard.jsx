@@ -224,7 +224,7 @@ const Dashboard = () => {
         {/* BMI Card */}
         <div className="flex">
           <div className="glass-panel p-6 relative  w-full flex flex-col">
-            <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(0,85,255,0.15)' }}></div>
+            <div className="absolute top-0 right-0 w-20 h-20 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,85,255,0.15) 0%, transparent 70%)' }}></div>
             <div className="flex items-center gap-3 mb-6 relative z-10">
               <div className="p-2 rounded-lg" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>
                 <Scale className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />
@@ -341,7 +341,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="h-64 sm:h-96">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={150}>
                 <ComposedChart data={combinedData} margin={{ top: 5, right: 0, left: -24, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis

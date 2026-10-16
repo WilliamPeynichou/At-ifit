@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
 import { Download, Activity, Mountain, Flame, Clock } from 'lucide-react';
 import useAnalyticsSummary from '../../../hooks/useAnalyticsSummary';
 import { useTemporal } from '../../../context/TemporalContext';
@@ -23,6 +22,7 @@ const Poster = () => {
     if (!posterRef.current) return;
     setDownloading(true);
     try {
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(posterRef.current, {
         backgroundColor: null,
         scale: 2,

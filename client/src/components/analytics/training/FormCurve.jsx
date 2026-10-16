@@ -59,7 +59,7 @@ const FormCurve = () => {
           Courbe CTL / ATL / TSB (90 jours)
         </h3>
         <div className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <ComposedChart data={curve.map(d => ({ ...d, date: formatDateShort(d.date) }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" interval="preserveStartEnd" />
@@ -86,7 +86,7 @@ const FormCurve = () => {
           Charge quotidienne (TRIMP / suffer score)
         </h3>
         <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <AreaChart data={curve.map(d => ({ ...d, date: formatDateShort(d.date) }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" interval="preserveStartEnd" />

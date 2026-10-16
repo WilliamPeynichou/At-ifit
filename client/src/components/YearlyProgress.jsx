@@ -195,7 +195,7 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false, s
             </div>
 
           {/* Graphique km/mois */}
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={200} debounce={150}>
             <BarChart data={monthlyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />

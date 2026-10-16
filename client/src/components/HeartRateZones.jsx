@@ -108,7 +108,7 @@ const HeartRateZones = ({ activities: providedActivities }) => {
         <div className="flex flex-col sm:flex-row items-center gap-6">
           {/* Donut */}
           <div className="w-full sm:w-56 h-52 flex-shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
               <PieChart>
                 <Pie
                   data={distribution}

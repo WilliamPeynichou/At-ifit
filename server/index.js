@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const sequelize = require('./database');
 const User = require('./models/User');
 const Weight = require('./models/Weight');
@@ -73,6 +74,9 @@ app.use(helmet({
   contentSecurityPolicy: false, // Géré par le frontend Vite
   crossOriginEmbedderPolicy: false
 }));
+
+// Compression gzip/brotli des réponses (JSON, etc.)
+app.use(compression());
 
 // CORS — origines autorisées explicitement
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5174').split(',').map(o => o.trim());

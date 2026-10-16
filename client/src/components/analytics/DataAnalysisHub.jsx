@@ -70,11 +70,11 @@ const DataAnalysisHub = ({ activities }) => {
           boxShadow: '0 20px 60px rgba(252,76,2,0.4)',
         }}
       >
-        <div className="absolute -top-10 -right-10 w-60 h-60 rounded-full blur-3xl opacity-30 bg-white" />
+        <div className="absolute -top-40 -right-40 w-120 h-120 rounded-full opacity-30 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 70%)' }} />
         <div className="relative z-10 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
+              <div className="p-3 rounded-xl bg-white/20">
                 {cards[0].icon}
               </div>
               <span className="text-xs font-bold uppercase tracking-widest text-white/80">

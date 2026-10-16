@@ -19,7 +19,7 @@ const Tile = ({ icon, label, value, suffix = '', accent = '#fc4c02', sub = '', d
       backdropFilter: 'blur(12px)',
     }}
   >
-    <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20" style={{ background: accent }} />
+    <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle, ${accent} 0%, transparent 70%)` }} />
     <div className="relative z-10">
       <div className="flex items-center gap-2 mb-3" style={{ color: accent }}>
         {icon}

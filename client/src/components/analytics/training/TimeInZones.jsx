@@ -104,7 +104,7 @@ const TimeInZones = () => {
         <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
           <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-secondary)' }}>Répartition globale</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
               <PieChart>
                 <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2}>
                   {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -185,7 +185,7 @@ const TimeInZones = () => {
       <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
         <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-secondary)' }}>Temps en zones par semaine</h3>
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <BarChart data={weekBars}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="week" stroke="#a8a29e" />

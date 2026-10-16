@@ -49,7 +49,7 @@ const WeightForm = ({ onUpdate }) => {
 
   return (
     <div className="glass-panel p-6 relative  h-full flex flex-col">
-      <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(0,85,255,0.15)' }}></div>
+      <div className="absolute top-0 right-0 w-20 h-20 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,85,255,0.15) 0%, transparent 70%)' }}></div>
 
       <div className="flex items-center gap-3 mb-6 relative z-10">
         <div className="p-2 rounded-lg" style={{ background: 'rgba(0,85,255,0.1)', border: '1.5px solid rgba(0,85,255,0.25)' }}>

@@ -228,7 +228,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
         ) : (
           <>
             <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={150}>
                 <ComposedChart data={ridesChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
                   <XAxis dataKey="dateLabel" stroke="#334155" tick={{ fontSize: 11, fill: '#334155' }} />
@@ -265,7 +265,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
         ) : (
           <>
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={150}>
                 <ScatterChart>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.10)" />
                   <XAxis type="number" dataKey="elevationMeters" name="Dénivelé" unit=" m" stroke="#334155" tick={{ fontSize: 11, fill: '#334155' }} />
@@ -313,7 +313,7 @@ const CyclingPerf = ({ activities, hideKpis = false }) => {
         {data.ftpEstimated ? (
           <>
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={150}>
                 <LineChart data={data.sessions.filter(s => s.tss).map(s => ({
                   ...s,
                   dateLabel: s.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }),

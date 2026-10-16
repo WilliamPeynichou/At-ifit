@@ -10,7 +10,6 @@ import { LegalRoute } from './components/legal/LegalDocument';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
-import ParticlesBackground from './components/ParticlesBackground';
 import CyclistLoader from './components/CyclistLoader';
 
 const Register = lazy(() => import('./pages/Register'));
@@ -47,7 +46,6 @@ function AppInner() {
 
   return (
     <div className="min-h-screen antialiased overflow-x-hidden relative" style={{ color: 'var(--text-primary)' }}>
-      <ParticlesBackground />
       <div className="relative z-10">
         <Suspense fallback={<CyclistLoader />}>
           <Routes>

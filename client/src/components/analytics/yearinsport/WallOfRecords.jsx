@@ -16,7 +16,7 @@ const RecordCard = ({ icon, title, value, unit, activity, accent }) => (
       backdropFilter: 'blur(12px)',
     }}
   >
-    <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full blur-3xl opacity-25" style={{ background: accent }} />
+    <div className="absolute -top-22 -right-22 w-64 h-64 rounded-full opacity-25 pointer-events-none" style={{ background: `radial-gradient(circle, ${accent} 0%, transparent 70%)` }} />
     <div className="relative z-10">
       <div className="flex items-center gap-2 mb-4" style={{ color: accent }}>
         {icon}

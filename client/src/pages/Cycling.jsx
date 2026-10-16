@@ -378,7 +378,7 @@ const CyclingContent = () => {
           <h2 className="text-xl font-bold mb-5">Progression</h2>
           {progressChart.length > 0 ? (
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={150}>
                 <LineChart data={progressChart}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
                   <XAxis dataKey="dateLabel" stroke="rgba(19,16,20,0.45)" />
@@ -408,7 +408,7 @@ const CyclingContent = () => {
         </div>
         {wattsChart.length > 1 ? (
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
               <LineChart data={wattsChart}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
                 <XAxis dataKey="dateLabel" stroke="rgba(19,16,20,0.55)" tick={{ fontSize: 11, fill: '#131014' }} />
@@ -516,7 +516,7 @@ const CyclingContent = () => {
         <section className="glass-panel p-6">
           <h2 className="text-xl font-bold mb-5">Répartition zones · dernière sortie</h2>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
               <BarChart data={rides[0].zoneDurations.map((zone, index) => ({ ...zone, name: `Z${index + 1}` }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
                 <XAxis dataKey="name" />

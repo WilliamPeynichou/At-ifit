@@ -86,7 +86,7 @@ const UserProfile = ({ onUpdate }) => {
 
   return (
     <div className="glass-panel p-4 sm:p-6 relative ">
-      <div className="absolute top-0 right-0 w-20 h-20 blur-3xl rounded-full" style={{ background: 'rgba(0, 85, 255, 0.08)' }}></div>
+      <div className="absolute top-0 right-0 w-20 h-20 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0, 85, 255, 0.08) 0%, transparent 70%)' }}></div>
 
       <div className="flex items-center gap-3 mb-6 relative z-10">
         <div className="p-2 rounded-lg" style={{ background: 'var(--accent-blue-light)', border: '1px solid var(--glass-border)' }}>

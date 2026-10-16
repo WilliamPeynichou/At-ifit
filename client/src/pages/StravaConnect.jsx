@@ -131,7 +131,7 @@ const StravaConnect = () => {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         <div className="glass-panel p-4 sm:p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 blur-3xl rounded-full" style={{ background: 'rgba(252,76,2,0.15)' }}></div>
+          <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(252,76,2,0.15) 0%, transparent 70%)' }}></div>
 
           <div className="relative z-10">
             <div className="flex items-center gap-4 mb-6">

@@ -257,7 +257,7 @@ function VolumeSection({ weeklyStats }) {
     <Section title="Volume d’entraînement" icon={<BarChart3 className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside={message}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <ChartBox empty={!weeklyStats.length && 'Pas assez de données pour tracer le volume.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <BarChart data={weeklyStats}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -268,7 +268,7 @@ function VolumeSection({ weeklyStats }) {
           </ResponsiveContainer>
         </ChartBox>
         <ChartBox empty={!weeklyStats.length && 'Pas assez de données.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={weeklyStats}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -279,7 +279,7 @@ function VolumeSection({ weeklyStats }) {
           </ResponsiveContainer>
         </ChartBox>
         <ChartBox empty={!weeklyStats.length && 'Pas assez de données.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={weeklyStats.map(w => ({ ...w, hours: Number((w.totalMovingTimeMinutes / 60).toFixed(2)) }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -325,7 +325,7 @@ function PaceSection({ activities, weeklyStats }) {
     <Section title="Allure et vitesse" icon={<Gauge className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside="Une allure min/km plus basse indique une sortie plus rapide.">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartBox empty={chartActivities.length < 2 && 'Pas assez de sorties avec allure pour tracer l’évolution.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={chartActivities}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -336,7 +336,7 @@ function PaceSection({ activities, weeklyStats }) {
           </ResponsiveContainer>
         </ChartBox>
         <ChartBox empty={weeklyStats.filter(w => w.averagePaceMinKm).length < 2 && 'Pas assez de semaines pour tracer l’allure hebdomadaire.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={weeklyStats.filter(w => w.averagePaceMinKm)}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -347,7 +347,7 @@ function PaceSection({ activities, weeklyStats }) {
           </ResponsiveContainer>
         </ChartBox>
         <ChartBox empty={chartActivities.length < 2 && 'Pas assez de points pour comparer distance et allure.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="distanceKm" name="Distance" unit=" km" type="number" />
@@ -358,7 +358,7 @@ function PaceSection({ activities, weeklyStats }) {
           </ResponsiveContainer>
         </ChartBox>
         <ChartBox empty={!averages.length && 'Pas assez de données par type de distance.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <BarChart data={averages}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="type" tick={{ fontSize: 11 }} />
@@ -393,7 +393,7 @@ function HeartRateSection({ data, activities, weeklyStats }) {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartBox empty={hrActivities.length < 2 && 'Pas assez de sorties avec cardio.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={hrActivities.map(a => ({ ...a, label: new Date(a.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -404,7 +404,7 @@ function HeartRateSection({ data, activities, weeklyStats }) {
           </ResponsiveContainer>
         </ChartBox>
         <ChartBox empty={weeklyStats.filter(w => w.averageHeartRate).length < 2 && 'Pas assez de semaines avec cardio.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={weeklyStats.filter(w => w.averageHeartRate)}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -424,7 +424,7 @@ function HeartRateSection({ data, activities, weeklyStats }) {
 function ScatterPanel({ data, xKey, yKey, xLabel, yLabel, xFormatter, yFormatter, color, empty }) {
   return (
     <ChartBox empty={data.length < 2 && empty}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" debounce={150}>
         <ScatterChart>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
           <XAxis dataKey={xKey} name={xLabel} tickFormatter={xFormatter} type="number" />
@@ -446,7 +446,7 @@ function TrainingLoadSection({ weeklyStats, ratios, status }) {
     <Section title="Charge d’entraînement" icon={<ShieldAlert className="w-5 h-5" style={{ color: '#f97316' }} />} aside={latest?.ratio ? `${latest.status} · ratio ${latest.ratio}` : note}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartBox empty={!weeklyStats.length && 'Pas assez de données de charge.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <BarChart data={weeklyStats}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -457,7 +457,7 @@ function TrainingLoadSection({ weeklyStats, ratios, status }) {
           </ResponsiveContainer>
         </ChartBox>
         <ChartBox empty={ratios.filter(r => r.ratio).length < 2 && 'Le ratio nécessite plusieurs semaines.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={ratios.filter(r => r.ratio)}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -483,7 +483,7 @@ function RegularitySection({ regularity, weeklyStats }) {
         <MiniStat label="Semaines >= 2 sorties" value={regularity?.weeksWithAtLeastTwoRuns || 0} />
       </div>
       <ChartBox empty={!weeklyStats.length && 'Pas assez de semaines pour mesurer la régularité.'}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={150}>
           <BarChart data={weeklyStats}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -502,7 +502,7 @@ function LongRunsSection({ longRuns }) {
   return (
     <Section title="Sorties longues" icon={<Route className="w-5 h-5" style={{ color: '#16a34a' }} />} aside={latest?.shareOfWeeklyVolume ? `Dernière part hebdo : ${Math.round(latest.shareOfWeeklyVolume * 100)} %` : 'Plus longue sortie par semaine'}>
       <ChartBox empty={!longRuns.length && 'Pas assez de données pour détecter les sorties longues.'}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={150}>
           <LineChart data={longRuns}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -541,7 +541,7 @@ function ElevationSection({ data, weeklyStats, activities }) {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <ChartBox empty={!weeklyStats.length && 'Pas assez de données.'}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <BarChart data={weeklyStats}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />

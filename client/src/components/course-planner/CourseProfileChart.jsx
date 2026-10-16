@@ -306,7 +306,7 @@ const CourseProfileChart = ({ course, plan = null, hoverKm = null, onHoverKm, on
       </div>
 
       <div ref={chartRef} className="relative mt-4 h-72 w-full sm:h-80 lg:h-96" onWheel={handleWheel} onDoubleClick={() => onZoom?.(null)}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={150}>
           <AreaChart
             data={data}
             margin={{ top: topMargin, right: RIGHT_PAD, bottom: 0, left: 0 }}

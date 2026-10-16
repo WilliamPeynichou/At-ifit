@@ -181,7 +181,7 @@ const NewUserProfile = () => {
 
             <div className="sm:col-span-2">
               <div className="rounded-xl p-4 sm:p-6 relative overflow-hidden" style={{ background: 'rgba(0,85,255,0.06)', border: '2px solid var(--glass-border)' }}>
-                <div className="absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full" style={{ background: 'rgba(0,85,255,0.12)' }}></div>
+                <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,85,255,0.12) 0%, transparent 70%)' }}></div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 rounded-lg" style={{ background: 'rgba(0,85,255,0.1)', border: '1px solid var(--glass-border)' }}>
@@ -253,7 +253,7 @@ const NewUserProfile = () => {
             {/* Target Weight - Highlighted */}
             <div className="sm:col-span-2">
               <div className="rounded-xl p-4 sm:p-6 relative overflow-hidden" style={{ background: 'rgba(249,115,22,0.08)', border: '2px solid var(--glass-border)' }}>
-                <div className="absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full" style={{ background: 'rgba(249,115,22,0.15)' }}></div>
+                <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)' }}></div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 rounded-lg" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid var(--glass-border)' }}>

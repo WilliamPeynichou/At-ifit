@@ -111,7 +111,7 @@ const WeightPerformanceChart = () => {
         </div>
       ) : (
         <>
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={260} debounce={150}>
             <ComposedChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="distanceBarGradient" x1="0" y1="0" x2="0" y2="1">

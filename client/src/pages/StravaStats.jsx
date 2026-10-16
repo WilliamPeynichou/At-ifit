@@ -44,8 +44,17 @@ const StravaStatsContent = () => {
   }, [fromISO, toISO]);
 
   useEffect(() => {
-    const id = setInterval(fetchSyncStatus, 15000);
-    return () => clearInterval(id);
+    const id = setInterval(() => {
+      if (!document.hidden) fetchSyncStatus();
+    }, 15000);
+    const onVisibilityChange = () => {
+      if (!document.hidden) fetchSyncStatus();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   const fetchSyncStatus = async () => {
@@ -519,7 +528,7 @@ const StravaStatsContent = () => {
           )}
         </div>
         <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <AreaChart data={filteredGlobalProgression} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="cumulGradient" x1="0" y1="0" x2="0" y2="1">
@@ -581,7 +590,7 @@ const StravaStatsContent = () => {
           <Activity size={20} className="text-[#00f3ff]" /> {t('stravaStats.progressionBySport')}
         </h3>
         <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={sportChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="date" stroke="#a8a29e" />
@@ -610,7 +619,7 @@ const StravaStatsContent = () => {
           <Heart size={20} className="text-[#ec4899]" /> {t('stravaStats.heartRateEvolution')}
         </h3>
         <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={filteredGlobalProgression.filter(d => d.bpm > 0)}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis

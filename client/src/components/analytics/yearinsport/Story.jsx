@@ -8,8 +8,8 @@ const StoryCard = ({ headline, value, unit, sub, gradient, footer }) => (
     className="rounded-3xl p-8 sm:p-12 min-h-[400px] flex flex-col justify-between relative overflow-hidden"
     style={{ background: gradient, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}
   >
-    <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full blur-3xl opacity-30 bg-white" />
-    <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full blur-3xl opacity-20 bg-white" />
+    <div className="absolute -top-60 -right-60 w-160 h-160 rounded-full opacity-30 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 70%)' }} />
+    <div className="absolute -bottom-50 -left-50 w-120 h-120 rounded-full opacity-20 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 70%)' }} />
 
     <div className="relative z-10">
       <p className="text-white/80 text-sm sm:text-base font-bold uppercase tracking-widest mb-6">

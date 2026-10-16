@@ -64,6 +64,18 @@
   body {
     @apply antialiased overflow-x-hidden;
     background-color: var(--bg-primary) !important;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Fond décoratif fixe, hors du body (évite le repaint du fond à chaque scroll) */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     /* Grille pixel 4px — écho du cyclist loader + radial bleu aux coins */
     background-image:
       radial-gradient(ellipse at 12% 8%,   rgba(0, 85, 255, 0.07), transparent 45%),
@@ -71,10 +83,6 @@
       linear-gradient(rgba(0, 85, 255, 0.022) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 85, 255, 0.022) 1px, transparent 1px);
     background-size: cover, cover, 4px 4px, 4px 4px;
-    background-attachment: fixed;
-    font-family: var(--font-body);
-    color: var(--text-primary);
-    font-feature-settings: 'tnum' 1;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -158,7 +166,6 @@ select.input-cyber option {
 
   /* ── Glassmorphism Panel ── */
   .glass-panel {
-    @apply backdrop-blur-xl;
     background: var(--glass-white);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -168,7 +175,8 @@ select.input-cyber option {
 
   /* ── Glassmorphism Card ── */
   .glass-card {
-    @apply backdrop-blur-md transition-all duration-300;
+    transition: transform 300ms, box-shadow 300ms, border-color 300ms, background-color 300ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     background: var(--glass-white);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-sm);
@@ -207,7 +215,6 @@ select.input-cyber option {
 
   /* ── Nav glass sombre — texte clair ── */
   .glass-nav {
-    @apply backdrop-blur-md;
     background: rgba(11, 10, 13, 0.92);
     border-bottom: 1px solid rgba(0, 85, 255, 0.1);
     --text-primary:   #e8e8e8;
@@ -279,7 +286,9 @@ select.input-cyber option {
 
   /* ── Bouton principal bleu ── */
   .btn-primary {
-    @apply relative px-6 py-3 font-semibold text-white transition-all duration-200;
+    @apply relative px-6 py-3 font-semibold text-white duration-200;
+    transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     font-family: var(--font-display);
     letter-spacing: 0.1em;
     background: var(--accent-blue);
@@ -300,7 +309,9 @@ select.input-cyber option {
 
   /* Backward compat */
   .btn-cyber {
-    @apply relative px-6 py-3 font-semibold text-white transition-all duration-200 overflow-hidden;
+    @apply relative px-6 py-3 font-semibold text-white duration-200 overflow-hidden;
+    transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     font-family: var(--font-display);
     letter-spacing: 0.1em;
     background: var(--accent-blue);
@@ -320,7 +331,9 @@ select.input-cyber option {
   }
 
   .btn-ghost {
-    @apply px-6 py-3 font-medium transition-all duration-200;
+    @apply px-6 py-3 font-medium duration-200;
+    transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     font-family: var(--font-body);
     background: transparent;
     border: 1px solid var(--glass-border);
@@ -336,7 +349,9 @@ select.input-cyber option {
 
   /* ── Inputs sombres ── */
   .input-clean {
-    @apply w-full px-4 py-3 outline-none transition-all duration-200;
+    @apply w-full px-4 py-3 outline-none duration-200;
+    transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     background: rgba(19, 16, 20, 0.04);
     border: 1px solid rgba(0, 85, 255, 0.14);
     color: var(--text-primary);
@@ -355,7 +370,9 @@ select.input-cyber option {
 
   /* Backward compat */
   .input-cyber {
-    @apply w-full px-4 py-3 outline-none transition-all duration-200;
+    @apply w-full px-4 py-3 outline-none duration-200;
+    transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     background: rgba(19, 16, 20, 0.04);
     border: 1px solid rgba(0, 85, 255, 0.14);
     color: var(--text-primary);

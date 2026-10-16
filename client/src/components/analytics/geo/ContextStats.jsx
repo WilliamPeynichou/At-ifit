@@ -114,7 +114,7 @@ const ContextStats = ({ activities }) => {
         <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
           <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-secondary)' }}>Distribution horaire</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
               <BarChart data={Object.entries(data.hourBuckets).map(([k, v]) => ({ name: k, count: v }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="name" stroke="#a8a29e" tick={{ fontSize: 10 }} />
@@ -129,7 +129,7 @@ const ContextStats = ({ activities }) => {
         <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
           <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-secondary)' }}>Par jour de la semaine</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
               <BarChart data={data.dayBuckets}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="day" stroke="#a8a29e" />
@@ -149,7 +149,7 @@ const ContextStats = ({ activities }) => {
         <div className="rounded-2xl p-6" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
           <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-secondary)' }}>Conditions météo (température moyenne)</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
               <BarChart data={data.tempBuckets}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="range" stroke="#a8a29e" />
