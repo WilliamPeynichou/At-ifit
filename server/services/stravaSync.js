@@ -16,10 +16,11 @@ const STREAM_TYPES = [
 ];
 
 // Parallélisation contrôlée : batchs de N requêtes en parallèle avec pause entre batchs.
-// Strava limite à 100 req/15min. Batch de 5 + pause 1s = max 5 req/s = 300/min — on dépasserait
-// le rate limit. Avec pause 4s entre batchs : 5 req/4s = 75/min = OK pour 15min cumulés.
+// Le débit réel est borné par le limiteur de quota global (utils/stravaRateLimiter, Lot A) :
+// quota lecture Strava par défaut = 100 req/15 min et 1 000 req/jour.
+// Batch de 5 + pause 1 s ; si le quota journalier est atteint, l'enrichissement s'arrête (statut partial).
 const BATCH_SIZE = 5;
-const BATCH_DELAY_MS = 4000;
+const BATCH_DELAY_MS = 1000;
 const INCREMENTAL_OVERLAP_DAYS = parseInt(process.env.STRAVA_INCREMENTAL_OVERLAP_DAYS || '14', 10);
 const STATUS_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -132,6 +133,21 @@ function mapStravaActivity(raw, userId) {
   };
 }
 
+// Champs écrasés lors d'un upsert de résumé. Exclus : userId / stravaId (clé d'unicité) et
+// calories (absent du résumé Strava : l'inclure remettrait calories à null à chaque sync).
+const SUMMARY_NEVER_UPDATED = new Set(['userId', 'stravaId', 'calories']);
+const SUMMARY_UPDATE_FIELDS = [
+  ...Object.keys(mapStravaActivity({ id: 0, start_date: '1970-01-01T00:00:00Z' }, 0)).filter(k => !SUMMARY_NEVER_UPDATED.has(k)),
+  'updatedAt',
+];
+
+function pickSummaryUpdate(data) {
+  const out = {};
+  for (const key of SUMMARY_UPDATE_FIELDS) {
+    if (key in data) out[key] = data[key];
+  }
+  return out;
+}
 /**
  * Mappe le détail d'une activité (endpoint /activities/{id}) vers les colonnes enrichies
  */
@@ -195,11 +211,62 @@ function mapStravaStreams(streams, activityId, stravaId) {
 }
 
 /**
- * Upsert un tableau d'activités Strava (résumé seulement) en base locale
+ * Upsert un tableau d'activités Strava (résumé seulement) en base locale.
+ * Essaie d'abord en lot (2 requêtes SQL) ; en cas d'échec, repli ligne à ligne.
  */
 async function upsertActivities(activities, userId) {
   if (!activities || activities.length === 0) return { total: 0, created: 0, updated: 0 };
 
+  try {
+    return await upsertActivitiesBulk(activities, userId);
+  } catch (err) {
+    logger.warn('[StravaSync] Upsert en lot échoué, repli ligne à ligne', { userId, error: publicError(err) });
+    return upsertActivitiesOneByOne(activities, userId);
+  }
+}
+
+async function upsertActivitiesBulk(activities, userId) {
+  const rows = [];
+  for (const raw of activities) {
+    try {
+      const data = mapStravaActivity(raw, userId);
+      if (data.stravaId == null) throw new Error('STRAVA_ID_MISSING');
+      rows.push(data);
+    } catch (err) {
+      logger.warn('[StravaSync] Erreur mapping activité', { stravaId: raw?.id, userId, error: publicError(err) });
+    }
+  }
+  if (rows.length === 0) return { total: 0, created: 0, updated: 0 };
+
+  const stravaIds = [...new Set(rows.map(r => r.stravaId))];
+  const existingRows = await Activity.findAll({
+    where: { userId, stravaId: stravaIds },
+    attributes: ['stravaId'],
+    raw: true,
+  });
+  const known = new Set(existingRows.map(r => String(r.stravaId)));
+
+  // Compteurs identiques à des upserts successifs : une occurrence déjà connue (en base ou
+  // plus tôt dans la page) compte en updated ; la dernière occurrence d'un id gagne.
+  let created = 0;
+  let updated = 0;
+  const byStravaId = new Map();
+  for (const row of rows) {
+    const key = String(row.stravaId);
+    if (known.has(key)) {
+      updated++;
+    } else {
+      known.add(key);
+      created++;
+    }
+    byStravaId.set(key, row);
+  }
+
+  await Activity.bulkCreate([...byStravaId.values()], { updateOnDuplicate: SUMMARY_UPDATE_FIELDS });
+  return { total: rows.length, created, updated };
+}
+
+async function upsertActivitiesOneByOne(activities, userId) {
   let total = 0;
   let created = 0;
   let updated = 0;
@@ -208,7 +275,7 @@ async function upsertActivities(activities, userId) {
       const data = mapStravaActivity(raw, userId);
       const existing = await Activity.findOne({ where: { userId, stravaId: raw.id } });
       if (existing) {
-        await existing.update(data);
+        await existing.update(pickSummaryUpdate(data));
         updated++;
       } else if (typeof Activity.create === 'function') {
         await Activity.create(data);
@@ -242,6 +309,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
       await Activity.update(updates, { where: { id: activity.id } });
       detailCalled = true;
     } catch (err) {
+      if (err.code === 'STRAVA_DAILY_QUOTA') throw err; // propagé : arrête l'enrichissement
       logger.warn('[StravaSync] Échec fetch détail', { stravaId: activity.stravaId, error: publicError(err) });
     }
   }
@@ -260,6 +328,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
       }
       streamCalled = true;
     } catch (err) {
+      if (err.code === 'STRAVA_DAILY_QUOTA') throw err; // propagé : arrête l'enrichissement
       logger.warn('[StravaSync] Échec fetch streams', { stravaId: activity.stravaId, error: publicError(err) });
     }
   }
@@ -285,6 +354,14 @@ async function enrichActivityByStravaId(stravaId, userId) {
   if (!accessToken) return null;
 
   return enrichActivity(activity, accessToken);
+}
+
+/**
+ * Applique un détail d'activité déjà récupéré (ex. webhook) : pose detailFetchedAt
+ * pour que enrichActivity ne refasse pas l'appel détail.
+ */
+async function applyActivityDetail(userId, stravaId, detail) {
+  return Activity.update(mapStravaActivityDetail(detail), { where: { userId, stravaId } });
 }
 
 /**
@@ -320,6 +397,7 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
 
   let totalDetail = 0;
   let totalStream = 0;
+  let quotaExhausted = false;
 
   // Découpe en batchs et traite chaque batch en parallèle
   for (let i = 0; i < activities.length; i += BATCH_SIZE) {
@@ -332,7 +410,14 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
       if (r.status === 'fulfilled') {
         if (r.value.detailCalled) totalDetail++;
         if (r.value.streamCalled) totalStream++;
+      } else if (r.reason?.code === 'STRAVA_DAILY_QUOTA') {
+        quotaExhausted = true;
       }
+    }
+
+    if (quotaExhausted) {
+      logger.warn('[StravaSync] Quota Strava journalier atteint, arrêt de l\'enrichissement', { userId, totalDetail, totalStream });
+      break;
     }
 
     // Pause entre batchs pour respecter rate limit (sauf après le dernier)
@@ -343,6 +428,13 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
 
   logger.info('[StravaSync] Enrichissement terminé', { userId, totalDetail, totalStream });
   setSyncStatus(userId, { enriched: totalDetail, streams: totalStream });
+  if (quotaExhausted) {
+    // Idempotent : les activités restantes (detailFetchedAt / streamFetchedAt null) seront reprises à la prochaine sync
+    setSyncStatus(userId, {
+      status: 'partial',
+      errors: [...(syncStatuses.get(userId)?.errors || []), 'STRAVA_DAILY_QUOTA'],
+    });
+  }
   return { success: true, totalDetail, totalStream, enriched: totalDetail, streams: totalStream };
 }
 
@@ -388,7 +480,7 @@ async function _doSync(userId, { enrich = true, mode = 'full' } = {}) {
   let totalCreated = 0;
   let totalUpdated = 0;
   const errors = [];
-  const PER_PAGE = 100;
+  const PER_PAGE = 200;
 
   logger.info('[StravaSync] Début sync complète', { userId });
 
@@ -467,7 +559,7 @@ async function syncSince(userId, afterTimestamp, { enrich = true, overlapDays = 
   }
 
   try {
-    const PER_PAGE = 100;
+    const PER_PAGE = 200;
     const safeOverlapDays = Number.isFinite(overlapDays) ? Math.max(0, overlapDays) : INCREMENTAL_OVERLAP_DAYS;
     const effectiveAfter = afterTimestamp
       ? Math.max(0, Number(afterTimestamp) - safeOverlapDays * 86400)
@@ -524,6 +616,7 @@ module.exports = {
   upsertActivities,
   enrichActivity,
   enrichActivityByStravaId,
+  applyActivityDetail,
   enrichUserActivities,
   mapStravaActivity,
   mapStravaActivityDetail,

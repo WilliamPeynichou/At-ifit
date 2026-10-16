@@ -1,6 +1,6 @@
 const Activity = require('../models/Activity');
 const User = require('../models/User');
-const { upsertActivities, enrichActivityByStravaId } = require('./stravaSync');
+const { upsertActivities, enrichActivityByStravaId, applyActivityDetail } = require('./stravaSync');
 const { getValidStravaToken, getActivity } = require('../utils/stravaHelpers');
 const logger = require('../utils/logger');
 const cache = require('../utils/memoryCache');
@@ -34,14 +34,15 @@ async function handleStravaEvent(event) {
     try {
       const token = await getValidStravaToken(targetUser);
       if (!token) return;
-      const raw = await getActivity(token, object_id);
+      const raw = await getActivity(token, object_id, { userId });
       if (raw) {
         await upsertActivities([raw], userId);
+        // Le détail vient d'être reçu : on l'applique et on pose detailFetchedAt,
+        // pour que l'enrichissement ci-dessous ne refasse pas l'appel détail (seuls les streams restent).
+        await applyActivityDetail(userId, object_id, raw);
         logger.info('[Webhook] Activité upsertée', { userId, activityId: object_id, aspect_type });
 
-        // Auto-enrichissement (détail + streams) en background
-        // — pour les `create`, l'upsert ci-dessus utilise déjà le détail, mais il manque les streams.
-        // — pour les `update`, on re-fetch détail + streams au cas où.
+        // Auto-enrichissement (streams) en background
         enrichActivityByStravaId(object_id, userId)
           .then((result) => {
             if (result) {

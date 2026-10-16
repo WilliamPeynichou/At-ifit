@@ -25,6 +25,7 @@ jest.mock('axios', () => mockAxios);
 
 const axios = require('axios');
 const { stravaFetch, getValidStravaToken } = require('../utils/stravaHelpers');
+const stravaRateLimiter = require('../utils/stravaRateLimiter');
 const User = require('../models/User');
 const { logStravaApiCall } = require('../services/stravaApiLogService');
 const { logAuditEvent } = require('../services/auditService');
@@ -37,6 +38,7 @@ describe('stravaFetch', () => {
     jest.clearAllMocks();
     axios.mockReset && axios.mockReset();
     axios.post.mockReset && axios.post.mockReset();
+    stravaRateLimiter._reset();
   });
 
   test('retourne data sur réponse 200', async () => {
@@ -113,7 +115,7 @@ describe('stravaFetch', () => {
     const rateLimitError = new Error('Too Many Requests');
     rateLimitError.response = {
       status: 429,
-      headers: { 'x-ratelimit-reset': '1' }, // 1 seconde (mocké)
+      headers: { 'x-ratelimit-reset': '1' }, // ignoré : Strava n'expose pas ce header
     };
 
     axios
@@ -123,6 +125,76 @@ describe('stravaFetch', () => {
     const result = await stravaFetch('https://www.strava.com/api/v3/athlete', {});
     expect(result).toEqual({ id: 3 });
     expect(axios).toHaveBeenCalledTimes(2);
+  });
+
+  test('429 : attend jusqu\'au prochain quart d\'heure (+2 s), pas x-ratelimit-reset', async () => {
+    const rateLimitError = new Error('Too Many Requests');
+    rateLimitError.response = { status: 429, headers: { 'x-ratelimit-reset': '1' } };
+    axios
+      .mockRejectedValueOnce(rateLimitError)
+      .mockResolvedValueOnce({ data: { id: 4 } });
+
+    await stravaFetch('https://www.strava.com/api/v3/athlete', {});
+
+    const waits = global.setTimeout.mock.calls.map(([, ms]) => ms);
+    const expected = stravaRateLimiter.waitMsUntilNextQuarterHour();
+    expect(waits).toContain(expected);
+    expect(expected).toBeGreaterThan(2000);
+    expect(expected).toBeLessThanOrEqual(15 * 60 * 1000 + 2000);
+  });
+
+  test('429 : un seul nouvel essai puis échec propre (status 429)', async () => {
+    const rateLimitError = new Error('Too Many Requests');
+    rateLimitError.response = { status: 429, headers: {} };
+    axios.mockRejectedValue(rateLimitError);
+
+    await expect(stravaFetch('https://www.strava.com/api/v3/athlete', {}))
+      .rejects.toMatchObject({ response: { status: 429 } });
+    expect(axios).toHaveBeenCalledTimes(2); // 1 initial + 1 retry
+  });
+
+  test('lit les headers de quota sur succès et les injecte dans le limiteur', async () => {
+    axios.mockResolvedValueOnce({
+      status: 200,
+      data: { id: 5 },
+      headers: { 'x-readratelimit-usage': '7,8', 'x-readratelimit-limit': '100,1000' },
+    });
+
+    await stravaFetch('https://www.strava.com/api/v3/athlete', {});
+
+    const state = stravaRateLimiter.getState();
+    expect(state.read15).toBe(7);
+    expect(state.readDay).toBe(8);
+    expect(state.read15Limit).toBe(100);
+  });
+
+  test('lit les headers de quota aussi sur erreur', async () => {
+    const rateLimitError = new Error('Too Many Requests');
+    rateLimitError.response = {
+      status: 429,
+      headers: { 'x-readratelimit-usage': '100,100', 'x-readratelimit-limit': '100,1000' },
+    };
+    axios.mockRejectedValue(rateLimitError);
+
+    await expect(stravaFetch('https://www.strava.com/api/v3/athlete', {})).rejects.toThrow();
+    expect(stravaRateLimiter.getState().readDay).toBe(100);
+  });
+
+  test('STRAVA_DAILY_QUOTA : propagé sans appel Strava ni retry', async () => {
+    stravaRateLimiter.updateFromHeaders({ 'x-readratelimit-usage': '0,990', 'x-readratelimit-limit': '100,1000' });
+
+    await expect(stravaFetch('https://www.strava.com/api/v3/athlete', {}))
+      .rejects.toMatchObject({ code: 'STRAVA_DAILY_QUOTA' });
+    expect(axios).not.toHaveBeenCalled();
+  });
+
+  test('les appels GET consomment le quota lecture, POST non', async () => {
+    axios.mockResolvedValue({ data: {} });
+    await stravaFetch('https://www.strava.com/api/v3/athlete', { method: 'GET' });
+    await stravaFetch('https://www.strava.com/api/v3/athlete', { method: 'POST' });
+    const state = stravaRateLimiter.getState();
+    expect(state.readDay).toBe(1);
+    expect(state.allDay).toBe(2);
   });
 });
 

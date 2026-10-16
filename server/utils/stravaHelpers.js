@@ -1,5 +1,6 @@
 const axios = require('axios');
 const logger = require('./logger');
+const stravaRateLimiter = require('./stravaRateLimiter');
 const { logStravaApiCall } = require('../services/stravaApiLogService');
 const { logAuditEvent } = require('../services/auditService');
 
@@ -31,7 +32,7 @@ function countItems(data) {
 
 /**
  * Helper centralisé pour tous les appels API Strava
- * Gère : 401 zombie token, 429 rate limit (backoff), 5xx (retry)
+ * Gère : quota global (stravaRateLimiter), 401 zombie token, 429 (attente jusqu'au prochain quart d'heure, 1 seul retry), 5xx (retry)
  */
 const stravaFetch = async (url, options = {}, { userId } = {}) => {
   const MAX_RETRIES = 3;
@@ -41,11 +42,15 @@ const stravaFetch = async (url, options = {}, { userId } = {}) => {
   const method = options.method || 'GET';
   const callType = options.callType || classifyStravaCall(url);
   let attempts = 0;
+  let rateLimitRetries = 0;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     attempts = attempt + 1;
+    // Réserve 1 appel dans le budget global ; peut attendre le quart d'heure ou lever STRAVA_DAILY_QUOTA (non retenté)
+    await stravaRateLimiter.acquire({ isRead: method === 'GET' });
     try {
       const response = await axios({ url, ...options });
+      stravaRateLimiter.updateFromHeaders(response.headers);
       await logStravaApiCall({
         userId,
         callType,
@@ -61,6 +66,7 @@ const stravaFetch = async (url, options = {}, { userId } = {}) => {
       return response.data;
     } catch (error) {
       const status = error.response?.status;
+      stravaRateLimiter.updateFromHeaders(error.response?.headers);
 
       // 401 — token révoqué externalement (zombie token)
       if (status === 401) {
@@ -110,11 +116,11 @@ const stravaFetch = async (url, options = {}, { userId } = {}) => {
         throw err;
       }
 
-      // 429 — rate limit Strava (15 req/15min ou 600/jour)
-      if (status === 429) {
-        const retryAfter = parseInt(error.response?.headers['x-ratelimit-reset'] || '900', 10);
-        const waitMs = Math.min(retryAfter * 1000, 15 * 60 * 1000); // max 15min
-        logger.warn('[StravaFetch] Rate limit 429 — pause', { userId, url, waitMs });
+      // 429 — rate limit Strava : attente jusqu'au prochain quart d'heure (+2 s), un seul nouvel essai
+      if (status === 429 && rateLimitRetries < 1) {
+        rateLimitRetries += 1;
+        const waitMs = stravaRateLimiter.waitMsUntilNextQuarterHour();
+        logger.warn('[StravaFetch] Rate limit 429 — pause jusqu\'au quart d\'heure', { userId, url, waitMs });
         await new Promise(r => setTimeout(r, waitMs));
         continue;
       }

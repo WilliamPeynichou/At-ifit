@@ -1,6 +1,7 @@
 jest.mock('../models/Activity', () => ({
   upsert: jest.fn(),
   create: jest.fn(),
+  bulkCreate: jest.fn(),
   update: jest.fn(),
   findAll: jest.fn(),
   findOne: jest.fn(),
@@ -35,6 +36,8 @@ const {
   syncSince,
   syncUserActivities,
   upsertActivities,
+  enrichUserActivities,
+  getSyncStatus,
   mapStravaActivityDetail,
 } = require('../services/stravaSync');
 
@@ -49,6 +52,9 @@ describe('stravaSync incremental', () => {
     Activity.findAll.mockReset();
     Activity.findOne.mockReset();
     Activity.create.mockReset();
+    Activity.bulkCreate.mockReset();
+    stravaHelpers.getActivity.mockReset();
+    stravaHelpers.getActivityStreams.mockReset();
 
     User.findByPk.mockResolvedValue({ id: 42, stravaAccessToken: 'token', stravaRefreshToken: 'refresh' });
     User.update.mockResolvedValue([1]);
@@ -57,6 +63,7 @@ describe('stravaSync incremental', () => {
     Activity.findAll.mockResolvedValue([]);
     Activity.findOne.mockResolvedValue(null);
     Activity.create.mockResolvedValue({});
+    Activity.bulkCreate.mockResolvedValue([]);
   });
 
   test('syncSince utilise une fenêtre de recouvrement pour récupérer les activités antidatées/importées après coup', async () => {
@@ -71,50 +78,121 @@ describe('stravaSync incremental', () => {
     expect(result.synced).toBe(1);
     expect(result.fetched).toBe(1);
     expect(stravaHelpers.fetchStravaActivities).toHaveBeenCalledWith('valid-token', {
-      per_page: 100,
+      per_page: 200,
       page: 1,
       after: afterTimestamp - 14 * 86400,
     }, { userId: 42 });
-    expect(Activity.findOne).toHaveBeenCalledWith({ where: { userId: 42, stravaId: 1001 } });
-    expect(Activity.create).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 42, stravaId: 1001, type: 'Ride', distance: 42000 })
+    expect(Activity.findAll).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 42, stravaId: [1001] } }));
+    expect(Activity.bulkCreate).toHaveBeenCalledWith(
+      [expect.objectContaining({ userId: 42, stravaId: 1001, type: 'Ride', distance: 42000 })],
+      expect.objectContaining({ updateOnDuplicate: expect.any(Array) })
     );
     expect(User.update).toHaveBeenCalledWith({ lastSyncAt: expect.any(Date) }, { where: { id: 42 } });
   });
 
   test('syncSince pagine toutes les activités récentes au lieu de limiter à 100', async () => {
     stravaHelpers.fetchStravaActivities
-      .mockResolvedValueOnce(Array.from({ length: 100 }, (_, i) => ({ id: i + 1, type: 'Ride', start_date: '2026-05-31T08:00:00Z' })))
-      .mockResolvedValueOnce([{ id: 101, type: 'Ride', start_date: '2026-05-31T09:00:00Z' }]);
+      .mockResolvedValueOnce(Array.from({ length: 200 }, (_, i) => ({ id: i + 1, type: 'Ride', start_date: '2026-05-31T08:00:00Z' })))
+      .mockResolvedValueOnce([{ id: 201, type: 'Ride', start_date: '2026-05-31T09:00:00Z' }]);
     Activity.upsert.mockResolvedValue([{}, true]);
 
     const result = await syncSince(42, 1717200000, { enrich: false, overlapDays: 14 });
 
     expect(result.success).toBe(true);
-    expect(result.fetched).toBe(101);
-    expect(Activity.create).toHaveBeenCalledTimes(101);
+    expect(result.fetched).toBe(201);
+    expect(Activity.bulkCreate).toHaveBeenCalledTimes(2);
+    expect(Activity.bulkCreate.mock.calls[0][0]).toHaveLength(200);
+    expect(Activity.bulkCreate.mock.calls[1][0]).toHaveLength(1);
     expect(stravaHelpers.fetchStravaActivities).toHaveBeenCalledTimes(2);
     expect(stravaHelpers.fetchStravaActivities).toHaveBeenNthCalledWith(2, 'valid-token', expect.objectContaining({ page: 2 }), { userId: 42 });
   });
 
   test('upsertActivities met à jour uniquement la ligne du même utilisateur pour éviter l’écrasement inter-utilisateurs', async () => {
-    const existing = { update: jest.fn().mockResolvedValue({}) };
-    Activity.findOne.mockResolvedValue(existing);
+    Activity.findAll.mockResolvedValue([{ stravaId: 1001 }]);
 
     const count = await upsertActivities([
       { id: 1001, type: 'Run', start_date: '2026-05-31T08:00:00Z', distance: 5000 }
     ], 84);
 
     expect(count).toEqual({ total: 1, created: 0, updated: 1 });
-    expect(Activity.findOne).toHaveBeenCalledWith({ where: { userId: 84, stravaId: 1001 } });
-    expect(existing.update).toHaveBeenCalledWith(expect.objectContaining({ userId: 84, stravaId: 1001, type: 'Run' }));
+    expect(Activity.findAll).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 84, stravaId: [1001] }, attributes: ['stravaId'], raw: true }));
+    expect(Activity.bulkCreate).toHaveBeenCalledWith(
+      [expect.objectContaining({ userId: 84, stravaId: 1001, type: 'Run' })],
+      expect.objectContaining({ updateOnDuplicate: expect.any(Array) })
+    );
+    expect(Activity.findOne).not.toHaveBeenCalled();
     expect(Activity.create).not.toHaveBeenCalled();
     expect(Activity.upsert).not.toHaveBeenCalled();
   });
 
+  test('upsertActivities en lot : l\'update ne contient jamais calories, userId ni stravaId', async () => {
+    Activity.findAll.mockResolvedValue([{ stravaId: 1001 }]);
+
+    await upsertActivities([
+      { id: 1001, type: 'Ride', start_date: '2026-05-31T08:00:00Z', calories: null },
+    ], 42);
+
+    const { updateOnDuplicate } = Activity.bulkCreate.mock.calls[0][1];
+    expect(updateOnDuplicate).not.toContain('calories');
+    expect(updateOnDuplicate).not.toContain('userId');
+    expect(updateOnDuplicate).not.toContain('stravaId');
+    expect(updateOnDuplicate).toContain('type');
+  });
+
+  test('upsertActivities en lot : compteurs created/updated exacts sur un lot mixte', async () => {
+    Activity.findAll.mockResolvedValue([{ stravaId: 2 }, { stravaId: 4 }]);
+
+    const count = await upsertActivities([
+      { id: 1, start_date: '2026-05-31T08:00:00Z' },
+      { id: 2, start_date: '2026-05-31T08:00:00Z' },
+      { id: 3, start_date: '2026-05-31T08:00:00Z' },
+      { id: 4, start_date: '2026-05-31T08:00:00Z' },
+    ], 42);
+
+    expect(count).toEqual({ total: 4, created: 2, updated: 2 });
+    expect(Activity.bulkCreate.mock.calls[0][0]).toHaveLength(4);
+  });
+
+  test('upsertActivities : repli ligne à ligne si bulkCreate échoue, sans calories dans l\'update', async () => {
+    const existing = { update: jest.fn().mockResolvedValue({}) };
+    Activity.findAll.mockResolvedValue([{ stravaId: 1 }]);
+    Activity.bulkCreate.mockRejectedValue(new Error('db down'));
+    Activity.findOne.mockImplementation(async ({ where }) => (where.stravaId === 1 ? existing : null));
+
+    const count = await upsertActivities([
+      { id: 1, type: 'Run', start_date: '2026-05-31T08:00:00Z', calories: null },
+      { id: 2, type: 'Ride', start_date: '2026-05-31T09:00:00Z' },
+    ], 42);
+
+    expect(count).toEqual({ total: 2, created: 1, updated: 1 });
+    expect(existing.update).toHaveBeenCalledTimes(1);
+    expect(existing.update.mock.calls[0][0]).not.toHaveProperty('calories');
+    expect(existing.update).toHaveBeenCalledWith(expect.objectContaining({ type: 'Run' }));
+    expect(Activity.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, stravaId: 2 }));
+  });
+
+  test('enrichUserActivities s\'arrête proprement sur STRAVA_DAILY_QUOTA et passe en statut partial', async () => {
+    const activities = Array.from({ length: 6 }, (_, i) => ({
+      id: i + 1, userId: 42, stravaId: 100 + i, detailFetchedAt: null, streamFetchedAt: null,
+    }));
+    Activity.findAll.mockResolvedValueOnce(activities);
+    const quota = Object.assign(new Error('daily quota'), { code: 'STRAVA_DAILY_QUOTA' });
+    stravaHelpers.getActivity.mockRejectedValue(quota);
+
+    const result = await enrichUserActivities(42, { maxCount: 6 });
+
+    expect(result.success).toBe(true);
+    expect(result.totalDetail).toBe(0);
+    // Seul le premier batch (5) est lancé, le 2e batch n'est jamais démarré
+    expect(stravaHelpers.getActivity).toHaveBeenCalledTimes(5);
+    expect(stravaHelpers.getActivityStreams).not.toHaveBeenCalled();
+    expect(getSyncStatus(42).status).toBe('partial');
+    expect(getSyncStatus(42).errors).toContain('STRAVA_DAILY_QUOTA');
+  });
+
   test('syncUserActivities ne marque pas fullSyncCompletedAt si une page Strava échoue', async () => {
     stravaHelpers.fetchStravaActivities
-      .mockResolvedValueOnce(Array.from({ length: 100 }, (_, i) => ({ id: i + 1, type: 'Ride', start_date: '2026-05-31T08:00:00Z' })))
+      .mockResolvedValueOnce(Array.from({ length: 200 }, (_, i) => ({ id: i + 1, type: 'Ride', start_date: '2026-05-31T08:00:00Z' })))
       .mockRejectedValueOnce(new Error('rate limit'));
 
     const result = await syncUserActivities(42, { enrich: false });
