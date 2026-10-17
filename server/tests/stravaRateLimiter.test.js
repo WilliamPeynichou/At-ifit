@@ -165,6 +165,49 @@ describe('acquire', () => {
   });
 });
 
+describe('priorité background (G2)', () => {
+  test('background attend dès limit - 20 alors que foreground passe', async () => {
+    // 80 / 100 : foreground (marge 5) passe, background (réserve 20) attend
+    limiter.updateFromHeaders({ 'x-readratelimit-usage': '80,80', 'x-readratelimit-limit': '100,1000' });
+
+    let fgResolved = false;
+    limiter.acquire({ isRead: true, background: false }).then(() => { fgResolved = true; });
+    await flushPromises();
+    expect(fgResolved).toBe(true);
+
+    limiter._reset();
+    limiter.updateFromHeaders({ 'x-readratelimit-usage': '80,80', 'x-readratelimit-limit': '100,1000' });
+
+    let bgResolved = false;
+    const pending = limiter.acquire({ isRead: true, background: true }).then(() => { bgResolved = true; });
+    await flushPromises();
+    expect(bgResolved).toBe(false);
+
+    // 10:07:30 + 7 min 31 s : pas encore (délai = 7 min 30 s + 2 s de marge)
+    await jest.advanceTimersByTimeAsync(7 * 60 * 1000 + 31 * 1000);
+    expect(bgResolved).toBe(false);
+
+    await jest.advanceTimersByTimeAsync(1000);
+    await pending;
+    expect(bgResolved).toBe(true);
+    expect(limiter.getState()).toMatchObject({ read15: 1, all15: 1 });
+  });
+
+  test('background : quota jour stoppé à limit - 100, foreground jusqu\'à limit - 20', async () => {
+    limiter.updateFromHeaders({ 'x-readratelimit-usage': '0,899', 'x-readratelimit-limit': '100,1000' });
+    await expect(limiter.acquire({ isRead: true, background: true })).resolves.toBeUndefined();
+
+    limiter._reset();
+    limiter.updateFromHeaders({ 'x-readratelimit-usage': '0,900', 'x-readratelimit-limit': '100,1000' });
+    await expect(limiter.acquire({ isRead: true, background: true })).rejects.toMatchObject({ code: 'STRAVA_DAILY_QUOTA' });
+    expect(limiter.getState().readDay).toBe(900);
+
+    // foreground à 900 : encore autorisé (erreur seulement à limit - 20 = 980)
+    await expect(limiter.acquire({ isRead: true, background: false })).resolves.toBeUndefined();
+    expect(limiter.getState().readDay).toBe(901);
+  });
+});
+
 describe('_reset', () => {
   test('remet l\'état par défaut', async () => {
     limiter.updateFromHeaders({ 'x-readratelimit-usage': '50,500', 'x-ratelimit-limit': '300,3000' });

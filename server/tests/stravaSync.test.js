@@ -29,6 +29,7 @@ jest.mock('../utils/logger', () => ({
   error: jest.fn(),
 }));
 
+const { Op } = require('sequelize');
 const Activity = require('../models/Activity');
 const User = require('../models/User');
 const stravaHelpers = require('../utils/stravaHelpers');
@@ -202,6 +203,120 @@ describe('stravaSync incremental', () => {
     expect(result.errors).toEqual([expect.objectContaining({ page: 2, error: 'rate limit' })]);
     expect(User.update).toHaveBeenCalledWith({ lastSyncAt: expect.any(Date) }, { where: { id: 42 } });
     expect(User.update).not.toHaveBeenCalledWith(expect.objectContaining({ fullSyncCompletedAt: expect.any(Date) }), expect.anything());
+  });
+});
+
+describe('enrichUserActivities — forceSinceDays et background (Lot G1)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const STREAMS = { time: { data: [0, 1], resolution: 'high' }, heartrate: { data: [120, 130] } };
+
+  // Ligne Activity simulée : startDays = âge en jours ; detail / stream = déjà enrichi ou non
+  const row = (id, { startDays, detail, stream }) => ({
+    id,
+    userId: 42,
+    stravaId: 100 + id,
+    startDate: new Date(Date.now() - startDays * DAY),
+    detailFetchedAt: detail ? new Date() : null,
+    streamFetchedAt: stream ? new Date() : null,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    User.findByPk.mockReset();
+    stravaHelpers.getValidStravaToken.mockReset();
+    stravaHelpers.fetchStravaActivities.mockReset();
+    stravaHelpers.getActivity.mockReset();
+    stravaHelpers.getActivityStreams.mockReset();
+    Activity.findAll.mockReset();
+    Activity.update.mockReset();
+    Activity.bulkCreate.mockReset();
+
+    User.findByPk.mockResolvedValue({ id: 42, stravaAccessToken: 'token', stravaRefreshToken: 'refresh' });
+    User.update.mockResolvedValue([1]);
+    stravaHelpers.getValidStravaToken.mockResolvedValue('valid-token');
+    stravaHelpers.getActivity.mockImplementation(async (_token, stravaId) => ({ name: `detail-${stravaId}`, type: 'Ride' }));
+    stravaHelpers.getActivityStreams.mockResolvedValue(STREAMS);
+    Activity.update.mockResolvedValue([1]);
+    Activity.findAll.mockResolvedValue([]);
+    Activity.bulkCreate.mockResolvedValue([]);
+  });
+
+  test('forceSinceDays: 2 — récente déjà enrichie refetch détail + streams, ancienne complète ignorée, ancienne incomplète complétée sur ce qui manque', async () => {
+    const recent = row(1, { startDays: 0.5, detail: true, stream: true });
+    const oldComplete = row(2, { startDays: 10, detail: true, stream: true });
+    const oldPartial = row(3, { startDays: 10, detail: false, stream: true });
+    Activity.findAll.mockResolvedValueOnce([recent, oldComplete, oldPartial]);
+
+    const result = await enrichUserActivities(42, { forceSinceDays: 2 });
+
+    expect(result.success).toBe(true);
+    // Récente (< 48 h) : détail + streams refaits malgré un enrichissement existant
+    expect(stravaHelpers.getActivity).toHaveBeenCalledWith('valid-token', 101, { userId: 42, background: true });
+    expect(stravaHelpers.getActivityStreams).toHaveBeenCalledWith('valid-token', 101, expect.any(Array), { userId: 42, background: true });
+    expect(Activity.update).toHaveBeenCalledWith(expect.objectContaining({ name: 'detail-101' }), { where: { id: 1 } });
+    // Ancienne complète : aucun appel Strava
+    expect(stravaHelpers.getActivity).not.toHaveBeenCalledWith('valid-token', 102, expect.anything());
+    expect(stravaHelpers.getActivityStreams).not.toHaveBeenCalledWith('valid-token', 102, expect.anything(), expect.anything());
+    // Ancienne incomplète (détail manquant) : détail seul, pas de streams
+    expect(stravaHelpers.getActivity).toHaveBeenCalledWith('valid-token', 103, { userId: 42, background: true });
+    expect(stravaHelpers.getActivityStreams).not.toHaveBeenCalledWith('valid-token', 103, expect.anything(), expect.anything());
+    expect(stravaHelpers.getActivity).toHaveBeenCalledTimes(2);
+    expect(stravaHelpers.getActivityStreams).toHaveBeenCalledTimes(1);
+    expect(result.totalDetail).toBe(2);
+    expect(result.totalStream).toBe(1);
+  });
+
+  test('forceSinceDays: 2 — la clause where contient startDate >= now - 2 jours', async () => {
+    const before = Date.now();
+
+    await enrichUserActivities(42, { forceSinceDays: 2 });
+
+    const { where } = Activity.findAll.mock.calls[0][0];
+    expect(where.userId).toBe(42);
+    const dateClause = where[Op.or].find(c => c.startDate);
+    expect(dateClause).toBeDefined();
+    const gte = dateClause.startDate[Op.gte];
+    expect(gte).toBeInstanceOf(Date);
+    expect(Math.abs(gte.getTime() - (before - 2 * DAY))).toBeLessThan(5000);
+  });
+
+  test('force: true inchangé — where sans clause de date, toutes les activités refetchées (forceSinceDays ignoré)', async () => {
+    const complete = row(1, { startDays: 10, detail: true, stream: true });
+    Activity.findAll.mockResolvedValueOnce([complete]);
+
+    await enrichUserActivities(42, { force: true, forceSinceDays: 2 });
+
+    const { where } = Activity.findAll.mock.calls[0][0];
+    expect(where).toEqual({ userId: 42 });
+    expect(Object.getOwnPropertySymbols(where)).toHaveLength(0);
+    expect(stravaHelpers.getActivity).toHaveBeenCalledWith('valid-token', 101, { userId: 42, background: true });
+    expect(stravaHelpers.getActivityStreams).toHaveBeenCalledWith('valid-token', 101, expect.any(Array), { userId: 42, background: true });
+  });
+
+  test('getActivity et getActivityStreams reçoivent { userId, background: true } sur le chemin forceSinceDays', async () => {
+    Activity.findAll.mockResolvedValueOnce([row(1, { startDays: 0.5, detail: false, stream: false })]);
+
+    await enrichUserActivities(42, { forceSinceDays: 2 });
+
+    expect(stravaHelpers.getActivity).toHaveBeenCalledWith('valid-token', 101, { userId: 42, background: true });
+    expect(stravaHelpers.getActivityStreams).toHaveBeenCalledWith('valid-token', 101, expect.arrayContaining(['time', 'heartrate']), { userId: 42, background: true });
+  });
+
+  test('syncSince déclenche l\'enrichissement avec forceSinceDays: 2 (clause startDate >= now - 2 jours)', async () => {
+    stravaHelpers.fetchStravaActivities
+      .mockResolvedValueOnce([{ id: 1, type: 'Ride', start_date: '2026-05-31T08:00:00Z' }])
+      .mockResolvedValueOnce([]);
+    const before = Date.now();
+
+    const result = await syncSince(42, 1717200000, { enrich: true, overlapDays: 14 });
+    // L'enrichissement est lancé en fire-and-forget : on laisse passer les microtasks
+    for (let i = 0; i < 10; i++) await new Promise(r => setImmediate(r));
+
+    expect(result.success).toBe(true);
+    const enrichCall = Activity.findAll.mock.calls.find(([opts]) => opts.where[Op.or]);
+    expect(enrichCall).toBeDefined();
+    const dateClause = enrichCall[0].where[Op.or].find(c => c.startDate);
+    expect(Math.abs(dateClause.startDate[Op.gte].getTime() - (before - 2 * DAY))).toBeLessThan(5000);
   });
 });
 

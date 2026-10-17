@@ -188,6 +188,28 @@ describe('stravaFetch', () => {
     expect(axios).not.toHaveBeenCalled();
   });
 
+  test('transmet background: true à stravaRateLimiter.acquire quand meta.background est vrai', async () => {
+    const acquireSpy = jest.spyOn(stravaRateLimiter, 'acquire').mockResolvedValue(undefined);
+    try {
+      axios.mockResolvedValueOnce({ data: { id: 6 } });
+      await stravaFetch('https://www.strava.com/api/v3/athlete', {}, { background: true });
+      expect(acquireSpy).toHaveBeenCalledWith(expect.objectContaining({ background: true }));
+    } finally {
+      acquireSpy.mockRestore();
+    }
+  });
+
+  test('background vaut false par défaut dans acquire (meta absent)', async () => {
+    const acquireSpy = jest.spyOn(stravaRateLimiter, 'acquire').mockResolvedValue(undefined);
+    try {
+      axios.mockResolvedValueOnce({ data: { id: 7 } });
+      await stravaFetch('https://www.strava.com/api/v3/athlete', {});
+      expect(acquireSpy).toHaveBeenCalledWith(expect.objectContaining({ background: false }));
+    } finally {
+      acquireSpy.mockRestore();
+    }
+  });
+
   test('les appels GET consomment le quota lecture, POST non', async () => {
     axios.mockResolvedValue({ data: {} });
     await stravaFetch('https://www.strava.com/api/v3/athlete', { method: 'GET' });

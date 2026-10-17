@@ -1,6 +1,7 @@
 const Activity = require('../models/Activity');
 const ActivityStream = require('../models/ActivityStream');
 const User = require('../models/User');
+const { Op } = require('sequelize');
 const {
   getValidStravaToken,
   fetchStravaActivities,
@@ -304,7 +305,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
   // 1. Détail activité (best_efforts, splits, laps)
   if (force || !activity.detailFetchedAt) {
     try {
-      const detail = await getActivity(accessToken, activity.stravaId, { userId: activity.userId });
+      const detail = await getActivity(accessToken, activity.stravaId, { userId: activity.userId, background: true });
       const updates = mapStravaActivityDetail(detail);
       await Activity.update(updates, { where: { id: activity.id } });
       detailCalled = true;
@@ -317,7 +318,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
   // 2. Streams (séries temporelles)
   if (force || !activity.streamFetchedAt) {
     try {
-      const streams = await getActivityStreams(accessToken, activity.stravaId, STREAM_TYPES, { userId: activity.userId });
+      const streams = await getActivityStreams(accessToken, activity.stravaId, STREAM_TYPES, { userId: activity.userId, background: true });
       if (streams && Object.keys(streams).length > 0) {
         const streamData = mapStravaStreams(streams, activity.id, activity.stravaId);
         await ActivityStream.upsert(streamData, { conflictFields: ['activityId'] });
@@ -368,7 +369,7 @@ async function applyActivityDetail(userId, stravaId, detail) {
  * Enrichit en masse les activités d'un user qui n'ont pas encore de détail/stream.
  * À appeler après la sync initiale OU pour rattraper le passif.
  */
-async function enrichUserActivities(userId, { maxCount = 500, force = false } = {}) {
+async function enrichUserActivities(userId, { maxCount = 500, force = false, forceSinceDays = null } = {}) {
   const user = await User.findByPk(userId);
   if (!user || !user.stravaAccessToken) {
     return { success: false, error: 'Strava non connecté' };
@@ -377,13 +378,19 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
   const accessToken = await getValidStravaToken(user);
   if (!accessToken) return { success: false, error: 'Token Strava invalide' };
 
+  // forceSinceDays : seules les activités plus récentes que N jours sont forcées (détail + streams refaits)
+  const since = !force && Number.isFinite(forceSinceDays)
+    ? new Date(Date.now() - forceSinceDays * 24 * 60 * 60 * 1000)
+    : null;
+  const isRecent = (activity) => since !== null && new Date(activity.startDate).getTime() >= since.getTime();
+
   const where = { userId };
   if (!force) {
-    // On enrichit en priorité ce qui n'a aucune des deux infos
-    const { Op } = require('sequelize');
+    // On enrichit en priorité ce qui n'a aucune des deux infos (et les activités récentes si forceSinceDays)
     where[Op.or] = [
       { detailFetchedAt: null },
-      { streamFetchedAt: null }
+      { streamFetchedAt: null },
+      ...(since !== null ? [{ startDate: { [Op.gte]: since } }] : []),
     ];
   }
 
@@ -403,7 +410,7 @@ async function enrichUserActivities(userId, { maxCount = 500, force = false } = 
   for (let i = 0; i < activities.length; i += BATCH_SIZE) {
     const batch = activities.slice(i, i + BATCH_SIZE);
     const results = await Promise.allSettled(
-      batch.map(activity => enrichActivity(activity, accessToken, { force }))
+      batch.map(activity => enrichActivity(activity, accessToken, { force: force || isRecent(activity) }))
     );
 
     for (const r of results) {
@@ -595,7 +602,7 @@ async function syncSince(userId, afterTimestamp, { enrich = true, overlapDays = 
 
     if (enrich && totalSynced > 0) {
       // Force l'enrichissement récent : utile quand Strava complète après coup gear/power/capteurs.
-      enrichUserActivities(userId, { maxCount: Math.min(Math.max(totalSynced, 20), 100), force: true }).catch(err =>
+      enrichUserActivities(userId, { maxCount: Math.min(Math.max(totalSynced, 20), 100), forceSinceDays: 2 }).catch(err =>
         logger.error('[StravaSync] Erreur enrichissement post-syncSince', { userId, error: publicError(err) })
       );
     }

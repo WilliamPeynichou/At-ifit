@@ -23,6 +23,8 @@ const {
 const { generateRunningInsights } = require('../utils/runningInsights');
 const logger = require('../utils/logger');
 
+const STALE_SYNC_MS = (parseInt(process.env.STRAVA_STALE_MINUTES, 10) || 60) * 60 * 1000;
+
 function createHttpError(message, statusCode) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -51,8 +53,7 @@ async function ensureStravaState(userId, { triggerSync = false } = {}) {
       );
     } else {
       const lastSync = user.lastSyncAt ? new Date(user.lastSyncAt) : null;
-      const staleMs = 10 * 60 * 1000;
-      if (!lastSync || Date.now() - lastSync.getTime() > staleMs) {
+      if (!lastSync || Date.now() - lastSync.getTime() > STALE_SYNC_MS) {
         const since = lastSync
           ? Math.floor(lastSync.getTime() / 1000)
           : Math.floor((Date.now() - 14 * 86400 * 1000) / 1000);

@@ -34,7 +34,7 @@ function countItems(data) {
  * Helper centralisé pour tous les appels API Strava
  * Gère : quota global (stravaRateLimiter), 401 zombie token, 429 (attente jusqu'au prochain quart d'heure, 1 seul retry), 5xx (retry)
  */
-const stravaFetch = async (url, options = {}, { userId } = {}) => {
+const stravaFetch = async (url, options = {}, { userId, background } = {}) => {
   const MAX_RETRIES = 3;
   const RETRY_DELAYS = [2000, 4000, 8000];
 
@@ -47,7 +47,7 @@ const stravaFetch = async (url, options = {}, { userId } = {}) => {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     attempts = attempt + 1;
     // Réserve 1 appel dans le budget global ; peut attendre le quart d'heure ou lever STRAVA_DAILY_QUOTA (non retenté)
-    await stravaRateLimiter.acquire({ isRead: method === 'GET' });
+    await stravaRateLimiter.acquire({ isRead: method === 'GET', background: !!background });
     try {
       const response = await axios({ url, ...options });
       stravaRateLimiter.updateFromHeaders(response.headers);

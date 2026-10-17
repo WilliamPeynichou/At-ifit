@@ -11,8 +11,10 @@ const logger = require('./logger');
 
 const QUARTER_MS = 15 * 60 * 1000;
 const SAFETY_MARGIN_MS = 2000;   // marge après le quart d'heure avant de reprendre
-const LIMIT_MARGIN = 5;          // attente dès qu'on approche la limite 15 min
-const DAILY_MARGIN = 20;         // erreur dès qu'on approche la limite jour
+const LIMIT_MARGIN = 5;          // foreground : attente dès qu'on approche la limite 15 min
+const DAILY_MARGIN = 20;         // foreground : erreur dès qu'on approche la limite jour
+const BACKGROUND_RESERVE = 20;   // background : attente 15 min dès limit - 20 (réserve pour les requêtes user)
+const BACKGROUND_DAILY_RESERVE = 100; // background : erreur jour dès limit - 100 (réserve pour les requêtes user)
 
 const emptyState = () => ({
   read15: 0,
@@ -131,14 +133,17 @@ function dailyQuotaError(scope) {
 /**
  * Retourne le délai d'attente (ms) avant de pouvoir réserver, 0 si on peut réserver maintenant.
  * Lève STRAVA_DAILY_QUOTA si le quota jour est quasi épuisé.
+ * background : seuils plus stricts (réserve pour les requêtes utilisateur).
  */
-function computeWaitMs(isRead, now) {
-  if (isRead && state.readDay >= state.readDayLimit - DAILY_MARGIN) throw dailyQuotaError('read');
-  if (state.allDay >= state.allDayLimit - DAILY_MARGIN) throw dailyQuotaError('all');
+function computeWaitMs(isRead, now, background) {
+  const dailyMargin = background ? BACKGROUND_DAILY_RESERVE : DAILY_MARGIN;
+  if (isRead && state.readDay >= state.readDayLimit - dailyMargin) throw dailyQuotaError('read');
+  if (state.allDay >= state.allDayLimit - dailyMargin) throw dailyQuotaError('all');
 
+  const limitMargin = background ? BACKGROUND_RESERVE : LIMIT_MARGIN;
   const over15 =
-    (isRead && state.read15 >= state.read15Limit - LIMIT_MARGIN) ||
-    state.all15 >= state.all15Limit - LIMIT_MARGIN;
+    (isRead && state.read15 >= state.read15Limit - limitMargin) ||
+    state.all15 >= state.all15Limit - limitMargin;
   return over15 ? waitMsUntilNextQuarterHour(now) : 0;
 }
 
@@ -156,13 +161,14 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * Réserve 1 appel. Attend le prochain quart d'heure si la limite 15 min est proche.
  * Lève STRAVA_DAILY_QUOTA si le quota jour est proche (pas de retry possible).
+ * background : true pour les appels non urgents (sync auto, enrichissement) ; false pour les requêtes user.
  */
-async function acquire({ isRead = true } = {}) {
+async function acquire({ isRead = true, background = false } = {}) {
   const now = Date.now();
   rollWindows(now);
-  const waitMs = computeWaitMs(isRead, now);
+  const waitMs = computeWaitMs(isRead, now, background);
   if (waitMs > 0) {
-    logger.warn('[StravaQuota] Limite 15 min proche — attente', { waitMs, isRead });
+    logger.warn('[StravaQuota] Limite 15 min proche — attente', { waitMs, isRead, background });
     await sleep(waitMs);
     // rollWindows ne remet à zéro qu'une fois par fenêtre : plusieurs appels réveillés
     // ensemble ne s'écrasent pas mutuellement leurs réservations.
