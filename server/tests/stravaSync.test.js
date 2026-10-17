@@ -33,12 +33,16 @@ const { Op } = require('sequelize');
 const Activity = require('../models/Activity');
 const User = require('../models/User');
 const stravaHelpers = require('../utils/stravaHelpers');
+const memoryCache = require('../utils/memoryCache');
+const { computeActivityPowerBests } = require('../utils/powerBests');
 const {
   syncSince,
   syncUserActivities,
   upsertActivities,
+  enrichActivity,
   enrichUserActivities,
   getSyncStatus,
+  mapStravaActivity,
   mapStravaActivityDetail,
 } = require('../services/stravaSync');
 
@@ -377,5 +381,101 @@ describe('mapStravaActivityDetail', () => {
       deviceName: 'Garmin Edge',
     });
     expect(mapped.detailFetchedAt).toBeInstanceOf(Date);
+  });
+
+  test('n’écrit les colonnes extraites seulement si présentes dans le détail', () => {
+    const withCols = mapStravaActivityDetail({ sport_type: 'VirtualRide', start_date_local: '2026-05-31T10:00:00', timezone: 'Europe/Paris', elev_high: 300.5, elev_low: 12 });
+    expect(withCols).toMatchObject({ sportType: 'VirtualRide', startDateLocal: '2026-05-31T10:00:00', timezone: 'Europe/Paris', elevHigh: 300.5, elevLow: 12 });
+
+    const without = mapStravaActivityDetail({ name: 'x' });
+    expect(without).not.toHaveProperty('sportType');
+    expect(without).not.toHaveProperty('elevHigh');
+  });
+});
+
+describe('B4 — mapStravaActivity : colonnes extraites du résumé', () => {
+  test('expose sportType, startDateLocal, timezone, elevHigh, elevLow', () => {
+    const data = mapStravaActivity({
+      id: 5, start_date: '2026-05-31T08:00:00Z', sport_type: 'Ride', start_date_local: '2026-05-31T10:00:00',
+      timezone: 'Europe/Paris', elev_high: 410, elev_low: 20,
+    }, 42);
+    expect(data).toMatchObject({ sportType: 'Ride', startDateLocal: '2026-05-31T10:00:00', timezone: 'Europe/Paris', elevHigh: 410, elevLow: 20 });
+  });
+
+  test('les 5 colonnes extraites entrent dans updateOnDuplicate du lot', async () => {
+    Activity.findAll.mockResolvedValue([]);
+    await upsertActivities([{ id: 1, start_date: '2026-05-31T08:00:00Z', sport_type: 'Run' }], 42);
+    const { updateOnDuplicate } = Activity.bulkCreate.mock.calls[0][1];
+    for (const col of ['sportType', 'startDateLocal', 'timezone', 'elevHigh', 'elevLow']) {
+      expect(updateOnDuplicate).toContain(col);
+    }
+    expect(updateOnDuplicate).not.toContain('powerBests');
+  });
+});
+
+describe('D2 — powerBests à l’enrichissement', () => {
+  const STREAMS = {
+    time: { data: [0, 1, 2, 3, 4, 5, 6], resolution: 'high' },
+    watts: { data: [200, 210, 220, 230, 240, 250, 260] },
+  };
+
+  beforeEach(() => {
+    Activity.update.mockReset();
+    Activity.update.mockResolvedValue([1]);
+    stravaHelpers.getActivityStreams.mockReset();
+    stravaHelpers.getActivity.mockReset();
+    stravaHelpers.getActivity.mockResolvedValue({ name: 'd' });
+  });
+
+  test('une seule update inclut streamFetchedAt et powerBests calculés depuis watts/time', async () => {
+    stravaHelpers.getActivityStreams.mockResolvedValue(STREAMS);
+    const act = { id: 9, userId: 42, stravaId: 900, detailFetchedAt: new Date(), streamFetchedAt: null };
+
+    await enrichActivity(act, 'tok');
+
+    const streamUpdates = Activity.update.mock.calls.filter(([, o]) => o.where.id === 9);
+    expect(streamUpdates).toHaveLength(1);
+    const [payload, opts] = streamUpdates[0];
+    expect(opts).toEqual({ where: { id: 9 } });
+    expect(payload.streamFetchedAt).toBeInstanceOf(Date);
+    expect(payload.powerBests).toEqual(computeActivityPowerBests(STREAMS.watts.data, STREAMS.time.data));
+  });
+
+  test('powerBests est null si pas de watts', async () => {
+    stravaHelpers.getActivityStreams.mockResolvedValue({ time: { data: [0, 1] }, heartrate: { data: [120, 130] } });
+    await enrichActivity({ id: 10, userId: 42, stravaId: 901, detailFetchedAt: new Date(), streamFetchedAt: null }, 'tok');
+    const payload = Activity.update.mock.calls.find(([, o]) => o.where.id === 10)[0];
+    expect(payload.powerBests).toBeNull();
+  });
+});
+
+describe('B6 — invalidation du cache dashboards', () => {
+  beforeEach(() => {
+    memoryCache.clear();
+    Activity.bulkCreate.mockReset();
+    Activity.bulkCreate.mockResolvedValue([]);
+    Activity.findAll.mockReset();
+    Activity.findAll.mockResolvedValue([]);
+  });
+
+  test('upsertActivities invalide le cache du user si total > 0', async () => {
+    memoryCache.set('dash:42:running:{}', { v: 1 }, 600);
+    memoryCache.set('dash:43:running:{}', { v: 2 }, 600);
+    await upsertActivities([{ id: 1, start_date: '2026-05-31T08:00:00Z' }], 42);
+    expect(memoryCache.get('dash:42:running:{}')).toBeNull();
+    expect(memoryCache.get('dash:43:running:{}')).toEqual({ v: 2 });
+  });
+
+  test('upsertActivities avec lot vide ne invalide pas', async () => {
+    memoryCache.set('dash:42:running:{}', { v: 1 }, 600);
+    await upsertActivities([], 42);
+    expect(memoryCache.get('dash:42:running:{}')).toEqual({ v: 1 });
+  });
+
+  test('enrichActivity invalide le cache après écriture', async () => {
+    stravaHelpers.getActivityStreams.mockResolvedValue({ time: { data: [0, 1] } });
+    memoryCache.set('dash:42:cycling:{}', { v: 1 }, 600);
+    await enrichActivity({ id: 1, userId: 42, stravaId: 7, detailFetchedAt: null, streamFetchedAt: null }, 'tok');
+    expect(memoryCache.get('dash:42:cycling:{}')).toBeNull();
   });
 });

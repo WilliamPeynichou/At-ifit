@@ -180,6 +180,30 @@ const Activity = sequelize.define('Activity', {
     type: DataTypes.JSON,
     allowNull: true,
   },
+  sportType: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+  },
+  startDateLocal: {
+    type: DataTypes.STRING(32),
+    allowNull: true,
+  },
+  timezone: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+  },
+  elevHigh: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  elevLow: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  powerBests: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
 }, {
   indexes: [
     { unique: true, fields: ['userId', 'stravaId'] },

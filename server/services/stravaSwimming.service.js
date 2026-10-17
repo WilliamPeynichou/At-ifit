@@ -1,9 +1,12 @@
+const { Op } = require('sequelize');
 const Activity = require('../models/Activity');
 const User = require('../models/User');
 const { syncUserActivities, syncSince } = require('./stravaSync');
 const { resolveMaxHeartrate } = require('./userMetricsService');
+const { getOrCompute, dashKey, DASHBOARD_TTL_SECONDS } = require('./dashboardCache');
 const logger = require('../utils/logger');
 const {
+  SWIMMING_TYPES,
   filterSwimmingActivities,
   filterActivitiesByPeriod,
   getPreviousPeriod,
@@ -82,11 +85,25 @@ function calculatePaceHeartRateTrend(activities) {
   };
 }
 
-async function getAllSwimmingActivities(userId, { triggerSync = false } = {}) {
-  const [user, hrMaxResolved, rows] = await Promise.all([
-    ensureStravaState(userId, { triggerSync }),
+// Pré-filtre SQL : sur-ensemble du filtre JS isSwimmingActivity (qui reste en place).
+// raw conservé : natation lit raw.swolf, raw.pool_length, raw.description.
+const SWIMMING_SQL_TYPES = [...SWIMMING_TYPES];
+
+function swimmingWhere(userId) {
+  return {
+    userId,
+    [Op.or]: [
+      { type: { [Op.in]: SWIMMING_SQL_TYPES } },
+      { sportType: { [Op.in]: SWIMMING_SQL_TYPES } },
+    ],
+  };
+}
+
+// Données non mises en cache : FC max + activités normalisées (sans état de sync).
+async function loadSwimmingDataset(userId) {
+  const [hrMaxResolved, rows] = await Promise.all([
     resolveMaxHeartrate(userId),
-    Activity.findAll({ where: { userId }, order: [['startDate', 'ASC']], limit: 5000 }),
+    Activity.findAll({ where: swimmingWhere(userId), order: [['startDate', 'ASC']], limit: 5000 }),
   ]);
 
   const activities = filterSwimmingActivities(rows);
@@ -96,13 +113,24 @@ async function getAllSwimmingActivities(userId, { triggerSync = false } = {}) {
   });
 
   return {
-    user,
     hrMax: {
       value: hrMaxResolved.value,
       source: hrMaxResolved.source || 'default',
       confidence: hrMaxResolved.confidence || 'low',
     },
     activities,
+  };
+}
+
+// Champs de statut dépendant de l'user : recomposés à chaque appel, hors cache.
+function withFreshSyncStatus(analysis, user) {
+  return {
+    ...analysis,
+    status: {
+      ...analysis.status,
+      dataSynced: Boolean(user.fullSyncCompletedAt || user.lastSyncAt),
+      lastSyncAt: user.lastSyncAt || user.fullSyncCompletedAt || null,
+    },
   };
 }
 
@@ -167,18 +195,43 @@ function buildAnalysis(activities, periodInput, user, hrMax) {
 }
 
 async function getSwimmingAnalysis(userId, query = {}) {
-  const { user, hrMax, activities } = await getAllSwimmingActivities(userId, { triggerSync: true });
-  return buildAnalysis(activities, parsePeriodQuery(query), user, hrMax);
+  const period = parsePeriodQuery(query);
+  const user = await ensureStravaState(userId, { triggerSync: true });
+  const analysis = await getOrCompute(
+    dashKey(userId, 'swimming', { view: 'analysis', preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { hrMax, activities } = await loadSwimmingDataset(userId);
+      return buildAnalysis(activities, period, user, hrMax);
+    }
+  );
+  return withFreshSyncStatus(analysis, user);
 }
 
 async function getSwimmingActivities(userId, query = {}) {
-  const { activities } = await getAllSwimmingActivities(userId, { triggerSync: true });
-  return filterActivitiesByPeriod(activities, parsePeriodQuery(query));
+  const period = parsePeriodQuery(query);
+  await ensureStravaState(userId, { triggerSync: true });
+  return getOrCompute(
+    dashKey(userId, 'swimming', { view: 'activities', preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { activities } = await loadSwimmingDataset(userId);
+      return filterActivitiesByPeriod(activities, period);
+    }
+  );
 }
 
 async function getSwimmingWeeklyStats(userId, query = {}) {
-  const { activities } = await getAllSwimmingActivities(userId);
-  return calculateWeeklySwimStats(filterActivitiesByPeriod(activities, parsePeriodQuery(query)));
+  const period = parsePeriodQuery(query);
+  await ensureStravaState(userId);
+  return getOrCompute(
+    dashKey(userId, 'swimming', { view: 'weekly', preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { activities } = await loadSwimmingDataset(userId);
+      return calculateWeeklySwimStats(filterActivitiesByPeriod(activities, period));
+    }
+  );
 }
 
 async function getSwimmingInsights(userId, query = {}) {

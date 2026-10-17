@@ -102,4 +102,17 @@ describe('webhookService — événement activity create/update', () => {
     expect(stravaHelpers.getActivity).not.toHaveBeenCalled();
     expect(Activity.bulkCreate).not.toHaveBeenCalled();
   });
+
+  test('delete : invalide les dashboards cachés du user', async () => {
+    const memoryCache = require('../utils/memoryCache');
+    memoryCache.set('dash:42:running:{}', { v: 1 }, 600);
+    memoryCache.set('dash:43:running:{}', { v: 2 }, 600);
+    Activity.destroy.mockResolvedValue(1);
+
+    await handleStravaEvent({ object_type: 'activity', aspect_type: 'delete', object_id: STRAVA_ID, owner_id: ATHLETE_ID });
+
+    expect(Activity.destroy).toHaveBeenCalledWith({ where: { stravaId: STRAVA_ID, userId: 42 } });
+    expect(memoryCache.get('dash:42:running:{}')).toBeNull();
+    expect(memoryCache.get('dash:43:running:{}')).toEqual({ v: 2 });
+  });
 });

@@ -3,6 +3,7 @@ const { Op, fn, col, literal } = require('sequelize');
 const sequelize = require('../database');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
+const { invalidateUserDashboards } = require('../services/dashboardCache');
 const ActivityStream = require('../models/ActivityStream');
 const Weight = require('../models/Weight');
 const Goal = require('../models/Goal');
@@ -370,6 +371,7 @@ router.post('/resources/:resource', asyncHandler(async (req, res) => {
     metadata: { resource: req.params.resource, resourceId: item.id, fields: Object.keys(payload) },
   });
 
+  invalidateUserDashboards(req.params.resource === 'users' ? item.id : item.userId);
   const created = await config.model.findByPk(item.id, { attributes: typeof config.attributes === 'function' ? config.attributes() : config.attributes });
   sendSuccess(res, sanitizeForSuperAdmin({ resource: req.params.resource, item: created }), 'Created', 201);
 }));
@@ -390,6 +392,7 @@ router.patch('/resources/:resource/:id', asyncHandler(async (req, res) => {
 
   const before = sanitizeForSuperAdmin(item);
   await item.update(payload);
+  invalidateUserDashboards(req.params.resource === 'users' ? item.id : item.userId);
   await auditSuperAdmin(req, {
     userId: item.userId || (req.params.resource === 'users' ? item.id : null),
     eventType: req.params.resource === 'users' && payload.role ? 'role_change' : 'super_admin_resource_update',
@@ -411,6 +414,7 @@ router.delete('/resources/:resource/:id', asyncHandler(async (req, res) => {
   if (!item) return sendError(res, 'Resource not found', 404);
   const metadata = sanitizeForSuperAdmin({ resource: req.params.resource, resourceId: item.id, snapshot: item });
   await item.destroy();
+  invalidateUserDashboards(item.userId);
   await auditSuperAdmin(req, {
     userId: item.userId || null,
     eventType: 'super_admin_resource_delete',
@@ -430,6 +434,7 @@ router.delete('/users/:id/data', asyncHandler(async (req, res) => {
   if (Array.isArray(req.body?.categories) && categories.length !== req.body.categories.length) return sendError(res, 'Invalid data category', 400);
 
   const result = await sequelize.transaction(transaction => deleteUserData(userId, categories, transaction));
+  invalidateUserDashboards(userId);
   await auditSuperAdmin(req, {
     userId,
     eventType: 'user_data_delete',
@@ -458,6 +463,7 @@ router.delete('/users/:id', asyncHandler(async (req, res) => {
     await User.destroy({ where: { id: userId }, transaction });
     return dataDeletion;
   });
+  invalidateUserDashboards(userId);
 
   await auditSuperAdmin(req, {
     userId: null,

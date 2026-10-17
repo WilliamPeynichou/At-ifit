@@ -9,6 +9,8 @@ const {
   getActivityStreams,
 } = require('../utils/stravaHelpers');
 const logger = require('../utils/logger');
+const { invalidateUserDashboards } = require('./dashboardCache');
+const { computeActivityPowerBests } = require('../utils/powerBests');
 
 // Types de streams demandés à Strava (séries temporelles utiles pour l'analyse)
 const STREAM_TYPES = [
@@ -130,6 +132,11 @@ function mapStravaActivity(raw, userId) {
     endLatlng: Array.isArray(raw.end_latlng) && raw.end_latlng.length === 2 ? raw.end_latlng : null,
     locationCity: raw.location_city || null,
     locationCountry: raw.location_country || null,
+    sportType: raw.sport_type || null,
+    startDateLocal: raw.start_date_local || null,
+    timezone: raw.timezone || null,
+    elevHigh: raw.elev_high ?? null,
+    elevLow: raw.elev_low ?? null,
     raw: raw,
   };
 }
@@ -152,6 +159,22 @@ function pickSummaryUpdate(data) {
 /**
  * Mappe le détail d'une activité (endpoint /activities/{id}) vers les colonnes enrichies
  */
+// Colonnes extraites de raw (Lot C) : n'écrites que si le détail les contient (pas d'écrasement par null).
+const DETAIL_EXTRACTED_FIELDS = {
+  sportType: 'sport_type',
+  startDateLocal: 'start_date_local',
+  timezone: 'timezone',
+  elevHigh: 'elev_high',
+  elevLow: 'elev_low',
+};
+function pickPresent(src, fieldMap) {
+  const out = {};
+  for (const [column, key] of Object.entries(fieldMap)) {
+    if (src[key] !== undefined) out[column] = src[key] ?? null;
+  }
+  return out;
+}
+
 function mapStravaActivityDetail(detail) {
   return {
     name: detail.name || null,
@@ -180,6 +203,7 @@ function mapStravaActivityDetail(detail) {
     splitsMetric: detail.splits_metric || null,
     laps: detail.laps || null,
     deviceName: detail.device_name || null,
+    ...pickPresent(detail, DETAIL_EXTRACTED_FIELDS),
     detailFetchedAt: new Date(),
   };
 }
@@ -218,12 +242,16 @@ function mapStravaStreams(streams, activityId, stravaId) {
 async function upsertActivities(activities, userId) {
   if (!activities || activities.length === 0) return { total: 0, created: 0, updated: 0 };
 
+  let result;
   try {
-    return await upsertActivitiesBulk(activities, userId);
+    result = await upsertActivitiesBulk(activities, userId);
   } catch (err) {
     logger.warn('[StravaSync] Upsert en lot échoué, repli ligne à ligne', { userId, error: publicError(err) });
-    return upsertActivitiesOneByOne(activities, userId);
+    result = await upsertActivitiesOneByOne(activities, userId);
   }
+  // Nouvelles données d'activités : les dashboards cachés du user ne sont plus à jour
+  if (result.total > 0) invalidateUserDashboards(userId);
+  return result;
 }
 
 async function upsertActivitiesBulk(activities, userId) {
@@ -322,7 +350,11 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
       if (streams && Object.keys(streams).length > 0) {
         const streamData = mapStravaStreams(streams, activity.id, activity.stravaId);
         await ActivityStream.upsert(streamData, { conflictFields: ['activityId'] });
-        await Activity.update({ streamFetchedAt: new Date() }, { where: { id: activity.id } });
+        // Une seule écriture : streams marqués récupérés + pré-calcul puissance (null sans watts)
+        await Activity.update(
+          { streamFetchedAt: new Date(), powerBests: computeActivityPowerBests(streamData.watts, streamData.time) },
+          { where: { id: activity.id } }
+        );
       } else {
         // Activité sans stream (manuelle ?) — on marque comme fetched pour ne pas retenter
         await Activity.update({ streamFetchedAt: new Date() }, { where: { id: activity.id } });
@@ -334,6 +366,7 @@ async function enrichActivity(activity, accessToken, { force = false } = {}) {
     }
   }
 
+  if (detailCalled || streamCalled) invalidateUserDashboards(activity.userId);
   return { detailCalled, streamCalled };
 }
 

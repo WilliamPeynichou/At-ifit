@@ -14,6 +14,7 @@ const { revokeStravaToken } = require('../utils/stravaHelpers');
 const { logAuditEvent } = require('../services/auditService');
 const { getTrainingSummary } = require('../services/trainingSummaryService');
 const { normalizeNutritionProfile, serializeNutritionProfile } = require('../utils/nutritionProfile');
+const { invalidateUserDashboards } = require('../services/dashboardCache');
 
 /**
  * Calculate BMR using Mifflin-St Jeor equation
@@ -134,6 +135,8 @@ const updateProfileHandler = asyncHandler(async (req, res) => {
   }
 
   await user.update(pickProfilePayload(req.body));
+  // FC max / FC repos / profil cyclisme changent les calculs dashboards
+  invalidateUserDashboards(req.userId);
 
   // Mettre à jour automatiquement l'IMC
   await updateUserIMCAndCalories(user);
@@ -323,6 +326,7 @@ router.delete('/', auth, asyncHandler(async (req, res) => {
 
   const userId = user.id;
   await deleteAccount(userId);
+  invalidateUserDashboards(userId);
   logger.info('User deleted own account');
   sendSuccess(res, { deleted: true }, 'Account deleted');
 }));

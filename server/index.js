@@ -14,6 +14,7 @@ const AuditLog = require('./models/AuditLog');
 const StravaApiLog = require('./models/StravaApiLog');
 const AiUsageLog = require('./models/AiUsageLog');
 const Race = require('./models/Race');
+const { invalidateUserDashboards } = require('./services/dashboardCache');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const stravaRoutes = require('./routes/strava');
@@ -204,6 +205,7 @@ app.post('/api/weight',
       if (user) {
         await updateUserIMCAndCalories(user, { currentWeight: weightValue });
       }
+      invalidateUserDashboards(req.userId);
       
       return sendSuccess(res, existingWeight, 'Weight updated successfully', 200);
     }
@@ -219,6 +221,7 @@ app.post('/api/weight',
     if (user) {
       await updateUserIMCAndCalories(user, { currentWeight: weightValue });
     }
+    invalidateUserDashboards(req.userId);
     
     sendSuccess(res, newWeight, 'Weight added successfully', 201);
   })
@@ -238,6 +241,7 @@ app.delete('/api/weight/:id',
     if (deleted === 0) {
       return sendError(res, 'Weight entry not found', 404);
     }
+    invalidateUserDashboards(req.userId);
     
     sendSuccess(res, null, 'Weight deleted successfully');
   })

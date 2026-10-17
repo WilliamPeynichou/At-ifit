@@ -1,10 +1,14 @@
+const { Op } = require('sequelize');
 const Activity = require('../models/Activity');
 const User = require('../models/User');
 const { syncUserActivities, syncSince } = require('./stravaSync');
 const { resolveMaxHeartrate } = require('./userMetricsService');
 const { getCyclingProfile } = require('./cyclingProfileService');
+const { getOrCompute, dashKey, DASHBOARD_TTL_SECONDS } = require('./dashboardCache');
 const logger = require('../utils/logger');
 const {
+  BASE_CYCLING_TYPES,
+  OPTIONAL_CYCLING_TYPES,
   filterCyclingActivities,
   filterActivitiesByPeriod,
   getPreviousPeriod,
@@ -108,18 +112,50 @@ async function getCyclingUserProfile(userId) {
   };
 }
 
-async function getAllCyclingActivities(userId, query = {}, { triggerSync = false } = {}) {
-  const [user, userProfile, rows] = await Promise.all([
-    ensureStravaState(userId, { triggerSync }),
+// Pré-filtre SQL : sur-ensemble du filtre JS isCyclingActivity (qui reste en place).
+// Transition documentée : une ligne sans sportType dont seul raw.sport_type matche n'est pas
+// remontée ; le backfill Lot C couvre toutes les lignes avec raw.
+const CYCLING_SQL_TYPES = [...BASE_CYCLING_TYPES, ...OPTIONAL_CYCLING_TYPES];
+
+function cyclingWhere(userId) {
+  return {
+    userId,
+    [Op.or]: [
+      { type: { [Op.in]: CYCLING_SQL_TYPES } },
+      { sportType: { [Op.in]: CYCLING_SQL_TYPES } },
+    ],
+  };
+}
+
+// raw conservé : normalizeStravaCyclingActivity lit raw.start_latlng en repli (sortie indoor : []).
+// Seul summaryPolyline (jamais lu par le normaliseur) est exclu.
+async function loadCyclingDataset(userId, options) {
+  const [userProfile, rows] = await Promise.all([
     getCyclingUserProfile(userId),
-    Activity.findAll({ where: { userId }, order: [['startDate', 'ASC']], limit: 5000 }),
+    Activity.findAll({
+      where: cyclingWhere(userId),
+      attributes: { exclude: ['summaryPolyline'] },
+      order: [['startDate', 'ASC']],
+      limit: 5000,
+    }),
   ]);
-  const options = parseCyclingOptions(query);
   const activities = filterCyclingActivities(rows, options, userProfile);
   activities.forEach(activity => {
     activity.trainingLoad = calculateCyclingTrainingLoad(activity, userProfile);
   });
-  return { user, userProfile, activities, options };
+  return { userProfile, activities };
+}
+
+// Champs de statut dépendant de l'user : recomposés à chaque appel, hors cache.
+function withFreshSyncStatus(analysis, user) {
+  return {
+    ...analysis,
+    status: {
+      ...analysis.status,
+      dataSynced: Boolean(user.fullSyncCompletedAt || user.lastSyncAt),
+      lastSyncAt: user.lastSyncAt || user.fullSyncCompletedAt || null,
+    },
+  };
 }
 
 function buildAnalysis(activities, periodInput, user, userProfile, options) {
@@ -182,18 +218,46 @@ function buildAnalysis(activities, periodInput, user, userProfile, options) {
 }
 
 async function getCyclingAnalysis(userId, query = {}) {
-  const { user, userProfile, activities, options } = await getAllCyclingActivities(userId, query, { triggerSync: true });
-  return buildAnalysis(activities, parsePeriodQuery(query), user, userProfile, options);
+  const options = parseCyclingOptions(query);
+  const period = parsePeriodQuery(query);
+  const user = await ensureStravaState(userId, { triggerSync: true });
+  const analysis = await getOrCompute(
+    dashKey(userId, 'cycling', { view: 'analysis', options, preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { userProfile, activities } = await loadCyclingDataset(userId, options);
+      return buildAnalysis(activities, period, user, userProfile, options);
+    }
+  );
+  return withFreshSyncStatus(analysis, user);
 }
 
 async function getCyclingActivities(userId, query = {}) {
-  const { activities } = await getAllCyclingActivities(userId, query, { triggerSync: true });
-  return filterActivitiesByPeriod(activities, parsePeriodQuery(query));
+  const options = parseCyclingOptions(query);
+  const period = parsePeriodQuery(query);
+  await ensureStravaState(userId, { triggerSync: true });
+  return getOrCompute(
+    dashKey(userId, 'cycling', { view: 'activities', options, preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { activities } = await loadCyclingDataset(userId, options);
+      return filterActivitiesByPeriod(activities, period);
+    }
+  );
 }
 
 async function getCyclingWeeklyStats(userId, query = {}) {
-  const { activities } = await getAllCyclingActivities(userId, query);
-  return calculateWeeklyCyclingStats(filterActivitiesByPeriod(activities, parsePeriodQuery(query)));
+  const options = parseCyclingOptions(query);
+  const period = parsePeriodQuery(query);
+  await ensureStravaState(userId);
+  return getOrCompute(
+    dashKey(userId, 'cycling', { view: 'weekly', options, preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { activities } = await loadCyclingDataset(userId, options);
+      return calculateWeeklyCyclingStats(filterActivitiesByPeriod(activities, period));
+    }
+  );
 }
 
 async function getCyclingDashboardInsights(userId, query = {}) {

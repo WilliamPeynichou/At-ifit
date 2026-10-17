@@ -6,6 +6,7 @@ const Weight = require('../models/Weight');
 const { getTrainingLoad } = require('./trainingLoadService');
 const { getPowerCurve } = require('./stravaAnalytics');
 const { resolveMaxHeartrate } = require('./userMetricsService');
+const { bestAveragePower } = require('../utils/powerBests');
 
 const RIDE_TYPES = ['Ride', 'VirtualRide', 'EBikeRide', 'GravelRide'];
 
@@ -72,30 +73,6 @@ function buildPowerZones(ftp) {
     minWatts: Math.round(ftp * def.minPct),
     maxWatts: def.maxPct ? Math.round(ftp * def.maxPct) : null,
   }));
-}
-
-function bestAveragePower(watts, time, durationSec) {
-  if (!Array.isArray(watts) || !Array.isArray(time) || watts.length < 2 || watts.length !== time.length) return 0;
-
-  let best = 0;
-  let sum = 0;
-  let windowStart = 0;
-
-  for (let i = 0; i < watts.length; i++) {
-    sum += Number(watts[i]) || 0;
-
-    while (windowStart < i && time[i] - time[windowStart] > durationSec) {
-      sum -= Number(watts[windowStart]) || 0;
-      windowStart += 1;
-    }
-
-    const windowDur = time[i] - time[windowStart];
-    if (windowDur >= durationSec * 0.95) {
-      best = Math.max(best, sum / (i - windowStart + 1));
-    }
-  }
-
-  return best;
 }
 
 function calculateZoneDurations(watts, time, zones) {
@@ -346,17 +323,23 @@ async function getCyclingRides(userId, limit = 30) {
 }
 
 async function getCyclingProgress(userId) {
-  const [weights, streams] = await Promise.all([
+  const [weights, activities] = await Promise.all([
     Weight.findAll({ where: { userId }, order: [['date', 'ASC']] }),
-    ActivityStream.findAll({
-      include: [{
-        model: Activity,
-        where: { userId, type: { [Op.in]: RIDE_TYPES } },
-        attributes: ['id', 'startDate'],
-      }],
-      attributes: ['watts', 'time'],
+    Activity.findAll({
+      where: { userId, type: { [Op.in]: RIDE_TYPES } },
+      attributes: ['id', 'startDate', 'powerBests'],
     }),
   ]);
+
+  // Repli : activités sans powerBests → streams watts
+  const legacyIds = activities.filter(a => a.startDate && !a.powerBests).map(a => a.id);
+  const legacyStreams = legacyIds.length > 0
+    ? await ActivityStream.findAll({
+      where: { activityId: legacyIds },
+      attributes: ['activityId', 'watts', 'time'],
+    })
+    : [];
+  const streamByActivityId = new Map(legacyStreams.map(s => [s.activityId, s]));
 
   const weightsByDate = weights.map(weight => ({
     date: String(weight.date),
@@ -376,14 +359,21 @@ async function getCyclingProgress(userId) {
   let best20 = 0;
   const points = [];
 
-  const sortedStreams = streams
-    .filter(stream => stream.Activity?.startDate)
-    .sort((a, b) => new Date(a.Activity.startDate) - new Date(b.Activity.startDate));
+  // Source par activité : powerBests.best20 si présent, sinon stream
+  const sources = [];
+  for (const activity of activities) {
+    if (!activity.startDate) continue;
+    if (activity.powerBests) {
+      sources.push({ activity, best20: Number(activity.powerBests.best20) || 0 });
+    } else {
+      const stream = streamByActivityId.get(activity.id);
+      if (stream) sources.push({ activity, best20: bestAveragePower(stream.watts, stream.time, 1200) });
+    }
+  }
+  sources.sort((a, b) => new Date(a.activity.startDate) - new Date(b.activity.startDate));
 
-  for (const stream of sortedStreams) {
-    const activity = stream.Activity;
-    const streamBest20 = bestAveragePower(stream.watts, stream.time, 1200);
-    if (streamBest20 > best20) best20 = streamBest20;
+  for (const { activity, best20: sourceBest20 } of sources) {
+    if (sourceBest20 > best20) best20 = sourceBest20;
     if (!best20) continue;
 
     const ftp = Math.round(best20 * 0.95);

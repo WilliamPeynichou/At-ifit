@@ -10,6 +10,7 @@ const {
   isoDate,
   startOfUtcDay: startOfDay,
 } = require('./trainingMetricsService');
+const { computeMeanMaxPower, MMP_DURATIONS } = require('../utils/powerBests');
 
 const SEC_PER_DAY = 86400;
 const FORM_BOOTSTRAP_DAYS = PMC_BOOTSTRAP_DAYS;
@@ -56,47 +57,6 @@ function timeInHrZones(streamRow, hrMax = 190, hrRest = 60) {
     }
   }
   return zones; // [Z1s, Z2s, Z3s, Z4s, Z5s]
-}
-
-/**
- * Mean-Max Power : meilleure puissance soutenue pour chaque durée (1s, 5s, 30s, 1min, 5min, 20min, 60min)
- * À partir de tous les streams watts d'un user.
- */
-function computeMeanMaxPower(streamRows) {
-  const durations = [1, 5, 15, 30, 60, 300, 600, 1200, 1800, 3600];
-  const bests = new Map(durations.map(d => [d, 0]));
-
-  for (const row of streamRows) {
-    const watts = row.watts;
-    const time = row.time;
-    if (!watts || !time || watts.length < 5) continue;
-
-    // Pour chaque durée cible, glissement
-    for (const dur of durations) {
-      let bestForRow = 0;
-      let sum = 0;
-      let windowStart = 0;
-
-      for (let i = 0; i < watts.length; i++) {
-        sum += watts[i] || 0;
-        while (windowStart < i && time[i] - time[windowStart] > dur) {
-          sum -= watts[windowStart] || 0;
-          windowStart++;
-        }
-        const windowDur = time[i] - time[windowStart];
-        if (windowDur >= dur * 0.95) {
-          const avg = sum / (i - windowStart + 1);
-          if (avg > bestForRow) bestForRow = avg;
-        }
-      }
-      if (bestForRow > bests.get(dur)) bests.set(dur, bestForRow);
-    }
-  }
-
-  return Array.from(bests.entries()).map(([duration, power]) => ({
-    duration,
-    power: Math.round(power),
-  }));
 }
 
 /**
@@ -391,23 +351,57 @@ function isoWeek(d) {
 }
 
 /**
- * Mean-max power curve à partir des streams (vélo seulement)
+ * Fusion par max de courbes mean-max ([{ duration, power }]).
+ * Même sortie que computeMeanMaxPower sur l'ensemble des streams :
+ * Math.round étant monotone, max(round(x)) = round(max(x)).
+ */
+function mergeMeanMaxCurves(curves) {
+  const bests = new Map(MMP_DURATIONS.map(d => [d, 0]));
+  for (const curve of curves) {
+    for (const { duration, power } of curve) {
+      if (bests.has(duration) && power > bests.get(duration)) bests.set(duration, power);
+    }
+  }
+  return Array.from(bests.entries()).map(([duration, power]) => ({ duration, power }));
+}
+
+/**
+ * Mean-max power curve (vélo seulement).
+ * Lit Activities.powerBests pré-calculé ; les activités sans powerBests mais avec stream
+ * sont recalculées depuis leurs streams (repli).
  */
 async function getPowerCurve(userId, { from = null, to = null } = {}) {
   const activityWhere = { userId, type: { [Op.in]: ['Ride', 'VirtualRide', 'EBikeRide'] } };
   const dateClause = buildDateWhere(from, to);
   if (dateClause) activityWhere.startDate = dateClause;
 
-  const streams = await ActivityStream.findAll({
-    include: [{
-      model: Activity,
-      where: activityWhere,
-      attributes: ['type', 'startDate'],
-    }],
-    attributes: ['watts', 'time'],
+  const activities = await Activity.findAll({
+    where: activityWhere,
+    attributes: ['id', 'powerBests'],
   });
 
-  return computeMeanMaxPower(streams);
+  const curves = [];
+  const legacyIds = [];
+  for (const activity of activities) {
+    if (activity.powerBests?.mmp) {
+      curves.push(Object.entries(activity.powerBests.mmp).map(([duration, power]) => ({
+        duration: Number(duration),
+        power,
+      })));
+    } else {
+      legacyIds.push(activity.id);
+    }
+  }
+
+  if (legacyIds.length > 0) {
+    const streams = await ActivityStream.findAll({
+      where: { activityId: legacyIds },
+      attributes: ['watts', 'time'],
+    });
+    curves.push(computeMeanMaxPower(streams));
+  }
+
+  return mergeMeanMaxCurves(curves);
 }
 
 /**

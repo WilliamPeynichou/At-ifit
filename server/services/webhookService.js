@@ -4,6 +4,7 @@ const { upsertActivities, enrichActivityByStravaId, applyActivityDetail } = requ
 const { getValidStravaToken, getActivity } = require('../utils/stravaHelpers');
 const logger = require('../utils/logger');
 const cache = require('../utils/memoryCache');
+const { invalidateUserDashboards } = require('./dashboardCache');
 
 /**
  * Traite un événement Strava webhook
@@ -66,6 +67,7 @@ async function handleStravaEvent(event) {
   if (aspect_type === 'delete') {
     const deleted = await Activity.destroy({ where: { stravaId: object_id, userId } });
     cache.delete(`athlete-stats:${userId}`);
+    invalidateUserDashboards(userId);
     logger.info('[Webhook] Activité supprimée', { userId, object_id, deleted });
   }
 }

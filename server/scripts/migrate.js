@@ -222,6 +222,32 @@ async function runMigrations() {
   await addColumnIfMissing('Activities', 'detailFetchedAt',       'DATETIME NULL');
   await addColumnIfMissing('Activities', 'streamFetchedAt',       'DATETIME NULL');
 
+  // ── Activities : colonnes extraites de raw (Phase 2, lectures SQL légères) ──
+  await addColumnIfMissing('Activities', 'sportType',              'VARCHAR(64) NULL');
+  await addColumnIfMissing('Activities', 'startDateLocal',         'VARCHAR(32) NULL');
+  await addColumnIfMissing('Activities', 'timezone',               'VARCHAR(64) NULL');
+  await addColumnIfMissing('Activities', 'elevHigh',               'FLOAT NULL');
+  await addColumnIfMissing('Activities', 'elevLow',                'FLOAT NULL');
+  await addColumnIfMissing('Activities', 'powerBests',             'JSON NULL');
+
+  // Backfill one-shot idempotent : ne touche que les lignes pas encore extraites.
+  // NULLIF(..., 'null') : une valeur JSON null devient NULL SQL.
+  // elevHigh/elevLow : conversion numérique (+ 0, DOUBLE) sans arrondi DECIMAL.
+  // powerBests n'est PAS backfillé ici (script de backfill dédié).
+  const [backfillResult] = await sequelize.query(`
+    UPDATE \`Activities\` SET
+      \`sportType\`      = NULLIF(JSON_UNQUOTE(JSON_EXTRACT(\`raw\`, '$.sport_type')), 'null'),
+      \`startDateLocal\` = NULLIF(JSON_UNQUOTE(JSON_EXTRACT(\`raw\`, '$.start_date_local')), 'null'),
+      \`timezone\`       = NULLIF(JSON_UNQUOTE(JSON_EXTRACT(\`raw\`, '$.timezone')), 'null'),
+      \`elevHigh\`       = NULLIF(JSON_UNQUOTE(JSON_EXTRACT(\`raw\`, '$.elev_high')), 'null') + 0,
+      \`elevLow\`        = NULLIF(JSON_UNQUOTE(JSON_EXTRACT(\`raw\`, '$.elev_low')), 'null') + 0
+    WHERE \`sportType\` IS NULL AND \`raw\` IS NOT NULL
+  `);
+  const backfilled = backfillResult && backfillResult.affectedRows;
+  console.log(backfilled
+    ? `  ✅ Backfill Activities (colonnes extraites de raw) : ${backfilled} lignes`
+    : '  ✓ Backfill Activities (colonnes extraites de raw) : rien à faire');
+
   // Supprime l'ancien index unique global stravaId s'il existe, puis garantit l'unicité par utilisateur.
   try {
     if (await indexExists('Activities', 'stravaId')) {
@@ -282,6 +308,7 @@ async function runMigrations() {
   for (const [name, def] of [
     ['Activities_userId_detailFetched', '(`userId`, `detailFetchedAt`)'],
     ['Activities_userId_streamFetched', '(`userId`, `streamFetchedAt`)'],
+    ['Activities_userId_sportType',     '(`userId`, `sportType`)'],
   ]) {
     if (!(await indexExists('Activities', name))) {
       try {

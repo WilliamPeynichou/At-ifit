@@ -1,8 +1,11 @@
+const { Op } = require('sequelize');
 const Activity = require('../models/Activity');
 const User = require('../models/User');
 const { syncUserActivities, syncSince } = require('./stravaSync');
 const { resolveMaxHeartrate } = require('./userMetricsService');
+const { getOrCompute, dashKey, DASHBOARD_TTL_SECONDS } = require('./dashboardCache');
 const {
+  RUNNING_TYPES,
   filterRunningActivities,
   filterActivitiesByPeriod,
   getPreviousPeriod,
@@ -67,31 +70,58 @@ async function ensureStravaState(userId, { triggerSync = false } = {}) {
   return user;
 }
 
-async function getAllRunningActivities(userId, { triggerSync = false } = {}) {
-  const [user, hrMaxResolved, activities] = await Promise.all([
-    ensureStravaState(userId, { triggerSync }),
+// Pré-filtre SQL : sur-ensemble du filtre JS isRunningActivity (qui reste en place).
+// Transition documentée : une ligne sans sportType (sync entre migration et Lot B4) dont seul
+// raw.sport_type matche n'est pas remontée ; le backfill Lot C couvre toutes les lignes avec raw.
+const RUNNING_SQL_TYPES = [...RUNNING_TYPES];
+
+function runningWhere(userId) {
+  return {
+    userId,
+    [Op.or]: [
+      { type: { [Op.in]: RUNNING_SQL_TYPES } },
+      { sportType: { [Op.in]: RUNNING_SQL_TYPES } },
+    ],
+  };
+}
+
+// Données non mises en cache : FC max + activités normalisées (raw / summaryPolyline non lus ici).
+async function loadRunningDataset(userId) {
+  const [hrMaxResolved, rows] = await Promise.all([
     resolveMaxHeartrate(userId),
     Activity.findAll({
-      where: { userId },
+      where: runningWhere(userId),
+      attributes: { exclude: ['raw', 'summaryPolyline'] },
       order: [['startDate', 'ASC']],
       limit: 5000,
     }),
   ]);
 
-  const normalized = filterRunningActivities(activities);
-  normalized.forEach(activity => {
+  const activities = filterRunningActivities(rows);
+  activities.forEach(activity => {
     activity.trainingLoad = calculateTrainingLoad(activity, hrMaxResolved.value);
     activity.trainingLoadSource = activity.averageHeartRate ? 'heart_rate' : 'estimated_without_hr';
   });
 
   return {
-    user,
     hrMax: {
       value: hrMaxResolved.value,
       source: hrMaxResolved.source || 'default',
       confidence: hrMaxResolved.confidence || 'low',
     },
-    activities: normalized,
+    activities,
+  };
+}
+
+// Champs de statut dépendant de l'user : recomposés à chaque appel, hors cache.
+function withFreshSyncStatus(analysis, user) {
+  return {
+    ...analysis,
+    status: {
+      ...analysis.status,
+      dataSynced: Boolean(user.fullSyncCompletedAt || user.lastSyncAt),
+      lastSyncAt: user.lastSyncAt || user.fullSyncCompletedAt || null,
+    },
   };
 }
 
@@ -156,20 +186,42 @@ function buildAnalysis(activities, periodInput, user, hrMax) {
 
 async function getRunningAnalysis(userId, query = {}) {
   const period = parsePeriodQuery(query);
-  const { user, hrMax, activities } = await getAllRunningActivities(userId, { triggerSync: true });
-  return buildAnalysis(activities, period, user, hrMax);
+  const user = await ensureStravaState(userId, { triggerSync: true });
+  const analysis = await getOrCompute(
+    dashKey(userId, 'running', { view: 'analysis', preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { hrMax, activities } = await loadRunningDataset(userId);
+      return buildAnalysis(activities, period, user, hrMax);
+    }
+  );
+  return withFreshSyncStatus(analysis, user);
 }
 
 async function getRunningActivities(userId, query = {}) {
   const period = parsePeriodQuery(query);
-  const { activities } = await getAllRunningActivities(userId, { triggerSync: true });
-  return filterActivitiesByPeriod(activities, period);
+  await ensureStravaState(userId, { triggerSync: true });
+  return getOrCompute(
+    dashKey(userId, 'running', { view: 'activities', preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { activities } = await loadRunningDataset(userId);
+      return filterActivitiesByPeriod(activities, period);
+    }
+  );
 }
 
 async function getRunningWeeklyStats(userId, query = {}) {
   const period = parsePeriodQuery(query);
-  const { activities } = await getAllRunningActivities(userId);
-  return calculateWeeklyStats(filterActivitiesByPeriod(activities, period));
+  await ensureStravaState(userId);
+  return getOrCompute(
+    dashKey(userId, 'running', { view: 'weekly', preset: period.preset, from: period.from, to: period.to }),
+    DASHBOARD_TTL_SECONDS,
+    async () => {
+      const { activities } = await loadRunningDataset(userId);
+      return calculateWeeklyStats(filterActivitiesByPeriod(activities, period));
+    }
+  );
 }
 
 async function getRunningInsights(userId, query = {}) {

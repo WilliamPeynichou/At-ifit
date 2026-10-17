@@ -72,7 +72,7 @@ function normalizeStravaSwimmingActivity(activity) {
     id: String(a.stravaId || a.id || raw.id || ''),
     name: a.name || raw.name || 'Natation',
     date: (a.startDate || a.start_date || raw.start_date) ? new Date(a.startDate || a.start_date || raw.start_date).toISOString().slice(0, 10) : null,
-    localDate: raw.start_date_local || a.startDate || a.start_date || raw.start_date || null,
+    localDate: a.startDateLocal || raw.start_date_local || a.startDate || a.start_date || raw.start_date || null,
     startDate: a.startDate || a.start_date || raw.start_date || raw.start_date_local || null,
     distanceMeters: round(distanceMeters, 1) || 0,
     distanceKm: round(distanceMeters / 1000, 3) || 0,
@@ -95,7 +95,7 @@ function normalizeStravaSwimmingActivity(activity) {
     swimType: classifySwimType(a),
     workoutType: a.workoutType || a.workout_type || raw.workout_type || undefined,
     description: raw.description || a.description || undefined,
-    timezone: raw.timezone || a.timezone || undefined,
+    timezone: a.timezone || raw.timezone || undefined,
     splitsMetric: a.splitsMetric || raw.splits_metric || undefined,
     bestEfforts: a.bestEfforts || raw.best_efforts || undefined,
   };
