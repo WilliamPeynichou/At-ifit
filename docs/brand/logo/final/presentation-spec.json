@@ -1,0 +1,35 @@
+{
+  "brand": "Atifit",
+  "tagline": "Chaque séance fait bouger la courbe",
+  "brief": "Application de suivi sportif et nutritionnel connectée à Strava : poids, calories (TDEE), analyse d'entraînement et coach IA. Le logo doit tenir de 16 px (favicon) à l'écran entier, en une couleur, sans clichés du sport (coureur, pouls, flamme, éclair, swoosh).",
+  "adjectives": ["précis", "dynamique", "progressif", "sérieux"],
+  "criteria": "Réussite : se distingue des marques fitness, lisible à 16 px, fonctionne en une couleur, cohérent avec l'UI (noir #131014, bleu #0055ff, Bebas Neue).",
+  "industry": "consumer-app",
+  "mockups": ["app-icon", "website", "favicon-tab", "social", "tshirt", "sticker"],
+  "nav": ["Dashboard", "Nutrition", "Coach IA"],
+  "brand_color": "#0055ff",
+  "greyscale": false,
+  "final": true,
+  "designer": "Atifit",
+  "concepts": [
+    {
+      "name": "Delta A",
+      "symbol": "atifit-symbol.svg",
+      "lockup": "atifit-horizontal.svg",
+      "stacked": "atifit-stacked.svg",
+      "symbol_on_tile": "atifit-symbol-tile.svg",
+      "stacked_on_tile": "atifit-stacked-tile.svg",
+      "symbol_on_dark": "atifit-symbol-dark.svg",
+      "lockup_on_dark": "atifit-horizontal-dark.svg",
+      "stacked_on_dark": "atifit-stacked-dark.svg",
+      "idea": "L'A d'Atifit porte un Δ, le symbole de la variation : chaque séance fait bouger la courbe.",
+      "rationale": [
+        "Le Δ parle du cœur de l'app : variations de poids, ajustement des calories",
+        "Lettre construite à 75°, en accord avec les capitales condensées Bebas Neue de l'UI",
+        "Deux couleurs reprises de l'app, une version petite taille dédiée au favicon"
+      ]
+    }
+  ],
+  "recommendation": "Delta A — le plus solide en petit, et l'idée la plus juste pour un suivi de progression.",
+  "next_steps": ["Intégrer le favicon et le logo dans le client", "Dépôt de marque (recherche d'antériorité à faire)"]
+}
