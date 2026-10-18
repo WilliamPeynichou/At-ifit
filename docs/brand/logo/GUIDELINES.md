@@ -56,4 +56,4 @@ poser sur un fond chargé sans aplat · retaper « ATIFIT » au clavier au lieu 
 ## 7. Points ouverts
 - Recherche d'antériorité de marque (INPI / EUIPO, recherche d'image inversée) non effectuée : à faire avant dépôt.
 - Masters PDF/EPS pour l'impression non générés (pas d'Illustrator/Inkscape ici) : exporter depuis les SVG.
-- Intégration dans le client (`client/index.html` utilise encore `/vite.svg`) : à faire.
+- Intégré dans le client : favicon et manifest dans `client/public/`, logo dans le header, le footer, les pages légales et les écrans de connexion/inscription. Les assets de marque sont dans `client/src/assets/brand/`.

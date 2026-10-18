@@ -2,18 +2,24 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import Layout from '../Layout';
 import Footer from '../Footer';
 import { LEGAL_LAST_UPDATE } from '../../data/legalInfo';
+import logoLight from '../../assets/brand/atifit-horizontal-light.svg';
+import logoDark from '../../assets/brand/atifit-horizontal-dark.svg';
 
 /** Pages légales accessibles sans compte : Layout complet si connecté, en-tête minimal sinon. */
 export function LegalRoute({ children }) {
   const { user } = useAuth();
+  const { isDark } = useTheme();
   if (user) return <Layout>{children}</Layout>;
   return (
     <div className="min-h-screen flex flex-col">
       <header className="w-full px-4 sm:px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--glass-border)' }}>
-        <Link to="/login" className="font-display text-2xl tracking-widest" style={{ color: 'var(--text-primary)' }}>Atifit</Link>
+        <Link to="/login" aria-label="Atifit, connexion" className="inline-flex">
+          <img src={isDark ? logoDark : logoLight} alt="Atifit" width="86" height="32" className="h-8 w-auto" />
+        </Link>
         <Link to="/login" className="inline-flex items-center gap-2 text-sm font-semibold min-h-11 px-3 rounded-lg" style={{ color: 'var(--text-primary)' }}>
           <ArrowLeft size={16} aria-hidden="true" /> Se connecter
         </Link>

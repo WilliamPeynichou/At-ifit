@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useConsent } from '../context/ConsentContext';
 import { EDITOR } from '../data/legalInfo';
+import logoHorizontal from '../assets/brand/atifit-horizontal-dark.svg';
 
 const COLUMNS = [
   {
@@ -51,7 +52,9 @@ const Footer = () => {
       <div className="max-w-6xl mx-auto px-5 sm:px-6 pt-10 pb-6">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div className="space-y-3">
-            <Link to="/" className="font-display text-2xl tracking-widest" style={{ color: '#faf9f5' }}>Atifit</Link>
+            <Link to="/" aria-label="Atifit, accueil" className="inline-flex" data-testid="footer-logo">
+              <img src={logoHorizontal} alt="Atifit" width="107" height="40" className="h-10 w-auto" />
+            </Link>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: '#b0aea5' }}>
               Analyse d’entraînement, nutrition sportive et préparation de course. Gratuit, sans publicité.
             </p>

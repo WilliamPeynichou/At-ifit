@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Activity } from 'lucide-react';
+import AuthBrand from '../components/AuthBrand';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -39,15 +39,7 @@ const Login = () => {
       >
         {/* Logo */}
         <div className="flex flex-col items-center gap-4 mb-8">
-          <div
-            className="rounded-2xl p-4"
-            style={{ background: 'var(--accent-blue-light)', border: '1px solid rgba(0,85,255,0.15)' }}
-          >
-            <Activity className="w-8 h-8" style={{ color: 'var(--accent-blue)' }} />
-          </div>
-          <h1 className="text-3xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}>
-            AT<span style={{ color: 'var(--accent-blue)' }}>IFIT</span>
-          </h1>
+          <AuthBrand />
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Connectez-vous à votre espace</p>
         </div>
 

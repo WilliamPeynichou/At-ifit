@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, useLocation } from 'react-router-dom';
 import Footer from './Footer';
+import logoSymbol from '../assets/brand/atifit-symbol-dark.svg';
 
 const SUPER_ADMIN_NAV_ITEM = { path: '/super-admin', label: 'Super Admin', icon: ShieldAlert, superAdminOnly: true };
 
@@ -94,6 +95,9 @@ const Layout = ({ children }) => {
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
           <div className="min-w-0 flex items-center gap-2 xl:gap-3">
+            <Link to="/" aria-label="Atifit, accueil" className="shrink-0 inline-flex" data-testid="header-logo">
+              <img src={logoSymbol} alt="" width="28" height="28" className="h-7 w-7 lg:h-8 lg:w-8" />
+            </Link>
             <p className="header-context font-mono uppercase tracking-[.16em] truncate" style={{ color: 'var(--text-light-secondary)' }}>
               {currentContext}
             </p>

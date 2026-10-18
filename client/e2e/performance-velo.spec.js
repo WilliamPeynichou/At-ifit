@@ -295,7 +295,7 @@ test('comparateur alimentaire filtre, trie et revient depuis la page nutrition',
   await expect(page.getByRole('heading', { name: /^Barres énergétiques$/ })).toBeVisible();
 });
 
-test('le header fluide garde toutes les pages principales à un clic, sans logo', async ({ page }) => {
+test('le header fluide garde les pages principales à un clic avec le logo Atifit', async ({ page }) => {
   await mockApi(page);
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'e2e-access-token');
@@ -304,9 +304,9 @@ test('le header fluide garde toutes les pages principales à un clic, sans logo'
   });
 
   await page.setViewportSize({ width: 1400, height: 800 });
-  await page.goto('/nutrition/strategie');
+  await page.goto('/preparer-course');
   const header = page.locator('header.glass-nav');
-  await expect(header.getByText('Nutrition / Stratégie')).toBeVisible();
+  await expect(header.getByText('Préparer course', { exact: true }).first()).toBeVisible();
   await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Dashboard/i })).toBeVisible();
   await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Strava/i })).toBeVisible();
   await expect(header.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: /Préparer course/i })).toBeVisible();
@@ -315,7 +315,11 @@ test('le header fluide garde toutes les pages principales à un clic, sans logo'
   await expect(header.locator('.header-shell')).toHaveCSS('container-type', 'inline-size');
   await expect(header.locator('.header-context')).toHaveCSS('font-size', /px/);
   await expect(header.locator('.header-primary-link').first()).toHaveCSS('font-size', /px/);
-  await expect(header.getByRole('link', { name: /^Atifit$/i })).toHaveCount(0);
+  const brandLink = header.getByRole('link', { name: 'Atifit, accueil', exact: true });
+  await expect(brandLink).toBeVisible();
+  await expect(brandLink).toHaveAttribute('href', '/');
+  await expect(brandLink.locator('img')).toHaveJSProperty('complete', true);
+  expect(await brandLink.locator('img').evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
 });
 
 test('l’initialisation Strava peut être passée', async ({ page }) => {
