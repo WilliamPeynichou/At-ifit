@@ -129,6 +129,13 @@
   gap: 32px;
 }
 
+.cyclist-brand {
+  display: block;
+  width: 162px;
+  max-width: calc(100vw - 48px);
+  height: auto;
+}
+
 .cyclist-canvas {
   position: relative;
   width: 80px;
