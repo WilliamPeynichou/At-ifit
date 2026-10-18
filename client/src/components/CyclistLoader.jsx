@@ -15,9 +15,6 @@ const CyclistLoader = () => {
         height="60"
         className="cyclist-brand"
       />
-      <div className="cyclist-canvas" aria-hidden="true">
-        <div className="cyclist-pixel" />
-      </div>
       <p className="cyclist-label">Chargement...</p>
     </div>
   );
