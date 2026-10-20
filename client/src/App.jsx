@@ -1,5 +1,5 @@
-import React, { lazy, Suspense, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -38,6 +38,16 @@ const SuperAdmin = lazy(() => import('./pages/SuperAdmin'));
 const LegalNotice = lazy(() => import('./pages/legal/LegalNotice'));
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'));
 const CookiePolicy = lazy(() => import('./pages/legal/CookiePolicy'));
+
+/** Remet la page en haut à chaque changement de route (sauf ancre #). */
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname, hash]);
+  return null;
+}
 
 function AppInner() {
   const { loading, user } = useAuth();
@@ -265,6 +275,7 @@ function AppInner() {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <ThemeProvider>
         <AuthProvider>
           <LanguageProvider>
