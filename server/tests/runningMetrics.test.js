@@ -76,7 +76,34 @@ describe('running metrics', () => {
     expect(Math.round(weeks[0].averagePaceMinKm * 60)).toBe(320);
   });
 
-  test('calcule le ratio de charge sur la moyenne des 4 semaines précédentes', () => {
+  test('inclut les semaines calendaires vides dans une période partielle et traverse les années', () => {
+    const activities = filterRunningActivities([
+      run({ id: '1', startDate: '2025-12-29T09:00:00Z' }),
+      run({ id: '2', startDate: '2026-01-20T09:00:00Z' }),
+    ]);
+    const weeks = calculateWeeklyStats(activities, {
+      preset: 'CUSTOM', from: '2025-12-31T00:00:00.000Z', to: '2026-01-21T23:59:59.999Z',
+    });
+    expect(weeks.map(week => week.weekStart)).toEqual(['2025-12-29', '2026-01-05', '2026-01-12', '2026-01-19']);
+    expect(weeks.slice(1, 3).map(week => week.activityCount)).toEqual([0, 0]);
+    expect(weeks[1].totalDistanceKm).toBe(0);
+  });
+
+  test('garde les séries vides vides sans activité', () => {
+    expect(calculateWeeklyStats([], { preset: 'CUSTOM', from: '2026-04-06', to: '2026-04-19' })).toHaveLength(2);
+    expect(calculateWeeklyStats([])).toEqual([]);
+  });
+
+  test('calcule le ratio uniquement après quatre semaines calendaires précédentes', () => {
+    const ratios = calculateTrainingLoadRatio([
+      ...[100, 0, 0, 0].map((trainingLoad, index) => ({ weekStart: `2026-01-${String(5 + index * 7).padStart(2, '0')}`, label: `S${index + 1}`, trainingLoad })),
+      { weekStart: '2026-02-02', label: 'S5', trainingLoad: 160 },
+    ]);
+    expect(ratios[4].previousAverage).toBe(25);
+    expect(ratios[4].ratio).toBe(6.4);
+    expect(ratios[1].ratio).toBeNull();
+  });
+  test('calcule les ratios et alerte sur la hausse importante', () => {
     const ratios = calculateTrainingLoadRatio([
       { weekStart: '2026-01-05', label: 'S1', trainingLoad: 100 },
       { weekStart: '2026-01-12', label: 'S2', trainingLoad: 100 },
@@ -84,7 +111,6 @@ describe('running metrics', () => {
       { weekStart: '2026-01-26', label: 'S4', trainingLoad: 100 },
       { weekStart: '2026-02-02', label: 'S5', trainingLoad: 160 },
     ]);
-
     expect(ratios[4].ratio).toBe(1.6);
     expect(ratios[4].status).toBe('risque de surcharge');
   });

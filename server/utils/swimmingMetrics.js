@@ -247,7 +247,7 @@ function calculateSwimmingGlobalStats(activities) {
 }
 
 function relativeChange(current, previous) {
-  if (!Number.isFinite(Number(current)) || !Number.isFinite(Number(previous)) || Number(previous) === 0) return null;
+  if (current === null || current === undefined || previous === null || previous === undefined || !Number.isFinite(Number(current)) || !Number.isFinite(Number(previous)) || Number(previous) === 0) return null;
   return (Number(current) - Number(previous)) / Number(previous);
 }
 
@@ -281,29 +281,32 @@ function mondayOf(dateValue) {
   return d;
 }
 
-function calculateWeeklySwimStats(activities) {
+function calculateWeeklySwimStats(activities, periodInput) {
   const byWeek = new Map();
+  const period = periodInput ? normalizePeriod(periodInput) : null;
+  let firstWeek = null;
+  let lastWeek = null;
+  if (period?.from && period?.to) {
+    firstWeek = mondayOf(period.from);
+    lastWeek = mondayOf(period.to);
+  } else if (activities.length) {
+    firstWeek = mondayOf(activities[0].startDate);
+    lastWeek = mondayOf(activities[activities.length - 1].startDate);
+  }
+  for (let cursor = firstWeek; cursor && cursor <= lastWeek; cursor = addDays(cursor, 7)) {
+    const weekStart = dateKey(cursor);
+    byWeek.set(weekStart, {
+      weekStart, weekEnd: dateKey(addDays(cursor, 6)),
+      label: cursor.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+      activities: [], totalDistanceMeters: 0, totalDistanceKm: 0,
+      totalMovingTimeMinutes: 0, activityCount: 0, averagePaceMinPer100m: null,
+      averageHeartRate: null, trainingLoad: 0, longestSwimDistanceMeters: 0,
+      poolSessionCount: 0, openWaterSessionCount: 0,
+    });
+  }
   for (const activity of activities) {
-    const weekStartDate = mondayOf(activity.startDate);
-    const weekStart = dateKey(weekStartDate);
-    if (!byWeek.has(weekStart)) {
-      byWeek.set(weekStart, {
-        weekStart,
-        weekEnd: dateKey(addDays(weekStartDate, 6)),
-        label: weekStartDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
-        activities: [],
-        totalDistanceMeters: 0,
-        totalDistanceKm: 0,
-        totalMovingTimeMinutes: 0,
-        activityCount: 0,
-        averagePaceMinPer100m: null,
-        averageHeartRate: null,
-        trainingLoad: 0,
-        longestSwimDistanceMeters: 0,
-        poolSessionCount: 0,
-        openWaterSessionCount: 0,
-      });
-    }
+    const weekStart = dateKey(mondayOf(activity.startDate));
+    if (!byWeek.has(weekStart)) continue;
     const week = byWeek.get(weekStart);
     week.activities.push(activity);
     week.totalDistanceMeters += activity.distanceMeters || 0;
@@ -328,9 +331,9 @@ function calculateWeeklySwimStats(activities) {
 
 function calculateSwimTrainingLoadRatio(weeklyStats) {
   return weeklyStats.map((week, index) => {
-    const prev = weeklyStats.slice(Math.max(0, index - 4), index);
-    const avg = prev.length ? sum(prev, w => w.trainingLoad) / prev.length : null;
-    const ratio = avg ? week.trainingLoad / avg : null;
+    const previous = weeklyStats.slice(Math.max(0, index - 4), index);
+    const avg = previous.length === 4 ? sum(previous, w => w.trainingLoad) / 4 : null;
+    const ratio = avg !== null && avg !== 0 ? week.trainingLoad / avg : null;
     let status = 'indisponible';
     if (ratio !== null) {
       if (ratio < 0.8) status = 'charge faible';
@@ -338,13 +341,14 @@ function calculateSwimTrainingLoadRatio(weeklyStats) {
       else if (ratio <= 1.5) status = 'hausse importante';
       else status = 'risque de surcharge';
     }
-    return { weekStart: week.weekStart, label: week.label, trainingLoad: week.trainingLoad, previousAverage: avg ? round(avg, 1) : null, ratio: ratio ? round(ratio, 2) : null, status };
+    const previousAverage = avg !== null ? round(avg, 1) : null;
+    return { weekStart: week.weekStart, label: week.label, trainingLoad: week.trainingLoad, previousAverage, ratio: ratio !== null ? round(ratio, 2) : null, status };
   });
 }
 
-function calculateSwimmingRegularityScore(activities) {
-  const weeklyStats = calculateWeeklySwimStats(activities);
-  const totalWeeks = weeksBetween(activities);
+function calculateSwimmingRegularityScore(activities, period) {
+  const weeklyStats = calculateWeeklySwimStats(activities, period);
+  const totalWeeks = weeklyStats.length;
   const activeWeeks = weeklyStats.filter(w => w.activityCount > 0).length;
   const weeksWithAtLeastTwoSwims = weeklyStats.filter(w => w.activityCount >= 2).length;
   const score = totalWeeks ? weeksWithAtLeastTwoSwims / totalWeeks : 0;
@@ -449,7 +453,7 @@ function calculateSwimEfficiencyStats(activities) {
 }
 
 function pearson(points, xKey, yKey) {
-  const clean = points.map(p => [Number(p[xKey]), Number(p[yKey])]).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+  const clean = points.map(p => [p[xKey], p[yKey]]).filter(([x, y]) => x !== null && x !== undefined && x !== '' && y !== null && y !== undefined && y !== '' && typeof x !== 'boolean' && typeof y !== 'boolean').map(([x, y]) => [Number(x), Number(y)]).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
   if (clean.length < 3) return null;
   const meanX = sum(clean, p => p[0]) / clean.length;
   const meanY = sum(clean, p => p[1]) / clean.length;

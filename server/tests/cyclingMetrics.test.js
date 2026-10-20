@@ -106,6 +106,31 @@ describe('cycling metrics', () => {
     });
   });
 
+  test('génère toutes les semaines calendaires bornées, y compris les semaines vides et passages d’année', () => {
+    const weeks = calculateWeeklyCyclingStats([], { preset: 'CUSTOM', from: '2025-12-30', to: '2026-01-20' });
+    expect(weeks.map(week => week.weekStart)).toEqual(['2025-12-29', '2026-01-05', '2026-01-12', '2026-01-19']);
+    expect(weeks.every(week => week.activityCount === 0 && week.totalDistanceKm === 0 && week.totalMovingTimeMinutes === 0 && week.trainingLoad === 0 && week.averageSpeedKmh === null)).toBe(true);
+  });
+
+  test('sans bornes borne par les activités et conserve les pauses; sans données retourne vide', () => {
+    const activities = filterCyclingActivities([
+      ride({ id: 'a', startDate: '2026-01-05T08:00:00Z' }),
+      ride({ id: 'b', startDate: '2026-01-26T08:00:00Z' }),
+    ], {}, profile);
+    expect(calculateWeeklyCyclingStats(activities).map(week => week.activityCount)).toEqual([1, 0, 0, 1]);
+    expect(calculateWeeklyCyclingStats([])).toEqual([]);
+  });
+
+  test('ratio exige quatre semaines historiques et conserve un ratio nul calculable', () => {
+    const weeks = [0, 0, 0, 0, 0].map((trainingLoad, index) => ({ weekStart: `2026-01-${String(5 + index * 7).padStart(2, '0')}`, trainingLoad, label: `S${index}` }));
+    expect(calculateCyclingTrainingLoadRatio(weeks)[3].ratio).toBeNull();
+    expect(calculateCyclingTrainingLoadRatio(weeks)[4].ratio).toBeNull();
+    weeks[0].trainingLoad = 100;
+    weeks[1].trainingLoad = 100;
+    weeks[2].trainingLoad = 100;
+    weeks[3].trainingLoad = 100;
+    expect(calculateCyclingTrainingLoadRatio(weeks)[4].ratio).toBe(0);
+  });
   test('calcule ratio de charge, régularité et records calculables', () => {
     const ratios = calculateCyclingTrainingLoadRatio([
       { weekStart: '2026-01-05', label: 'S1', trainingLoad: 100 },

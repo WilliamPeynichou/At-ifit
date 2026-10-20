@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -150,20 +150,20 @@ function PeriodFilter({ value, setValue }) {
     <Section title="Filtres de période" icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />}>
       <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
         <div className="flex-1">
-          <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Période</label>
-          <select value={value.period} onChange={(event) => update('period', event.target.value)} className="input-cyber">
+          <label htmlFor="swimming-period" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Période</label>
+          <select id="swimming-period" value={value.period} onChange={(event) => update('period', event.target.value)} className="input-cyber">
             {PERIODS.map(period => <option key={period.value} value={period.value}>{period.label}</option>)}
           </select>
         </div>
         {value.period === 'CUSTOM' && (
           <>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Début</label>
-              <input type="date" value={value.from} onChange={(event) => update('from', event.target.value)} className="input-cyber" />
+              <label htmlFor="swimming-from" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Début</label>
+              <input id="swimming-from" type="date" value={value.from} onChange={(event) => update('from', event.target.value)} className="input-cyber" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Fin</label>
-              <input type="date" value={value.to} onChange={(event) => update('to', event.target.value)} className="input-cyber" />
+              <label htmlFor="swimming-to" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Fin</label>
+              <input id="swimming-to" type="date" value={value.to} onChange={(event) => update('to', event.target.value)} className="input-cyber" />
             </div>
           </>
         )}
@@ -247,7 +247,7 @@ function VolumeSection({ weeklyStats }) {
             <BarChart data={weeklyStats}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+              <YAxis tickFormatter={(v) => `${Number(v).toLocaleString('fr-FR')} m`} />
               <Tooltip {...chartTooltip} formatter={(value) => [formatDistanceMeters(value), 'Distance']} />
               <Bar dataKey="totalDistanceMeters" fill="#0055ff" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -297,7 +297,7 @@ function ScatterPanel({ data, xKey, yKey, xLabel, yLabel, xFormatter, yFormatter
 }
 
 function PaceSection({ activities, weeklyStats }) {
-  const sessions = activities.filter(a => a.averagePaceMinPer100m).map(a => ({ ...a, label: new Date(a.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) }));
+  const sessions = activities.filter(a => isNumber(a.averagePaceMinPer100m) && Number(a.averagePaceMinPer100m) > 0).map(a => ({ ...a, label: new Date(a.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) }));
   return (
     <Section title="Allure de nage" icon={<Gauge className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside="Une allure au 100 m plus basse indique une séance plus rapide.">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -308,13 +308,13 @@ function PaceSection({ activities, weeklyStats }) {
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis reversed tickFormatter={formatSwimPace} width={76} />
               <Tooltip {...chartTooltip} formatter={(value) => [formatSwimPace(value), 'Allure']} />
-              <Line type="monotone" dataKey="averagePaceMinPer100m" stroke="#0055ff" strokeWidth={2} dot={{ r: 3 }} name="Allure séance" />
+              <Line type="monotone" dataKey="averagePaceMinPer100m" name="Allure · min:s/100 m" stroke="#0055ff" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </ChartBox>
-        <ChartBox empty={weeklyStats.filter(w => w.averagePaceMinPer100m).length < 2 && 'Pas assez de semaines avec allure.'}>
+        <ChartBox empty={weeklyStats.filter(w => isNumber(w.averagePaceMinPer100m) && w.averagePaceMinPer100m > 0).length < 2 && 'Pas assez de semaines avec allure.'}>
           <ResponsiveContainer width="100%" height="100%" debounce={150}>
-            <LineChart data={weeklyStats.filter(w => w.averagePaceMinPer100m)}>
+            <LineChart data={weeklyStats.filter(w => isNumber(w.averagePaceMinPer100m) && w.averagePaceMinPer100m > 0)}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis reversed tickFormatter={formatSwimPace} width={76} />
@@ -334,23 +334,24 @@ function EnduranceSection({ stats, longSwims, activities }) {
   const lastFive = activities.slice(-5);
   const avgLastFive = lastFive.length ? lastFive.reduce((sum, a) => sum + a.distanceMeters, 0) / lastFive.length : 0;
   return (
-    <Section title="Endurance" icon={<Droplets className="w-5 h-5" style={{ color: '#06b6d4' }} />} aside="Séances longues définies avec un seuil relatif à votre distance moyenne.">
+    <Section title="Endurance" icon={<Droplets className="w-5 h-5" style={{ color: '#06b6d4' }} />} aside="Séances longues : seuil max(1 500 m, 1,25 × distance moyenne) ou séance la plus longue de chaque semaine, selon les données disponibles.">
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-5">
         <MiniStat label="Distance max" value={stats.longestSwim ? formatDistanceMeters(stats.longestSwim.distanceMeters) : '-'} />
         <MiniStat label="Durée max" value={stats.longestDurationSwim ? formatDuration(stats.longestDurationSwim.movingTimeMinutes) : '-'} />
-        <MiniStat label="Moyenne 5 dernières" value={avgLastFive ? formatDistanceMeters(avgLastFive) : '-'} />
-        <MiniStat label="Dernier seuil long" value={longSwims.at(-1)?.thresholdMeters ? formatDistanceMeters(longSwims.at(-1).thresholdMeters) : '-'} />
+        <MiniStat label="Moyenne 5 dernières" value={lastFive.length ? formatDistanceMeters(avgLastFive) : '-'} />
+        <MiniStat label="Dernier seuil long" value={isNumber(longSwims.at(-1)?.thresholdMeters) ? formatDistanceMeters(longSwims.at(-1).thresholdMeters) : '-'} />
       </div>
       <ChartBox empty={!longSwims.length && 'Pas assez de données pour suivre les séances longues.'}>
         <ResponsiveContainer width="100%" height="100%" debounce={150}>
           <LineChart data={longSwims}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-            <YAxis tickFormatter={(v) => `${Math.round(v)} m`} />
-            <Tooltip {...chartTooltip} formatter={(value, name) => name === 'shareOfWeeklyVolume' ? [`${Math.round(value * 100)} %`, 'Part volume'] : [formatDistanceMeters(value), 'Distance longue']} />
-            <Legend />
-            <Line type="monotone" dataKey="longSwimDistanceMeters" stroke="#06b6d4" strokeWidth={2} name="Distance longues" />
-            <Line type="monotone" dataKey="shareOfWeeklyVolume" stroke="#f97316" strokeWidth={2} name="Part volume" />
+              <YAxis yAxisId="distance" tickFormatter={(v) => `${Number(v).toLocaleString('fr-FR')} m`} label={{ value: 'Distance longue (m)', angle: -90, position: 'insideLeft' }} />
+              <YAxis yAxisId="share" orientation="right" domain={[0, 'auto']} tickFormatter={value => `${Math.round(value * 100)} %`} label={{ value: 'Part du volume (%)', angle: 90, position: 'insideRight' }} />
+              <Tooltip {...chartTooltip} formatter={(value, name, item) => item.dataKey === 'shareOfWeeklyVolume' ? [`${Math.round(value * 100)} %`, name] : [formatDistanceMeters(value), name]} />
+              <Legend />
+              <Line yAxisId="distance" type="monotone" connectNulls={false} dataKey="longSwimDistanceMeters" stroke="#06b6d4" strokeWidth={2} name="Distance longue (m)" />
+              <Line yAxisId="share" type="monotone" connectNulls={false} dataKey="shareOfWeeklyVolume" stroke="#f97316" strokeWidth={2} name="Part du volume hebdomadaire" />
           </LineChart>
         </ResponsiveContainer>
       </ChartBox>
@@ -407,7 +408,7 @@ function TrainingLoadSection({ weeklyStats, ratios, status }) {
     ? 'Charge principalement basée sur la fréquence cardiaque.'
     : 'Charge estimée : précision limitée si les données cardio sont absentes ou incomplètes.';
   return (
-    <Section title="Charge d’entraînement" icon={<ShieldAlert className="w-5 h-5" style={{ color: '#f97316' }} />} aside={latest?.ratio ? `${latest.status} · ratio ${latest.ratio}` : note}>
+    <Section title="Charge d’entraînement" icon={<ShieldAlert className="w-5 h-5" style={{ color: '#f97316' }} />} aside={isNumber(latest?.ratio) ? `${latest.status} · ratio ${latest.ratio}` : note}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartBox empty={!weeklyStats.length && 'Pas assez de données de charge.'}>
           <ResponsiveContainer width="100%" height="100%" debounce={150}>
@@ -420,9 +421,9 @@ function TrainingLoadSection({ weeklyStats, ratios, status }) {
             </BarChart>
           </ResponsiveContainer>
         </ChartBox>
-        <ChartBox empty={ratios.filter(r => r.ratio).length < 2 && 'Le ratio nécessite plusieurs semaines.'}>
+        <ChartBox empty={ratios.filter(r => isNumber(r.ratio)).length < 2 && 'Le ratio nécessite plusieurs semaines.'}>
           <ResponsiveContainer width="100%" height="100%" debounce={150}>
-            <LineChart data={ratios.filter(r => r.ratio)}>
+            <LineChart data={ratios.filter(r => isNumber(r.ratio))}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis />
@@ -478,7 +479,7 @@ function PoolVsOpenWaterSection({ groups }) {
           <BarChart data={groups}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
             <XAxis dataKey="type" tickFormatter={(v) => SWIM_TYPE_LABELS[v] || v} />
-            <YAxis tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+              <YAxis tickFormatter={(v) => `${Number(v).toLocaleString('fr-FR')} m`} />
             <Tooltip {...chartTooltip} formatter={(value) => [formatDistanceMeters(value), 'Distance']} labelFormatter={(v) => SWIM_TYPE_LABELS[v] || v} />
             <Bar dataKey="distanceMeters" fill="#06b6d4" radius={[4, 4, 0, 0]} />
           </BarChart>
@@ -499,9 +500,9 @@ function EfficiencySection({ efficiencyStats }) {
   return (
     <Section title="Efficacité de nage" icon={<Sparkles className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside="SWOLF et cadence dépendent du bassin, du style de nage et de la distance.">
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-5">
-        <MiniStat label="SWOLF moyen" value={efficiencyStats.averageSwolf || '-'} />
+      <MiniStat label="SWOLF moyen" value={isNumber(efficiencyStats.averageSwolf) ? efficiencyStats.averageSwolf : '-'} />
         <MiniStat label="Couverture SWOLF" value={`${Math.round((efficiencyStats.swolfCoverage || 0) * 100)} %`} />
-        <MiniStat label="Cadence moyenne" value={efficiencyStats.averageStrokeRate ? `${efficiencyStats.averageStrokeRate}` : '-'} />
+        <MiniStat label="Cadence moyenne" value={isNumber(efficiencyStats.averageStrokeRate) ? efficiencyStats.averageStrokeRate : '-'} />
         <MiniStat label="Couverture cadence" value={`${Math.round((efficiencyStats.strokeRateCoverage || 0) * 100)} %`} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -511,7 +512,7 @@ function EfficiencySection({ efficiencyStats }) {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis />
-              <Tooltip {...chartTooltip} />
+              <Tooltip {...chartTooltip} formatter={(value) => [value, 'SWOLF · score par longueur (distance + mouvements)']} />
               <Line type="monotone" dataKey="swolf" stroke="#0055ff" strokeWidth={2} name="SWOLF" />
             </LineChart>
           </ResponsiveContainer>
@@ -522,7 +523,7 @@ function EfficiencySection({ efficiencyStats }) {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis />
-              <Tooltip {...chartTooltip} />
+              <Tooltip {...chartTooltip} formatter={(value) => [value, 'Cadence · unité fournie par la source']} />
               <Line type="monotone" dataKey="strokeRate" stroke="#06b6d4" strokeWidth={2} name="Cadence" />
             </LineChart>
           </ResponsiveContainer>
@@ -631,7 +632,8 @@ function ActivitiesTable({ activities }) {
   }), [filtered, sort]);
 
   const pages = Math.max(1, Math.ceil(sorted.length / perPage));
-  const visible = sorted.slice((page - 1) * perPage, page * perPage);
+  const currentPage = Math.min(page, pages);
+  const visible = sorted.slice((currentPage - 1) * perPage, currentPage * perPage);
   const setFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setPage(1);
@@ -641,9 +643,12 @@ function ActivitiesTable({ activities }) {
   return (
     <Section title="Tableau détaillé des séances" icon={<Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside={`${filtered.length} séance(s) affichée(s)`}>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-        <input className="input-cyber" type="number" min="0" placeholder="Distance min (m)" value={filters.min} onChange={e => setFilter('min', e.target.value)} />
-        <input className="input-cyber" type="number" min="0" placeholder="Distance max (m)" value={filters.max} onChange={e => setFilter('max', e.target.value)} />
-        <select className="input-cyber" value={filters.mode} onChange={e => setFilter('mode', e.target.value)}>
+          <label htmlFor="swimming-distance-min" className="sr-only">Distance minimum en mètres</label>
+          <input id="swimming-distance-min" className="input-cyber" type="number" min="0" placeholder="Distance min (m)" value={filters.min} onChange={e => setFilter('min', e.target.value)} />
+          <label htmlFor="swimming-distance-max" className="sr-only">Distance maximum en mètres</label>
+          <input id="swimming-distance-max" className="input-cyber" type="number" min="0" placeholder="Distance max (m)" value={filters.max} onChange={e => setFilter('max', e.target.value)} />
+          <label htmlFor="swimming-mode" className="sr-only">Filtrer les séances</label>
+          <select id="swimming-mode" className="input-cyber" value={filters.mode} onChange={e => setFilter('mode', e.target.value)}>
           <option value="all">Toutes les séances</option>
           <option value="withHr">Avec cardio uniquement</option>
           <option value="pool">Piscine uniquement</option>
@@ -652,7 +657,7 @@ function ActivitiesTable({ activities }) {
           <option value="fast">Séances rapides</option>
           <option value="technical">Données techniques disponibles</option>
         </select>
-        <div className="flex items-center justify-end gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>Page {page}/{pages}</div>
+        <div className="flex items-center justify-end gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>Page {currentPage}/{pages}</div>
       </div>
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-sm">
@@ -674,8 +679,8 @@ function ActivitiesTable({ activities }) {
                 ['strokeRate', 'Cadence'],
                 ['deviceName', 'Appareil'],
               ].map(([key, label]) => (
-                <th key={key} className={`py-3 px-3 ${key === 'name' || key === 'deviceName' ? 'text-left' : 'text-right'}`}>
-                  <button type="button" onClick={() => !['name', 'deviceName', 'swimType'].includes(key) ? sortBy(key) : null} className="font-bold">{label}</button>
+                <th key={key} aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={`py-3 px-3 ${key === 'name' || key === 'deviceName' ? 'text-left' : 'text-right'}`}>
+                  <button type="button" disabled={['name', 'deviceName', 'swimType'].includes(key)} onClick={() => sortBy(key)} className={`font-bold ${['name', 'deviceName', 'swimType'].includes(key) ? 'cursor-default' : ''}`}>{label}{sort.key === key ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</button>
                 </th>
               ))}
             </tr>
@@ -706,8 +711,8 @@ function ActivitiesTable({ activities }) {
         </table>
       </div>
       <div className="flex justify-end gap-2 mt-4">
-        <button className="btn-ghost py-2 px-4" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Précédent</button>
-        <button className="btn-ghost py-2 px-4" disabled={page >= pages} onClick={() => setPage(p => Math.min(pages, p + 1))}>Suivant</button>
+        <button className="btn-ghost py-2 px-4" disabled={currentPage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Précédent</button>
+        <button className="btn-ghost py-2 px-4" disabled={currentPage >= pages} onClick={() => setPage(p => Math.min(pages, p + 1))}>Suivant</button>
       </div>
     </Section>
   );
@@ -720,24 +725,46 @@ export default function SwimmingDashboard() {
   const [error, setError] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const requestGeneration = useRef(0);
+
+  const periodKey = JSON.stringify(period);
+  useEffect(() => {
+    const generation = ++requestGeneration.current;
+    let active = true;
+    const requestedPeriod = period;
+    const validCustomDates = requestedPeriod.period !== 'CUSTOM' || (
+      Boolean(requestedPeriod.from && requestedPeriod.to) && requestedPeriod.from <= requestedPeriod.to
+    );
+    if (!validCustomDates) {
+      setError('Pour une période personnalisée, renseignez des dates valides dans l’ordre chronologique.');
+      setLoading(false);
+      setData(null);
+      return () => { active = false; };
+    }
+    setLoading(true);
+    setError('');
+    setData(null);
+    fetchSwimmingStats(requestedPeriod)
+      .then(response => { if (active && generation === requestGeneration.current) setData(response.data); })
+      .catch(err => { if (active && generation === requestGeneration.current) setError(err.response?.data?.error || 'Impossible de récupérer les activités pour le moment.'); })
+      .finally(() => { if (active && generation === requestGeneration.current) setLoading(false); });
+    return () => { active = false; };
+  }, [period, periodKey]);
 
   const load = async () => {
+    const generation = ++requestGeneration.current;
     try {
+      const requestedPeriod = period;
       setLoading(true);
       setError('');
-      const response = await fetchSwimmingStats(period);
-      setData(response.data);
+      const response = await fetchSwimmingStats(requestedPeriod);
+      if (generation === requestGeneration.current) setData(response.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Impossible de récupérer les activités pour le moment.');
+      if (generation === requestGeneration.current) setError(err.response?.data?.error || 'Impossible de récupérer les activités pour le moment.');
     } finally {
-      setLoading(false);
+      if (generation === requestGeneration.current) setLoading(false);
     }
   };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period.period, period.from, period.to]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -754,17 +781,6 @@ export default function SwimmingDashboard() {
     }
   };
 
-  if (loading && !data) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#0055ff] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p style={{ color: 'var(--text-muted)' }}>Chargement de l’analyse natation...</p>
-        </div>
-      </div>
-    );
-  }
-
   const notConnected = error.toLowerCase().includes('strava not connected');
   if (notConnected) {
     return (
@@ -780,19 +796,25 @@ export default function SwimmingDashboard() {
   }
 
   const activities = data?.activities || [];
-  const hasNoSwimmingAtAll = data && data.allSwimmingActivityCount === 0;
-  const hasNoActivityInPeriod = data && data.allSwimmingActivityCount > 0 && activities.length === 0;
+  const hasNoSwimmingAtAll = !loading && data && data.allSwimmingActivityCount === 0;
+  const hasNoActivityInPeriod = !loading && data && data.allSwimmingActivityCount > 0 && activities.length === 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
       <SwimmingHeader status={data?.status} activityCount={data?.status?.totalSwimmingActivities || 0} onSync={handleSync} syncing={syncing} syncMessage={syncMessage} />
       {error && (
-        <div className="glass-card p-4 flex gap-3" style={{ color: '#dc2626' }}>
+        <div role="alert" className="glass-card p-4 flex gap-3" style={{ color: '#dc2626' }}>
           <AlertTriangle className="w-5 h-5 shrink-0" />
           <p>{error}</p>
         </div>
       )}
       <PeriodFilter value={period} setValue={setPeriod} />
+      {loading && (
+        <div role="status" className="glass-panel p-8 text-center">
+          <div className="w-10 h-10 border-4 border-[#0055ff] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p style={{ color: 'var(--text-muted)' }}>Chargement de l’analyse natation...</p>
+        </div>
+      )}
 
       {hasNoSwimmingAtAll && (
         <div className="glass-panel p-8 text-center">
@@ -810,7 +832,7 @@ export default function SwimmingDashboard() {
         </div>
       )}
 
-      {data && !hasNoSwimmingAtAll && !hasNoActivityInPeriod && (
+      {!loading && data && !hasNoSwimmingAtAll && !hasNoActivityInPeriod && (
         <>
           <Section title="Résumé global" icon={<Sparkles className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside={data.status?.partialAnalysis ? 'Analyse partielle : cardio ou données techniques absentes sur certaines séances.' : 'Données complètes sur la période.'}>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>

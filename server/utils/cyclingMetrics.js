@@ -355,7 +355,7 @@ function mondayOf(dateValue) {
   return d;
 }
 
-function calculateWeeklyCyclingStats(activities) {
+function calculateWeeklyCyclingStats(activities, period = {}) {
   const byWeek = new Map();
   for (const activity of activities) {
     const weekStartDate = mondayOf(activity.startDate);
@@ -389,6 +389,33 @@ function calculateWeeklyCyclingStats(activities) {
     week.longestRideDistanceKm = Math.max(week.longestRideDistanceKm, activity.distanceKm || 0);
     week.longestRideMinutes = Math.max(week.longestRideMinutes, activity.movingTimeMinutes || 0);
   }
+
+  const normalized = normalizePeriod({ ...period, preset: period.preset || 'CUSTOM' });
+  let firstWeek = null;
+  let lastWeek = null;
+  if (normalized.from && normalized.to) {
+    firstWeek = mondayOf(normalized.from);
+    lastWeek = mondayOf(normalized.to);
+  } else if (activities.length) {
+    const ordered = [...activities].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    firstWeek = mondayOf(ordered[0].startDate);
+    lastWeek = mondayOf(ordered[ordered.length - 1].startDate);
+  }
+  if (firstWeek && lastWeek && firstWeek <= lastWeek) {
+    for (let weekStartDate = new Date(firstWeek); weekStartDate <= lastWeek; weekStartDate = addDays(weekStartDate, 7)) {
+      const weekStart = dateKey(weekStartDate);
+      if (!byWeek.has(weekStart)) {
+        byWeek.set(weekStart, {
+          weekStart,
+          weekEnd: dateKey(addDays(weekStartDate, 6)),
+          label: weekStartDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+          activities: [], totalDistanceKm: 0, totalMovingTimeMinutes: 0, activityCount: 0,
+          averageSpeedKmh: null, averageHeartRate: null, averageWatts: null, weightedAverageWatts: null,
+          elevationGain: 0, trainingLoad: 0, longestRideDistanceKm: 0, longestRideMinutes: 0,
+        });
+      }
+    }
+  }
   return Array.from(byWeek.values()).sort((a, b) => a.weekStart.localeCompare(b.weekStart)).map(week => ({
     ...week,
     totalDistanceKm: round(week.totalDistanceKm, 2) || 0,
@@ -406,8 +433,8 @@ function calculateWeeklyCyclingStats(activities) {
 function calculateCyclingTrainingLoadRatio(weeklyStats) {
   return weeklyStats.map((week, index) => {
     const previous = weeklyStats.slice(Math.max(0, index - 4), index);
-    const average = previous.length ? sum(previous, w => w.trainingLoad) / previous.length : null;
-    const ratio = average ? week.trainingLoad / average : null;
+    const average = previous.length === 4 ? sum(previous, w => w.trainingLoad) / 4 : null;
+    const ratio = average !== null && average !== 0 ? week.trainingLoad / average : null;
     let status = 'indisponible';
     if (ratio !== null) {
       if (ratio < 0.8) status = 'charge faible';
@@ -415,13 +442,13 @@ function calculateCyclingTrainingLoadRatio(weeklyStats) {
       else if (ratio <= 1.5) status = 'hausse importante';
       else status = 'risque de surcharge';
     }
-    return { weekStart: week.weekStart, label: week.label, trainingLoad: week.trainingLoad, previousAverage: average ? round(average, 1) : null, ratio: ratio ? round(ratio, 2) : null, status };
+    return { weekStart: week.weekStart, label: week.label, trainingLoad: week.trainingLoad, previousAverage: average !== null ? round(average, 1) : null, ratio: ratio !== null ? round(ratio, 2) : null, status };
   });
 }
 
-function calculateCyclingRegularityScore(activities) {
-  const weeklyStats = calculateWeeklyCyclingStats(activities);
-  const totalWeeks = weeksBetween(activities);
+function calculateCyclingRegularityScore(activities, period = {}) {
+  const weeklyStats = calculateWeeklyCyclingStats(activities, period);
+  const totalWeeks = weeklyStats.length || weeksBetween(activities);
   const activeWeeks = weeklyStats.filter(w => w.activityCount > 0).length;
   const weeksWithAtLeastTwoRides = weeklyStats.filter(w => w.activityCount >= 2).length;
   const score = totalWeeks ? weeksWithAtLeastTwoRides / totalWeeks : 0;

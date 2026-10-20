@@ -141,9 +141,9 @@ function buildAnalysis(activities, periodInput, user, hrMax) {
   const previousActivities = previousPeriod ? filterActivitiesByPeriod(activities, previousPeriod) : [];
   const globalStats = calculateSwimmingGlobalStats(currentActivities);
   const comparisonStats = calculateSwimmingComparisonStats(currentActivities, previousActivities);
-  const weeklyStats = calculateWeeklySwimStats(currentActivities);
+  const weeklyStats = calculateWeeklySwimStats(currentActivities, period);
   const trainingLoadRatios = calculateSwimTrainingLoadRatio(weeklyStats);
-  const regularity = calculateSwimmingRegularityScore(currentActivities);
+  const regularity = calculateSwimmingRegularityScore(currentActivities, period);
   const longSwims = detectLongSwims(currentActivities, weeklyStats);
   const personalBests = detectSwimmingPersonalBests(currentActivities, weeklyStats);
   const poolVsOpenWaterStats = calculatePoolVsOpenWaterStats(currentActivities);
@@ -229,7 +229,7 @@ async function getSwimmingWeeklyStats(userId, query = {}) {
     DASHBOARD_TTL_SECONDS,
     async () => {
       const { activities } = await loadSwimmingDataset(userId);
-      return calculateWeeklySwimStats(filterActivitiesByPeriod(activities, period));
+      return calculateWeeklySwimStats(filterActivitiesByPeriod(activities, period), period);
     }
   );
 }

@@ -165,9 +165,9 @@ function buildAnalysis(activities, periodInput, user, userProfile, options) {
   const previousActivities = previousPeriod ? filterActivitiesByPeriod(activities, previousPeriod) : [];
   const globalStats = calculateCyclingGlobalStats(currentActivities, userProfile);
   const comparisonStats = calculateCyclingComparisonStats(currentActivities, previousActivities, userProfile);
-  const weeklyStats = calculateWeeklyCyclingStats(currentActivities);
+  const weeklyStats = calculateWeeklyCyclingStats(currentActivities, period);
   const trainingLoadRatios = calculateCyclingTrainingLoadRatio(weeklyStats);
-  const regularity = calculateCyclingRegularityScore(currentActivities);
+  const regularity = calculateCyclingRegularityScore(currentActivities, period);
   const longRides = detectLongRides(currentActivities, weeklyStats);
   const personalBests = detectCyclingPersonalBests(currentActivities, weeklyStats);
   const correlations = calculateCyclingCorrelations(currentActivities, weeklyStats);
@@ -255,7 +255,7 @@ async function getCyclingWeeklyStats(userId, query = {}) {
     DASHBOARD_TTL_SECONDS,
     async () => {
       const { activities } = await loadCyclingDataset(userId, options);
-      return calculateWeeklyCyclingStats(filterActivitiesByPeriod(activities, period));
+      return calculateWeeklyCyclingStats(filterActivitiesByPeriod(activities, period), period);
     }
   );
 }

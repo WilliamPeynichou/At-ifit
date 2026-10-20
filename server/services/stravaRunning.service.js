@@ -132,7 +132,7 @@ function buildAnalysis(activities, periodInput, user, hrMax) {
   const previousActivities = previousPeriod ? filterActivitiesByPeriod(activities, previousPeriod) : [];
   const globalStats = calculateGlobalStats(currentActivities);
   const comparisonStats = calculateComparisonStats(currentActivities, previousActivities);
-  const weeklyStats = calculateWeeklyStats(currentActivities);
+  const weeklyStats = calculateWeeklyStats(currentActivities, period);
   const heartRateStats = calculateHeartRateStats(currentActivities);
   const paceHeartRateTrend = calculatePaceHeartRateTrend(currentActivities);
   const trainingLoadRatios = calculateTrainingLoadRatio(weeklyStats);
@@ -219,7 +219,7 @@ async function getRunningWeeklyStats(userId, query = {}) {
     DASHBOARD_TTL_SECONDS,
     async () => {
       const { activities } = await loadRunningDataset(userId);
-      return calculateWeeklyStats(filterActivitiesByPeriod(activities, period));
+      return calculateWeeklyStats(filterActivitiesByPeriod(activities, period), period);
     }
   );
 }

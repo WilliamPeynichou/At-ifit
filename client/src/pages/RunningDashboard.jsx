@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -160,20 +160,20 @@ function PeriodFilter({ value, setValue }) {
     <Section title="Filtres de période" icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />}>
       <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
         <div className="flex-1">
-          <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Période</label>
-          <select value={value.period} onChange={(event) => update('period', event.target.value)} className="input-cyber">
+          <label htmlFor="running-period" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Période</label>
+          <select id="running-period" value={value.period} onChange={(event) => update('period', event.target.value)} className="input-cyber">
             {PERIODS.map(period => <option key={period.value} value={period.value}>{period.label}</option>)}
           </select>
         </div>
         {value.period === 'CUSTOM' && (
           <>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Début</label>
-              <input type="date" value={value.from} onChange={(event) => update('from', event.target.value)} className="input-cyber" />
+              <label htmlFor="running-date-from" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Début</label>
+              <input id="running-date-from" type="date" max={value.to || undefined} required value={value.from} onChange={(event) => update('from', event.target.value)} className="input-cyber" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Fin</label>
-              <input type="date" value={value.to} onChange={(event) => update('to', event.target.value)} className="input-cyber" />
+              <label htmlFor="running-date-to" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Fin</label>
+              <input id="running-date-to" type="date" min={value.from || undefined} required value={value.to} onChange={(event) => update('to', event.target.value)} className="input-cyber" />
             </div>
           </>
         )}
@@ -503,14 +503,15 @@ function LongRunsSection({ longRuns }) {
     <Section title="Sorties longues" icon={<Route className="w-5 h-5" style={{ color: '#16a34a' }} />} aside={latest?.shareOfWeeklyVolume ? `Dernière part hebdo : ${Math.round(latest.shareOfWeeklyVolume * 100)} %` : 'Plus longue sortie par semaine'}>
       <ChartBox empty={!longRuns.length && 'Pas assez de données pour détecter les sorties longues.'}>
         <ResponsiveContainer width="100%" height="100%" debounce={150}>
-          <LineChart data={longRuns}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-            <YAxis unit=" km" />
-            <Tooltip {...chartTooltip} formatter={(value, name) => name === 'shareOfWeeklyVolume' ? [`${Math.round(value * 100)} %`, 'Part volume'] : [`${value} km`, 'Sortie longue']} />
-            <Legend />
-            <Line type="monotone" dataKey="longRunDistanceKm" stroke="#16a34a" strokeWidth={2} name="Distance sortie longue" />
-            <Line type="monotone" dataKey="shareOfWeeklyVolume" stroke="#f97316" strokeWidth={2} name="Part du volume" yAxisId={0} />
+            <LineChart data={longRuns}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+              <YAxis yAxisId="distance" unit=" km" />
+              <YAxis yAxisId="share" orientation="right" domain={[0, 1]} tickFormatter={(value) => `${Math.round(value * 100)} %`} />
+              <Tooltip {...chartTooltip} formatter={(value, name, item) => item.dataKey === 'shareOfWeeklyVolume' ? [`${Math.round(value * 100)} %`, 'Part du volume'] : [`${value} km`, 'Sortie longue']} />
+              <Legend />
+              <Line yAxisId="distance" type="monotone" dataKey="longRunDistanceKm" stroke="#16a34a" strokeWidth={2} name="Distance sortie longue" />
+              <Line yAxisId="share" type="monotone" dataKey="shareOfWeeklyVolume" stroke="#f97316" strokeWidth={2} name="Part du volume" />
           </LineChart>
         </ResponsiveContainer>
       </ChartBox>
@@ -664,6 +665,7 @@ function ActivitiesTable({ activities }) {
   }, [filtered, sort]);
 
   const pages = Math.max(1, Math.ceil(sorted.length / perPage));
+  useEffect(() => setPage(current => Math.min(current, pages)), [pages]);
   const visible = sorted.slice((page - 1) * perPage, page * perPage);
   const setFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -674,16 +676,25 @@ function ActivitiesTable({ activities }) {
   return (
     <Section title="Tableau détaillé des activités" icon={<Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside={`${filtered.length} activité(s) affichée(s)`}>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-        <input className="input-cyber" type="number" min="0" placeholder="Distance min (km)" value={filters.min} onChange={e => setFilter('min', e.target.value)} />
-        <input className="input-cyber" type="number" min="0" placeholder="Distance max (km)" value={filters.max} onChange={e => setFilter('max', e.target.value)} />
-        <select className="input-cyber" value={filters.mode} onChange={e => setFilter('mode', e.target.value)}>
-          <option value="all">Toutes les sorties</option>
-          <option value="withHr">Avec cardio uniquement</option>
-          <option value="withoutHr">Sans cardio</option>
-          <option value="long">Sorties longues</option>
-          <option value="fast">Sorties rapides</option>
-          <option value="elevation">Sorties avec dénivelé</option>
-        </select>
+         <div>
+           <label htmlFor="running-distance-min" className="sr-only">Distance minimale en kilomètres</label>
+           <input id="running-distance-min" aria-label="Distance minimale en kilomètres" className="input-cyber" type="number" min="0" placeholder="Distance min (km)" value={filters.min} onChange={e => setFilter('min', e.target.value)} />
+         </div>
+         <div>
+           <label htmlFor="running-distance-max" className="sr-only">Distance maximale en kilomètres</label>
+           <input id="running-distance-max" aria-label="Distance maximale en kilomètres" className="input-cyber" type="number" min="0" placeholder="Distance max (km)" value={filters.max} onChange={e => setFilter('max', e.target.value)} />
+         </div>
+         <div>
+           <label htmlFor="running-activity-mode" className="sr-only">Filtrer les activités</label>
+           <select id="running-activity-mode" aria-label="Filtrer les activités" className="input-cyber" value={filters.mode} onChange={e => setFilter('mode', e.target.value)}>
+             <option value="all">Toutes les sorties</option>
+             <option value="withHr">Avec cardio uniquement</option>
+             <option value="withoutHr">Sans cardio</option>
+             <option value="long">Sorties longues (≥ 12 km)</option>
+             <option value="fast">Sorties rapides (≤ 5,5 min/km)</option>
+             <option value="elevation">Sorties avec dénivelé (≥ 100 m)</option>
+           </select>
+         </div>
         <div className="flex items-center justify-end gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
           Page {page}/{pages}
         </div>
@@ -707,10 +718,10 @@ function ActivitiesTable({ activities }) {
                 ['rawType', 'Type'],
                 ['deviceName', 'Appareil'],
               ].map(([key, label]) => (
-                <th key={key} className={`py-3 px-3 ${key === 'name' || key === 'deviceName' ? 'text-left' : 'text-right'}`}>
-                  <button type="button" onClick={() => key !== 'name' && key !== 'deviceName' && key !== 'rawType' ? sortBy(key) : null} className="font-bold">
+                <th key={key} aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={`py-3 px-3 ${key === 'name' || key === 'deviceName' ? 'text-left' : 'text-right'}`}>
+                  {key === 'name' || key === 'deviceName' || key === 'rawType' ? <span className="font-bold">{label}</span> : <button type="button" onClick={() => sortBy(key)} className="font-bold" aria-label={`Trier par ${label}${sort.key === key ? (sort.dir === 'asc' ? ', croissant' : ', décroissant') : ''}`}>
                     {label}
-                  </button>
+                  </button>}
                 </th>
               ))}
             </tr>
@@ -758,23 +769,35 @@ export default function RunningDashboard() {
   const [error, setError] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const requestId = useRef(0);
+  const periodKey = `${period.period}:${period.from}:${period.to}`;
+  const [loadedPeriodKey, setLoadedPeriodKey] = useState('');
 
-  const load = async () => {
+  const load = async (selectedPeriod = period) => {
+    const request = ++requestId.current;
+    const requestedPeriod = `${selectedPeriod.period}:${selectedPeriod.from}:${selectedPeriod.to}`;
     try {
       setLoading(true);
       setError('');
-      const response = await fetchRunningStats(period);
-      setData(response.data);
+      const response = await fetchRunningStats(selectedPeriod);
+      if (request === requestId.current) {
+        setData(response.data);
+        setLoadedPeriodKey(requestedPeriod);
+      }
     } catch (err) {
-      const message = err.response?.data?.error || 'Impossible de récupérer les activités pour le moment.';
-      setError(message);
+      if (request === requestId.current) {
+        const message = err.response?.data?.error || 'Impossible de récupérer les activités pour le moment.';
+        setError(message);
+      }
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+      if (periodInvalid) return;
+      load();
+    return () => { requestId.current += 1; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period.period, period.from, period.to]);
 
@@ -785,13 +808,15 @@ export default function RunningDashboard() {
     try {
       await syncRunningData();
       setSyncMessage('Synchronisation lancée. Les nouvelles activités peuvent apparaître après quelques minutes.');
-      await load();
+      await load(period);
     } catch (err) {
       setError(err.response?.data?.error || 'Impossible de synchroniser les données pour le moment.');
     } finally {
       setSyncing(false);
     }
   };
+
+  const periodInvalid = period.period === 'CUSTOM' && (!period.from || !period.to || period.from > period.to);
 
   if (loading && !data) {
     return (
@@ -843,6 +868,8 @@ export default function RunningDashboard() {
       )}
 
       <PeriodFilter value={period} setValue={setPeriod} />
+      {periodInvalid && <p role="alert" className="text-sm" style={{ color: '#dc2626' }}>Choisissez deux dates valides et vérifiez que la date de début précède la date de fin.</p>}
+      {loading && data && loadedPeriodKey !== periodKey && <p role="status" aria-live="polite" className="text-sm" style={{ color: 'var(--text-muted)' }}>Chargement de la période sélectionnée…</p>}
 
       {hasNoRunningAtAll && (
         <div className="glass-panel p-8 text-center">
@@ -864,7 +891,7 @@ export default function RunningDashboard() {
         </div>
       )}
 
-      {data && !hasNoRunningAtAll && !hasNoActivityInPeriod && (
+      {data && loadedPeriodKey === periodKey && !periodInvalid && !hasNoRunningAtAll && !hasNoActivityInPeriod && (
         <>
           <Section title="Résumé global" icon={<Sparkles className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside={data.status?.partialAnalysis ? 'Certaines analyses sont limitées car toutes les activités ne contiennent pas les mêmes données.' : 'Données complètes sur la période.'}>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>

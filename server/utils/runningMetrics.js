@@ -285,8 +285,34 @@ function mondayOf(dateValue) {
   return d;
 }
 
-function calculateWeeklyStats(activities) {
+function calculateWeeklyStats(activities, period = {}) {
   const byWeek = new Map();
+  const normalizedPeriod = Object.keys(period).length ? normalizePeriod(period) : { from: null, to: null };
+  const validDates = (activities || [])
+    .map(activity => new Date(activity.startDate))
+    .filter(date => Number.isFinite(date.getTime()));
+  const from = normalizedPeriod.from ? new Date(normalizedPeriod.from) : null;
+  const to = normalizedPeriod.to ? new Date(normalizedPeriod.to) : null;
+  // Weekly series span complete calendar weeks intersecting the selected period;
+  // without a bounded period they span the first through last activity week.
+  const firstDate = from || (validDates.length ? validDates.reduce((a, b) => a < b ? a : b) : null);
+  const lastDate = to || (validDates.length ? validDates.reduce((a, b) => a > b ? a : b) : null);
+  if (firstDate && lastDate && firstDate <= lastDate) {
+    const firstWeek = mondayOf(firstDate);
+    const lastWeek = mondayOf(lastDate);
+    for (let weekStartDate = firstWeek; weekStartDate <= lastWeek; weekStartDate = addDays(weekStartDate, 7)) {
+      const weekStart = dateKey(weekStartDate);
+      if (weekStartDate > lastDate || addDays(weekStartDate, 6) < firstDate) continue;
+      byWeek.set(weekStart, {
+        weekStart,
+        weekEnd: dateKey(addDays(weekStartDate, 6)),
+        label: weekStartDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+        activities: [], totalDistanceKm: 0, totalMovingTimeMinutes: 0, activityCount: 0,
+        averageDistanceKm: 0, averagePaceMinKm: null, averageHeartRate: null,
+        totalElevationGain: 0, trainingLoad: 0,
+      });
+    }
+  }
   for (const activity of activities) {
     const weekStartDate = mondayOf(activity.startDate);
     const weekStart = dateKey(weekStartDate);
@@ -373,7 +399,7 @@ function calculatePaceHeartRateTrend(activities) {
 function calculateTrainingLoadRatio(weeklyStats) {
   return weeklyStats.map((week, index) => {
     const previous = weeklyStats.slice(Math.max(0, index - 4), index);
-    const previousAverage = previous.length ? sum(previous, w => w.trainingLoad) / previous.length : null;
+    const previousAverage = previous.length === 4 ? sum(previous, w => w.trainingLoad) / 4 : null;
     const ratio = previousAverage ? week.trainingLoad / previousAverage : null;
     let status = 'indisponible';
     if (ratio !== null) {

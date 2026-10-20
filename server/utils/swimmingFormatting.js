@@ -1,5 +1,5 @@
 function isFiniteNumber(value) {
-  return Number.isFinite(Number(value));
+  return value !== null && value !== undefined && value !== '' && typeof value !== 'boolean' && Number.isFinite(Number(value));
 }
 
 function round(value, digits = 1) {

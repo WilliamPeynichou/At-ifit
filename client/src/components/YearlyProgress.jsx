@@ -22,6 +22,7 @@ const tooltipStyle = {
 
 const FilterBtn = ({ active, onClick, children }) => (
   <button
+    aria-pressed={active}
     onClick={onClick}
     className="px-3 py-1 rounded-lg text-xs font-medium transition-all"
     style={active
@@ -34,10 +35,11 @@ const FilterBtn = ({ active, onClick, children }) => (
 );
 
 const YearlyProgress = ({ activities: providedActivities, hideRunning = false, selectedSport = 'All' }) => {
-  const { queryParams } = useTemporal();
+  const { queryParams, from, to } = useTemporal();
   const [fetchedActivities, setFetchedActivities] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [year, setYear] = useState(new Date().getFullYear());
   const [sport, setSport] = useState('tous');
 
@@ -55,51 +57,62 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false, s
   };
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
+    setError(false);
+    setStats(null);
+    setFetchedActivities([]);
     const sep = queryParams ? '&' : '?';
     const promises = [api.get('/strava/athlete/stats').catch(() => null)];
     if (!providedActivities) {
-      promises.push(api.get(`/strava/activities${queryParams}${sep}limit=500`).catch(() => null));
+      promises.push(api.get(`/strava/activities${queryParams}${sep}limit=500`));
     }
     Promise.all(promises).then((results) => {
+      if (cancelled) return;
       const statsRes = results[0];
       if (statsRes?.data) setStats(statsRes.data);
       if (!providedActivities) {
         const actRes = results[1];
         setFetchedActivities(Array.isArray(actRes?.data) ? actRes.data : []);
       }
-    }).finally(() => setLoading(false));
+    }).catch(() => { if (!cancelled) setError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [queryParams, providedActivities]);
 
   // Années disponibles dans les données
   const availableYears = useMemo(() => {
-    const years = new Set(activities.map(a => new Date(a.startDate || a.start_date).getFullYear()));
+    const years = new Set(activities.map(a => new Date(a.startDate || a.start_date).getFullYear()).filter(Number.isFinite));
     return Array.from(years).sort((a, b) => b - a);
   }, [activities]);
+
+  const selectedYear = availableYears.includes(year) ? year : availableYears[0] ?? new Date().getFullYear();
+  const partialYear = Boolean((from && new Date(from) > new Date(selectedYear, 0, 1))
+    || (to && new Date(to) < new Date(selectedYear, 11, 31, 23, 59, 59, 999)));
 
   // Sports disponibles pour l'année sélectionnée
   const availableSports = useMemo(() => {
     const types = new Set(
       activities
-        .filter(a => new Date(a.startDate || a.start_date).getFullYear() === year)
+        .filter(a => new Date(a.startDate || a.start_date).getFullYear() === selectedYear)
         .map(a => (a.type || '').toLowerCase())
         .filter(Boolean)
     );
     return Array.from(types);
-  }, [activities, year]);
+  }, [activities, selectedYear]);
 
   // Km par mois selon l'année + filtre sport
   const monthlyData = useMemo(() => {
     const byMonth = Array.from({ length: 12 }, (_, i) => ({ month: MONTHS[i], km: 0, count: 0 }));
     activities.forEach(a => {
       const d = new Date(a.startDate || a.start_date);
-      if (d.getFullYear() !== year) return;
+      if (d.getFullYear() !== selectedYear) return;
       if (!matchesSport(a.type, sport)) return;
       byMonth[d.getMonth()].km += (a.distance || 0) / 1000;
       byMonth[d.getMonth()].count += 1;
     });
     return byMonth.map(m => ({ ...m, km: parseFloat(m.km.toFixed(1)) }));
-  }, [activities, year, sport]);
+  }, [activities, selectedYear, sport]);
 
   const totalKm = monthlyData.reduce((s, m) => s + m.km, 0).toFixed(0);
   const totalCount = monthlyData.reduce((s, m) => s + m.count, 0);
@@ -110,7 +123,7 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false, s
     const totals = { run: { distance: 0, moving_time: 0, count: 0 }, ride: { distance: 0, moving_time: 0, count: 0 } };
     activities.forEach(a => {
       const d = new Date(a.startDate || a.start_date);
-      if (d.getFullYear() !== year) return;
+      if (d.getFullYear() !== selectedYear) return;
       const type = (a.type || '').toLowerCase();
       if (!matchesSport(type, sport)) return;
       const dist = a.distance || 0;
@@ -126,7 +139,7 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false, s
       }
     });
     return totals;
-  }, [activities, year, sport]);
+  }, [activities, selectedYear, sport]);
 
   const allRun = stats?.all_run_totals;
   const allRide = stats?.all_ride_totals;
@@ -144,10 +157,10 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false, s
           </div>
           <div>
             <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-              Progression annuelle
+              Progression mensuelle — {selectedYear}
             </h2>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {totalKm} km · {totalCount} séance{totalCount > 1 ? 's' : ''} — {year}
+              {totalKm} km · {totalCount} séance{totalCount > 1 ? 's' : ''} — {partialYear ? 'année partielle, période sélectionnée' : 'activités chargées de l’année'}
             </p>
           </div>
         </div>
@@ -156,7 +169,7 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false, s
         {!loading && availableYears.length > 1 && (
           <div className="flex items-center gap-1 flex-wrap justify-end">
             {availableYears.map(y => (
-              <FilterBtn key={y} active={year === y} onClick={() => setYear(y)}>{y}</FilterBtn>
+              <FilterBtn key={y} active={selectedYear === y} onClick={() => setYear(y)}>{y}</FilterBtn>
             ))}
           </div>
         )}
@@ -164,6 +177,8 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false, s
 
       {loading ? (
         <div className="h-40 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>Chargement...</div>
+      ) : error ? (
+        <p role="alert" className="py-8 text-sm" style={{ color: 'var(--text-muted)' }}>Impossible de charger les activités de la période.</p>
       ) : (
         <>
           {/* Filtre sport */}
@@ -178,13 +193,17 @@ const YearlyProgress = ({ activities: providedActivities, hideRunning = false, s
             </div>
           )}
 
+          <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+            Le graphique et les totaux {selectedYear} portent uniquement sur les activités chargées de la période sélectionnée{partialYear ? ' : il ne s’agit pas d’une année complète' : ''}. Les totaux historiques Strava sont hors filtres de période et de sport.
+          </p>
+          {totalCount === 0 && <p role="status" className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>Aucune activité pour cette année et ce sport dans la période sélectionnée.</p>}
           {/* Totaux année sélectionnée + all-time */}
           <div className={`grid grid-cols-2 ${hideRunning ? 'sm:grid-cols-2' : 'sm:grid-cols-4'} gap-3 mb-6`}>
             {[
-              !hideRunning && { label: `Course ${year}`, km: fmt(yearTotals.run), h: fmtH(yearTotals.run), count: yearTotals.run.count },
-              { label: `Vélo ${year}`, km: fmt(yearTotals.ride), h: fmtH(yearTotals.ride), count: yearTotals.ride.count },
-              !hideRunning && { label: 'Course total', km: fmt(allRun), h: fmtH(allRun), count: allRun?.count },
-              { label: 'Vélo total', km: fmt(allRide), h: fmtH(allRide), count: allRide?.count },
+              !hideRunning && { label: `Course ${selectedYear}${partialYear ? ' (partiel)' : ''}`, km: fmt(yearTotals.run), h: fmtH(yearTotals.run), count: yearTotals.run.count },
+              { label: `Vélo ${selectedYear}${partialYear ? ' (partiel)' : ''}`, km: fmt(yearTotals.ride), h: fmtH(yearTotals.ride), count: yearTotals.ride.count },
+              !hideRunning && { label: 'Course historique', km: fmt(allRun), h: fmtH(allRun), count: allRun?.count },
+              { label: 'Vélo historique', km: fmt(allRide), h: fmtH(allRide), count: allRide?.count },
             ].filter(Boolean).map(({ label, km, h, count }) => (
                 <div key={label} className="p-3 rounded-xl" style={{ background: 'rgba(0,85,255,0.05)', border: '1px solid rgba(0,85,255,0.1)' }}>
                   <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>

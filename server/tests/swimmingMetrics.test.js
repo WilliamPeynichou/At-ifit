@@ -68,6 +68,28 @@ describe('swimming metrics', () => {
     expect(classifySwimType(swim({ type: 'Swim', name: 'Natation' }))).toBe('unknown');
   });
 
+  test('inclut semaines calendaires vides sur période, bornes partielles et changement d’année', () => {
+    const weeks = calculateWeeklySwimStats([], { preset: 'CUSTOM', from: '2025-12-31', to: '2026-01-12' });
+    expect(weeks.map(w => w.weekStart)).toEqual(['2025-12-29', '2026-01-05', '2026-01-12']);
+    expect(weeks.every(w => w.activityCount === 0 && w.trainingLoad === 0 && w.averagePaceMinPer100m === null)).toBe(true);
+    expect(calculateWeeklySwimStats([])).toEqual([]);
+  });
+
+  test('ratio indisponible sans quatre semaines précédentes et distingue zéro', () => {
+    const short = calculateSwimTrainingLoadRatio([{ weekStart: '2026-01-05', label: 'S1', trainingLoad: 0 }, { weekStart: '2026-01-12', label: 'S2', trainingLoad: 0 }]);
+    expect(short[1]).toMatchObject({ ratio: null, previousAverage: null });
+    const four = calculateSwimTrainingLoadRatio([1, 2, 3, 4, 5].map((n, i) => ({ weekStart: `2026-01-${String(5 + i * 7).padStart(2, '0')}`, label: `S${n}`, trainingLoad: n === 5 ? 0 : 0 })));
+    expect(four[4]).toMatchObject({ ratio: null, previousAverage: 0 });
+  });
+
+  test('formatage conserve zéro mais rejette null, vide et booléens', () => {
+    expect(formatDistanceMeters(0)).toBe('0 m');
+    expect(formatDistanceMeters(null)).toBe('-');
+    expect(formatDistanceMeters('')).toBe('-');
+    expect(formatDistanceMeters(false)).toBe('-');
+    expect(formatPercentage(0)).toBe('0 %');
+  });
+
   test('calcule les stats hebdomadaires', () => {
     const activities = filterSwimmingActivities([
       swim({ id: '1', startDate: '2026-04-06T08:00:00Z', distance: 1000, movingTime: 1250 }),

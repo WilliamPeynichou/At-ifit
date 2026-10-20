@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api';
 import { Heart } from 'lucide-react';
 import { useTemporal } from '../context/TemporalContext';
@@ -26,14 +26,21 @@ const HeartRateZones = ({ activities: providedActivities }) => {
   const [zones, setZones] = useState(null);
   const [distribution, setDistribution] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+    setZones(null);
+    setDistribution([]);
     const sep = queryParams ? '&' : '?';
-    const promises = [api.get('/strava/athlete/zones').catch(() => null)];
+    const promises = [api.get('/strava/athlete/zones')];
     if (!providedActivities) {
-      promises.push(api.get(`/strava/activities${queryParams}${sep}limit=500`).catch(() => null));
+      promises.push(api.get(`/strava/activities${queryParams}${sep}limit=500`));
     }
     Promise.all(promises).then((results) => {
+      if (cancelled) return;
       const zonesRes = results[0];
       const hrZones = zonesRes?.data?.heart_rate?.zones;
       if (!hrZones || hrZones.length === 0) return;
@@ -66,7 +73,9 @@ const HeartRateZones = ({ activities: providedActivities }) => {
           range: `${z.min}–${z.max === -1 ? '∞' : z.max} bpm`,
         })).filter(d => d.value > 0)
       );
-    }).finally(() => setLoading(false));
+    }).catch(() => { if (!cancelled) setError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [queryParams, providedActivities]);
 
   const hasData = distribution.length > 0;
@@ -79,16 +88,18 @@ const HeartRateZones = ({ activities: providedActivities }) => {
         </div>
         <div>
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            Zones de fréquence cardiaque
+            Séances par FC moyenne
           </h2>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Répartition des activités par intensité
+            Classement des séances selon leur FC moyenne, pas du temps passé en zones.
           </p>
         </div>
       </div>
 
       {loading ? (
         <div className="h-48 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>Chargement...</div>
+      ) : error ? (
+        <div role="alert" className="h-48 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>Impossible de charger les données de fréquence cardiaque.</div>
       ) : !zones ? (
         <div className="h-48 flex flex-col items-center justify-center gap-2">
           <Heart className="w-8 h-8" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />

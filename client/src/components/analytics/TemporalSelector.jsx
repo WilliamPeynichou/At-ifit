@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Calendar, Check, X } from 'lucide-react';
 import { useTemporal } from '../../context/TemporalContext';
 
@@ -17,7 +17,7 @@ const formatDate = (d) => {
 const toInputDate = (d) => {
   if (!d) return '';
   const date = new Date(d);
-  return date.toISOString().slice(0, 10);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
 const TemporalSelector = () => {
@@ -26,9 +26,15 @@ const TemporalSelector = () => {
   const [customFrom, setCustomFrom] = useState(toInputDate(from));
   const [customTo, setCustomTo] = useState(toInputDate(to));
 
+  const id = useId();
+  const invalidRange = Boolean(customFrom && customTo && customFrom > customTo);
+  const validDates = Boolean(customFrom && customTo && !invalidRange
+    && Number.isFinite(new Date(`${customFrom}T00:00:00`).getTime())
+    && Number.isFinite(new Date(`${customTo}T23:59:59`).getTime()));
+
   const applyCustom = () => {
-    if (!customFrom || !customTo) return;
-    setCustom(new Date(customFrom), new Date(customTo + 'T23:59:59'));
+    if (!validDates) return;
+    setCustom(new Date(`${customFrom}T00:00:00`), new Date(`${customTo}T23:59:59.999`));
     setShowCustom(false);
   };
 
@@ -71,6 +77,7 @@ const TemporalSelector = () => {
           {PRESETS.map((p) => (
             <button
               key={p.id}
+              aria-pressed={preset === p.id}
               onClick={() => { setPreset(p.id); setShowCustom(false); }}
               className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
               style={preset === p.id ? {
@@ -87,7 +94,16 @@ const TemporalSelector = () => {
             </button>
           ))}
           <button
-            onClick={() => setShowCustom(v => !v)}
+            aria-expanded={showCustom}
+            aria-controls={`${id}-custom`}
+            aria-pressed={preset === 'CUSTOM'}
+            onClick={() => {
+              if (!showCustom) {
+                setCustomFrom(toInputDate(from));
+                setCustomTo(toInputDate(to));
+              }
+              setShowCustom(v => !v);
+            }}
             className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
             style={preset === 'CUSTOM' || showCustom ? {
               background: 'var(--accent-blue)',
@@ -99,16 +115,20 @@ const TemporalSelector = () => {
               color: 'var(--text-secondary)',
             }}
           >
-            Custom
+            Personnalisée
           </button>
         </div>
       </div>
 
       {showCustom && (
-        <div className="mt-4 pt-4 flex flex-wrap items-end gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div id={`${id}-custom`} className="mt-4 pt-4 flex flex-wrap items-end gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex flex-col">
-            <label className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Du</label>
+            <label htmlFor={`${id}-from`} className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Du</label>
             <input
+              id={`${id}-from`}
+              max={customTo || undefined}
+              aria-invalid={invalidRange}
+              aria-describedby={invalidRange ? `${id}-error` : undefined}
               type="date"
               value={customFrom}
               onChange={(e) => setCustomFrom(e.target.value)}
@@ -117,8 +137,12 @@ const TemporalSelector = () => {
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Au</label>
+            <label htmlFor={`${id}-to`} className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Au</label>
             <input
+              id={`${id}-to`}
+              min={customFrom || undefined}
+              aria-invalid={invalidRange}
+              aria-describedby={invalidRange ? `${id}-error` : undefined}
               type="date"
               value={customTo}
               onChange={(e) => setCustomTo(e.target.value)}
@@ -128,7 +152,7 @@ const TemporalSelector = () => {
           </div>
           <button
             onClick={applyCustom}
-            disabled={!customFrom || !customTo}
+            disabled={!validDates}
             className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-white transition-all flex items-center gap-2 disabled:opacity-50"
             style={{ background: '#22c55e' }}
           >
@@ -141,6 +165,7 @@ const TemporalSelector = () => {
           >
             <X size={14} /> Annuler
           </button>
+          {invalidRange && <p id={`${id}-error`} role="alert" className="w-full text-xs" style={{ color: 'var(--text-secondary)' }}>La date de début doit précéder ou être égale à la date de fin.</p>}
         </div>
       )}
     </div>

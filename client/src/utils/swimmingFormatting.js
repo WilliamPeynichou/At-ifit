@@ -1,4 +1,6 @@
-export const isNumber = (value) => Number.isFinite(Number(value));
+export const isNumber = (value) => (
+  typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')
+) && Number.isFinite(Number(value));
 
 export const formatSwimPace = (paceMinPer100m) => {
   if (!isNumber(paceMinPer100m) || Number(paceMinPer100m) <= 0) return '-';

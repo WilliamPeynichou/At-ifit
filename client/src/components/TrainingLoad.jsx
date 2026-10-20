@@ -39,26 +39,28 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const TrainingLoad = () => {
   const { from, to, fromISO, toISO } = useTemporal();
+  const weeks = from && to
+    ? Math.max(2, Math.min(20, Math.ceil((new Date(to) - new Date(from)) / (7 * 24 * 3600 * 1000))))
+    : 10;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    // Si plage temporelle définie, dérive weeks ; sinon défaut 10 semaines
-    let weeks = 10;
-    if (from && to) {
-      const diffMs = new Date(to) - new Date(from);
-      weeks = Math.max(2, Math.min(20, Math.round(diffMs / (7 * 24 * 3600 * 1000))));
-    }
+    let cancelled = false;
+    setError(false);
+    setData([]);
     setLoading(true);
     const params = [];
     params.push(`weeks=${weeks}`);
     if (fromISO) params.push(`from=${encodeURIComponent(fromISO)}`);
     if (toISO) params.push(`to=${encodeURIComponent(toISO)}`);
     api.get(`/stats/training-load?${params.join('&')}`)
-      .then(res => setData(res.data || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [from, to, fromISO, toISO]);
+      .then(res => { if (!cancelled) setData(Array.isArray(res.data) ? res.data : []); })
+      .catch(() => { if (!cancelled) setError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [weeks, fromISO, toISO]);
 
   const latest = data[data.length - 1];
   const currentStatus = latest ? STATUS[latest.status] : null;
@@ -76,7 +78,7 @@ const TrainingLoad = () => {
               Charge d'entraînement
             </h2>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              ATL · CTL · Forme (TSB) — 10 semaines
+               ATL · CTL · Fraîcheur (TSB) — {data.length || weeks} semaines{weeks === 20 ? ' maximum' : ''} · tous sports
             </p>
           </div>
         </div>
@@ -93,7 +95,9 @@ const TrainingLoad = () => {
 
       {loading ? (
         <div className="h-48 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>Chargement...</div>
-      ) : !hasData ? (
+       ) : error ? (
+         <div role="alert" className="h-48 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>Impossible de charger la charge d’entraînement. Réessayez en changeant de période ou en rechargeant la page.</div>
+       ) : !hasData ? (
         <div className="h-48 flex flex-col items-center justify-center gap-2">
           <Zap className="w-8 h-8" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pas encore de données d'effort.</p>
@@ -119,6 +123,12 @@ const TrainingLoad = () => {
           )}
 
           {/* Graphique */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs" aria-label="Légende de la charge d’entraînement" style={{ color: 'var(--text-secondary)' }}>
+            <span>▰ Charge hebdomadaire</span>
+            <span style={{ color: '#dc2626' }}>━ Fatigue ATL (7 jours)</span>
+            <span style={{ color: '#0055ff' }}>━ Forme CTL (42 jours)</span>
+            <span style={{ color: '#16a34a' }}>┄ Fraîcheur TSB (CTL − ATL)</span>
+          </div>
           <ResponsiveContainer width="100%" height={220} debounce={150}>
             <ComposedChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />

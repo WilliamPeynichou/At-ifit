@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { TemporalProvider, useTemporal } from '../context/TemporalContext';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend,
-  AreaChart, Area, ReferenceDot,
+  AreaChart, Area,
 } from 'recharts';
-import { Activity, Clock, MapPin, Zap, Heart, Gauge, Flame, Calendar, TrendingUp, Filter, LogOut, RefreshCw, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Activity, Zap, Heart, TrendingUp, Filter, LogOut, RefreshCw, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import api from '../api';
 import { darkTooltipProps } from '../components/ui/chartStyles';
 import YearlyProgress from '../components/YearlyProgress';
@@ -36,6 +36,10 @@ const StravaStatsContent = () => {
   const [syncLoading, setSyncLoading] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [retryAction, setRetryAction] = useState(null);
+  const [authRequired, setAuthRequired] = useState(false);
+  const activitiesRequest = useRef(0);
 
   useEffect(() => {
     fetchActivities();
@@ -72,10 +76,13 @@ const StravaStatsContent = () => {
   };
 
   const fetchActivities = async () => {
+    const requestId = ++activitiesRequest.current;
     try {
       setLoading(true);
       setError('');
+      setAuthRequired(false);
       const response = await api.get(`/strava/activities${queryParams}`);
+      if (requestId !== activitiesRequest.current) return;
 
       const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
 
@@ -98,21 +105,17 @@ const StravaStatsContent = () => {
       const sortedData = data.map(normalize).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
       setActivities(sortedData);
 
-      if (sortedData.length === 0) {
-        setError(t('stravaStats.noActivities'));
-      } else {
-        processStats(sortedData);
-      }
+      processStats(sortedData);
     } catch (err) {
+      if (requestId !== activitiesRequest.current) return;
       console.error('Error fetching Strava activities:', err);
       const errorMessage = err.response?.data?.error || err.message || t('stravaStats.fetchError');
       setError(errorMessage);
-
-      if (err.response?.status === 400 && errorMessage.includes('not connected')) {
-        navigate('/strava-connect');
-      }
+      setActivities([]);
+      processStats([]);
+      setAuthRequired(err.response?.status === 401 || (err.response?.status === 400 && /not connected|reconnect|non connecté/i.test(errorMessage)));
     } finally {
-      setLoading(false);
+      if (requestId === activitiesRequest.current) setLoading(false);
     }
   };
 
@@ -185,8 +188,10 @@ const StravaStatsContent = () => {
         date: date,
         fullDate: activity.start_date,
         name: activity.name,
-        distance: ((activity.distance || 0) / 1000).toFixed(2),
-        cumulativeDistance: (s.distance / 1000).toFixed(2)
+        type,
+        timestamp: dateObj.getTime(),
+        distance: Number(((activity.distance || 0) / 1000).toFixed(2)),
+        cumulativeDistance: Number((s.distance / 1000).toFixed(2))
       });
     });
 
@@ -219,7 +224,8 @@ const StravaStatsContent = () => {
     if (resyncing) return;
     setResyncing(true);
     setResyncMessage('');
-    setError('');
+    setActionError('');
+    setRetryAction(null);
     try {
       const res = await api.post('/strava/resync');
       const payload = res.data?.data || res.data || {};
@@ -227,9 +233,11 @@ const StravaStatsContent = () => {
         ? `Synchronisation terminée : ${payload.newActivities || payload.synced || 0} nouvelle(s) activité(s), ${payload.enriched || 0} enrichie(s).`
         : 'Synchronisation lancée en arrière-plan. Le statut se mettra à jour automatiquement.');
       await fetchSyncStatus();
+      if (payload.finished || payload.status === 'completed') await fetchActivities();
     } catch (err) {
       console.error('Strava resync error:', err);
-      setError(err.response?.data?.error || 'Erreur lors du déclenchement de la resync');
+      setActionError(err.response?.data?.error || 'La synchronisation n’a pas pu démarrer.');
+      setRetryAction('sync');
     } finally {
       setResyncing(false);
     }
@@ -239,14 +247,16 @@ const StravaStatsContent = () => {
     if (enriching) return;
     setEnriching(true);
     setResyncMessage('');
-    setError('');
+    setActionError('');
+    setRetryAction(null);
     try {
       const res = await api.post('/strava/sync/enrich', { force: false, maxCount: 500 });
       const payload = res.data?.data || res.data || {};
       setResyncMessage(payload.status === 'started' ? 'Enrichissement lancé en arrière-plan.' : 'Enrichissement demandé.');
       await fetchSyncStatus();
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Erreur lors de l’enrichissement Strava');
+      setActionError(err.response?.data?.error || err.response?.data?.message || 'Impossible de récupérer les données détaillées.');
+      setRetryAction('enrich');
     } finally {
       setEnriching(false);
     }
@@ -265,7 +275,8 @@ const StravaStatsContent = () => {
     }
 
     setDisconnecting(true);
-    setError('');
+    setActionError('');
+    setRetryAction(null);
     try {
       await api.delete('/strava/disconnect');
       if (loadUser) {
@@ -274,7 +285,8 @@ const StravaStatsContent = () => {
       navigate('/strava-connect');
     } catch (err) {
       console.error('Strava disconnect error:', err);
-      setError(t('stravaStats.disconnectError'));
+      setActionError(t('stravaStats.disconnectError'));
+      setRetryAction('disconnect');
     } finally {
       setDisconnecting(false);
     }
@@ -287,7 +299,7 @@ const StravaStatsContent = () => {
     Object.keys(sportProgression).forEach(sport => sportCurrentDist[sport] = 0);
 
     globalProgression.forEach(entry => {
-      const point = { date: entry.date, fullDate: entry.fullDate };
+      const point = { timestamp: entry.timestamp, fullDate: entry.fullDate };
 
       const sport = entry.type;
       if (Object.prototype.hasOwnProperty.call(sportCurrentDist, sport)) {
@@ -327,48 +339,17 @@ const StravaStatsContent = () => {
     }
   }, [sportsList, sportProgression, selectedSport]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#0055ff] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p style={{ color: 'var(--text-muted)' }}>{t('stravaStats.loading')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="text-center p-8 max-w-md">
-          <p className="mb-4 text-lg" style={{ color: '#dc2626' }}>{error}</p>
-          <a
-            href="/strava-connect"
-            className="text-[#0055ff] hover:underline font-bold"
-          >
-            {t('stravaStats.connectAccount')}
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  if (activities.length === 0) {
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="text-center p-8 max-w-md">
-          <p className="mb-4 text-lg" style={{ color: 'var(--text-muted)' }}>{t('stravaStats.noActivities')}</p>
-          <a
-            href="/strava-connect"
-            className="text-[#0055ff] hover:underline font-bold"
-          >
-            {t('stravaStats.connectAccount')}
-          </a>
-        </div>
-      </div>
-    );
-  }
+  const visibleSports = selectedSport === 'All' ? sportsList : sportsList.filter(sport => sport === selectedSport);
+  const filteredActivities = activities.filter(activity => selectedSport === 'All' || (activity.type || t('stravaStats.unknown')) === selectedSport);
+  const sportTableData = selectedSport === 'All'
+    ? Object.values(sportProgression).flat().sort((a, b) => new Date(b.fullDate) - new Date(a.fullDate))
+    : (sportProgression[selectedSport] || []).slice().reverse();
+  const heartRateData = filteredGlobalProgression.filter(entry => entry.bpm > 0);
+  const periodLabel = fromISO || toISO
+    ? `${fromISO ? formatDate(fromISO) : 'début de l’historique'} → ${toISO ? formatDate(toISO) : 'aujourd’hui'}`
+    : 'Tout l’historique';
+  const syncLabels = { completed: 'Terminée', idle: 'À jour', running: 'En cours', started: 'En cours', in_progress: 'En cours', partial: 'Partielle', failed: 'Échec', error: 'Erreur', blocked: 'Bloquée', auth_required: 'Reconnexion nécessaire' };
+  const syncState = syncStatus?.status || syncStatus?.state;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -380,7 +361,7 @@ const StravaStatsContent = () => {
             <span style={{ color: 'var(--text-primary)' }}>{t('stravaStats.title')}</span>
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            {activities.length} activités analysées
+            {filteredActivities.length} activités analysées · {selectedSport === 'All' ? 'Tous les sports' : selectedSport}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
@@ -409,8 +390,15 @@ const StravaStatsContent = () => {
         </div>
       </div>
 
+      {actionError && (
+        <div role="alert" className="glass-panel p-4" style={{ color: '#dc2626' }}>
+          <p>{actionError}</p>
+          <button className="btn-ghost mt-2" disabled={resyncing || enriching || disconnecting} onClick={retryAction === 'sync' ? handleResync : retryAction === 'enrich' ? handleEnrich : handleDisconnect}>Réessayer</button>
+        </div>
+      )}
       {resyncMessage && (
         <div
+          role="status"
           className="px-4 py-3 rounded-lg text-sm"
           style={{ background: 'rgba(0,85,255,0.08)', border: '1px solid rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
         >
@@ -423,10 +411,10 @@ const StravaStatsContent = () => {
           <div>
             <h2 className="text-lg font-black flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
               {syncStatus?.authRequired ? <AlertCircle className="w-5 h-5" style={{ color: '#dc2626' }} /> : <Info className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />}
-              État de récupération Strava
+              Synchronisation Strava
             </h2>
             <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-              Suivi observable : connexion, progression, activités locales, détails et streams. Les jetons Strava ne sont jamais affichés.
+              Retrouvez vos activités et complétez les données manquantes depuis Strava.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -434,39 +422,42 @@ const StravaStatsContent = () => {
               <RefreshCw size={16} className={syncLoading ? 'animate-spin inline mr-2' : 'inline mr-2'} />Actualiser
             </button>
             <button onClick={handleEnrich} disabled={enriching} className="btn-ghost py-2 px-4 text-sm">
-              <Zap size={16} className={enriching ? 'animate-pulse inline mr-2' : 'inline mr-2'} />Enrichir détails/streams
+              <Zap size={16} className={enriching ? 'animate-pulse inline mr-2' : 'inline mr-2'} />Compléter les données
             </button>
           </div>
         </div>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm font-medium">Détails de la synchronisation</summary>
+          <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>Les données détaillées incluent les mesures enregistrées pendant chaque sortie (GPS, fréquence cardiaque, puissance). Ces compteurs concernent tout l’historique synchronisé, pas les filtres ci-dessous.</p>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-sm">
           <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}>
             <p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Statut</p>
-            <p className="font-black mt-1" style={{ color: syncTone(syncStatus?.status || syncStatus?.state) }}>{syncStatus?.status || syncStatus?.state || (syncStatus?.authRequired ? 'auth_required' : 'observable')}</p>
+            <p className="font-black mt-1" style={{ color: syncTone(syncStatus?.status || syncStatus?.state) }}>{syncStatus?.authRequired ? 'Reconnexion nécessaire' : (syncLabels[syncState] || syncState || 'Statut indisponible')}</p>
           </div>
           <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Activités</p><p className="font-black mt-1">{(syncStatus?.total ?? activities.length).toLocaleString('fr-FR')}</p></div>
           <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Avec détails</p><p className="font-black mt-1">{(syncStatus?.withDetail ?? syncStatus?.details ?? 0).toLocaleString('fr-FR')}</p></div>
-          <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Avec streams</p><p className="font-black mt-1">{(syncStatus?.withStream ?? syncStatus?.streams ?? 0).toLocaleString('fr-FR')}</p></div>
+          <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Mesures enregistrées</p><p className="font-black mt-1">{(syncStatus?.withStream ?? syncStatus?.streams ?? 0).toLocaleString('fr-FR')}</p></div>
           <div className="rounded-lg p-3" style={{ background: 'var(--surface-subtle)', border: '1px solid var(--glass-border)' }}><p className="text-xs uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Dernière sync</p><p className="font-black mt-1">{syncStatus?.lastSyncAt ? new Date(syncStatus.lastSyncAt).toLocaleString('fr-FR') : '—'}</p></div>
         </div>
+        </details>
         {(syncStatus?.lastError || syncStatus?.error || syncStatus?.recommendation || syncStatus?.authRequired) && (
           <div className="mt-4 rounded-lg p-3 text-sm flex items-start gap-2" style={{ background: syncStatus?.authRequired ? 'rgba(220,38,38,0.08)' : 'rgba(234,179,8,0.10)', border: '1px solid rgba(234,179,8,0.20)' }}>
             {syncStatus?.authRequired ? <AlertCircle className="w-4 h-4 mt-0.5" /> : <CheckCircle2 className="w-4 h-4 mt-0.5" />}
             <span>{syncStatus?.lastError || syncStatus?.error || syncStatus?.recommendation || 'Reconnectez Strava pour restaurer la récupération.'}</span>
+            {syncStatus?.authRequired && <a href="/strava-connect" className="underline font-bold">Reconnecter Strava</a>}
           </div>
         )}
       </div>
 
 
-      {/* Hub Data Analyse - 4 modales */}
-      <DataAnalysisHub activities={activities} />
-
       {/* Sélecteur temporel global */}
       <TemporalSelector />
 
       {/* Filtres par type de sport */}
-      {sportsList.length > 1 && (
+      {sportsList.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <button
+            aria-pressed={selectedSport === 'All'}
             onClick={() => setSelectedSport('All')}
             className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
             style={selectedSport === 'All'
@@ -481,6 +472,7 @@ const StravaStatsContent = () => {
             return (
               <button
                 key={sport}
+                aria-pressed={selectedSport === sport}
                 onClick={() => setSelectedSport(sport)}
                 className="px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-1.5"
                 style={selectedSport === sport
@@ -495,21 +487,34 @@ const StravaStatsContent = () => {
         </div>
       )}
 
+      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Période : {periodLabel} · Sport : {selectedSport === 'All' ? 'Tous' : selectedSport}. Ces filtres s’appliquent aux analyses, courbes et tableaux ci-dessous.</p>
+      {loading ? (
+        <p role="status" className="glass-panel p-6">{t('stravaStats.loading')}</p>
+      ) : error ? (
+        <div role="alert" className="glass-panel p-6">
+          <p style={{ color: '#dc2626' }}>{error}</p>
+          {authRequired ? <a href="/strava-connect" className="btn-ghost inline-block mt-3">Reconnecter Strava</a> : <button onClick={fetchActivities} className="btn-ghost mt-3">Réessayer le chargement</button>}
+        </div>
+      ) : filteredActivities.length === 0 ? (
+        <div role="status" className="glass-panel p-6">
+          <p>Aucune activité pour cette période et ce sport. Changez la période ou synchronisez vos activités.</p>
+          {selectedSport !== 'All' && <button onClick={() => setSelectedSport('All')} className="btn-ghost mt-3">Afficher tous les sports</button>}
+        </div>
+      ) : (<>
+      <DataAnalysisHub activities={filteredActivities} />
       <YearlyProgress activities={activities} selectedSport={selectedSport} />
 
       <div className="glass-panel p-6">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
           <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-            <TrendingUp size={20} className="text-[#0055ff]" /> {t('stravaStats.globalProgression')}
+            <TrendingUp size={20} className="text-[#0055ff]" /> Distance cumulée sur la période
           </h3>
           {filteredGlobalProgression.length > 0 && (
             <div className="flex items-baseline gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
               <span>
                 <span className="opacity-70">Période :</span>{' '}
                 <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>
-                  {new Date(filteredGlobalProgression[0].fullDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                  {' → '}
-                  {new Date(filteredGlobalProgression[filteredGlobalProgression.length - 1].fullDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                  {periodLabel}
                 </span>
               </span>
               <span>
@@ -556,11 +561,11 @@ const StravaStatsContent = () => {
                 {...darkTooltipProps}
                 labelFormatter={(ts) => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
                 formatter={(value, name, payload) => {
-                  if (name === 'cumulativeDistance') {
+                  if (payload?.dataKey === 'cumulativeDistance') {
                     const activity = payload?.payload?.name || '';
                     const dailyDistance = payload?.payload?.distance;
                     return [
-                      `${value.toLocaleString('fr-FR')} km cumulés${dailyDistance ? ` (+${dailyDistance} km ce jour)` : ''}`,
+                      `${value.toLocaleString('fr-FR')} km cumulés${dailyDistance ? ` (+${dailyDistance} km pour cette activité)` : ''}`,
                       activity ? `Activité : ${activity}` : 'Distance cumulée',
                     ];
                   }
@@ -568,11 +573,12 @@ const StravaStatsContent = () => {
                 }}
               />
               <Area
-                type="monotone"
+                type="stepAfter"
                 dataKey="cumulativeDistance"
                 stroke="#0055ff"
                 strokeWidth={2.5}
                 fill="url(#cumulGradient)"
+                dot={filteredGlobalProgression.length === 1 ? { r: 4 } : false}
                 activeDot={{ r: 6, stroke: '#0055ff', strokeWidth: 2, fill: '#fff' }}
                 name="Distance cumulée"
               />
@@ -580,7 +586,7 @@ const StravaStatsContent = () => {
           </ResponsiveContainer>
         </div>
         <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
-          Distance totale parcourue depuis ta première activité Strava. Chaque marche correspond à une sortie.
+          Distance cumulée à partir des activités de la période sélectionnée, pour {selectedSport === 'All' ? 'tous les sports' : selectedSport}. Le cumul repart de zéro pour la période ; chaque marche correspond à une activité.
           Survole la courbe pour voir le détail de chaque activité.
         </p>
       </div>
@@ -589,24 +595,27 @@ const StravaStatsContent = () => {
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <Activity size={20} className="text-[#00f3ff]" /> {t('stravaStats.progressionBySport')}
         </h3>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Distances cumulées par sport sur la période sélectionnée · {selectedSport === 'All' ? 'Tous les sports' : selectedSport}.</p>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <LineChart data={sportChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" stroke="#a8a29e" />
-              <YAxis stroke="#a8a29e" />
+              <XAxis dataKey="timestamp" type="number" domain={['dataMin', 'dataMax']} stroke="#a8a29e" minTickGap={60} tickFormatter={ts => new Date(ts).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })} />
+              <YAxis stroke="#a8a29e" unit=" km" />
               <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(19,16,20,0.97)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,85,255,0.2)', color: 'var(--text-primary)' }}
+                {...darkTooltipProps}
+                labelFormatter={ts => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                formatter={(value, name) => [`${Number(value).toLocaleString('fr-FR')} km`, name]}
               />
               <Legend />
-              {sportsList.map((sport, index) => (
+              {visibleSports.map((sport) => (
                 <Line
                   key={sport}
-                  type="monotone"
+                  type="stepAfter"
                   dataKey={sport}
-                  stroke={colors[index % colors.length]}
+                  stroke={colors[sportsList.indexOf(sport) % colors.length]}
                   strokeWidth={2}
-                  dot={false}
+                  dot={sportChartData.length === 1 ? { r: 3 } : false}
                 />
               ))}
             </LineChart>
@@ -618,9 +627,11 @@ const StravaStatsContent = () => {
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <Heart size={20} className="text-[#ec4899]" /> {t('stravaStats.heartRateEvolution')}
         </h3>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Chaque point représente la fréquence cardiaque moyenne d’une activité, pas une mesure instantanée ni une moyenne pondérée par durée. Les activités sans mesure sont exclues ({heartRateData.length} sur {filteredGlobalProgression.length} activités).</p>
+        {heartRateData.length === 0 ? <p role="status" className="py-10 text-center" style={{ color: 'var(--text-muted)' }}>Aucune fréquence cardiaque disponible pour cette période et ce sport.</p> : (
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%" debounce={150}>
-            <LineChart data={filteredGlobalProgression.filter(d => d.bpm > 0)}>
+            <LineChart data={heartRateData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis
                 dataKey="timestamp"
@@ -643,27 +654,28 @@ const StravaStatsContent = () => {
                 labelFormatter={(ts) => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
                 formatter={(v, _n, p) => [`${v} bpm`, p?.payload?.name || 'FC moyenne']}
               />
-              <Line type="monotone" dataKey="bpm" stroke="#ec4899" strokeWidth={2} dot={{ r: 3, fill: '#ec4899' }} activeDot={{ r: 6 }} />
+              <Line type="linear" dataKey="bpm" stroke="#ec4899" strokeWidth={2} dot={{ r: 3, fill: '#ec4899' }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
+        )}
       </div>
 
       <div className="glass-panel p-6">
         <h3 className="text-lg font-bold mb-6" style={{ color: 'var(--text-secondary)' }}>{t('stravaStats.globalProgressionTable')}</h3>
-        <div className="max-h-96 overflow-y-auto custom-scrollbar">
+        <div className="max-h-96 overflow-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10" style={{ background: 'rgba(212,197,169,0.9)', backdropFilter: 'blur(8px)' }}>
               <tr className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--glass-border)' }}>
                 <th className="p-4 font-medium">{t('stravaStats.date')}</th>
                 <th className="p-4 font-medium">{t('stravaStats.activity')}</th>
                 <th className="p-4 font-medium">{t('stravaStats.type')}</th>
-                <th className="p-4 font-medium text-right">{t('stravaStats.distance')}</th>
-                <th className="p-4 font-medium text-right text-[#0055ff]">{t('stravaStats.cumulative')}</th>
+                <th className="p-4 font-medium text-right">{t('stravaStats.distance')} (km)</th>
+                <th className="p-4 font-medium text-right text-[#0055ff]">{t('stravaStats.cumulative')} (km)</th>
               </tr>
             </thead>
             <tbody className="text-sm">
-              {globalProgression.slice().reverse().map((entry, index) => (
+              {filteredGlobalProgression.slice().reverse().map((entry, index) => (
                 <tr key={index} className="hover:bg-white/20 transition-colors" style={{ borderBottom: '1px solid var(--glass-border)' }}>
                   <td className="p-4 whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.fullDate)}</td>
                   <td className="p-4 font-bold" style={{ color: 'var(--text-primary)' }}>{entry.name}</td>
@@ -687,10 +699,12 @@ const StravaStatsContent = () => {
           <div className="flex items-center gap-2">
             <Filter size={16} style={{ color: 'var(--text-muted)' }} />
             <select
+              aria-label="Sport affiché dans les analyses et tableaux"
               value={selectedSport}
               onChange={(e) => setSelectedSport(e.target.value)}
               className="input-cyber rounded-lg px-3 py-1 text-sm focus:border-[#0055ff] outline-none"
             >
+              <option value="All">Tous les sports</option>
               {sportsList.map(sport => (
                 <option key={sport} value={sport}>{sport}</option>
               ))}
@@ -698,22 +712,23 @@ const StravaStatsContent = () => {
           </div>
         </div>
 
-        <div className="max-h-96 overflow-y-auto custom-scrollbar">
+        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Le cumul de chaque ligne concerne son sport uniquement, depuis le début de la période sélectionnée.</p>
+        <div className="max-h-96 overflow-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10" style={{ background: 'rgba(212,197,169,0.9)', backdropFilter: 'blur(8px)' }}>
               <tr className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--glass-border)' }}>
                 <th className="p-4 font-medium">{t('stravaStats.date')}</th>
                 <th className="p-4 font-medium">{t('stravaStats.activity')}</th>
-                <th className="p-4 font-medium text-right">{t('stravaStats.distance')}</th>
-                <th className="p-4 font-medium text-right" style={{ color: 'var(--accent-blue)' }}>{t('stravaStats.sportCumulative')}</th>
+                <th className="p-4 font-medium text-right">{t('stravaStats.distance')} (km)</th>
+                <th className="p-4 font-medium text-right" style={{ color: 'var(--accent-blue)' }}>{t('stravaStats.sportCumulative')} (km)</th>
               </tr>
             </thead>
             <tbody className="text-sm">
-              {selectedSport && sportProgression[selectedSport] ? (
-                sportProgression[selectedSport].map((entry, index) => (
+              {sportTableData.length > 0 ? (
+                sportTableData.map((entry, index) => (
                   <tr key={index} className="hover:bg-white/20 transition-colors" style={{ borderBottom: '1px solid var(--glass-border)' }}>
                     <td className="p-4 whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.fullDate)}</td>
-                    <td className="p-4 font-bold" style={{ color: 'var(--text-primary)' }}>{entry.name}</td>
+                    <td className="p-4 font-bold" style={{ color: 'var(--text-primary)' }}>{entry.name} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>· {entry.type}</span></td>
                     <td className="p-4 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{entry.distance}</td>
                     <td className="p-4 text-right font-mono font-bold" style={{ color: 'var(--accent-blue)' }}>{entry.cumulativeDistance}</td>
                   </tr>
@@ -726,6 +741,8 @@ const StravaStatsContent = () => {
         </div>
       </div>
 
+      </>)}
+      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Les modules suivants conservent leurs propres réglages et ne sont pas filtrés par le sport sélectionné ci-dessus.</p>
       {/* Charge d'entraînement */}
       <TrainingLoad />
 

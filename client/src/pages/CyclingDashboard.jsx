@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -156,20 +156,20 @@ function PeriodFilter({ value, setValue }) {
     <Section title="Filtres de période" icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />}>
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-3 lg:items-end">
         <div className="lg:col-span-2">
-          <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Période</label>
-          <select value={value.period} onChange={(event) => update('period', event.target.value)} className="input-cyber">
+          <label htmlFor="cycling-period" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Période</label>
+          <select id="cycling-period" value={value.period} onChange={(event) => update('period', event.target.value)} className="input-cyber">
             {PERIODS.map(period => <option key={period.value} value={period.value}>{period.label}</option>)}
           </select>
         </div>
         {value.period === 'CUSTOM' && (
           <>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Début</label>
-              <input type="date" value={value.from} onChange={(event) => update('from', event.target.value)} className="input-cyber" />
+              <label htmlFor="cycling-from" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Début</label>
+              <input id="cycling-from" type="date" value={value.from} onChange={(event) => update('from', event.target.value)} className="input-cyber" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Fin</label>
-              <input type="date" value={value.to} onChange={(event) => update('to', event.target.value)} className="input-cyber" />
+              <label htmlFor="cycling-to" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Fin</label>
+              <input id="cycling-to" type="date" value={value.to} onChange={(event) => update('to', event.target.value)} className="input-cyber" />
             </div>
           </>
         )}
@@ -481,8 +481,10 @@ function PowerSection({ data, activities, weeklyStats }) {
   );
 }
 
-function CadenceSection({ activities, weeklyStats }) {
-  const cadenceActivities = activities.filter(a => a.averageCadence);
+function CadenceSection({ activities }) {
+  const cadenceActivities = activities.filter(a => isNumber(a.averageCadence) && a.averageCadence > 0);
+  const cadenceScatter = cadenceActivities.filter(a => isNumber(a.averageSpeedKmh) && a.averageSpeedKmh > 0);
+  const cadencePower = cadenceActivities.filter(a => isNumber(a.averageWatts) && a.averageWatts > 0);
   if (!cadenceActivities.length) {
     return (
       <Section title="Cadence" icon={<Gauge className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside="Données cadence indisponibles">
@@ -504,19 +506,21 @@ function CadenceSection({ activities, weeklyStats }) {
             </LineChart>
           </ResponsiveContainer>
         </ChartBox>
-        <ChartBox empty={weeklyStats.filter(w => w.activityCount).length < 2 && 'Pas assez de semaines.'}>
+        <ChartBox empty={cadenceScatter.length < 2 && 'Pas assez de sorties avec cadence et vitesse.'}>
           <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="averageCadence" name="Cadence" tickFormatter={formatCadence} type="number" />
               <YAxis dataKey="averageSpeedKmh" name="Vitesse" tickFormatter={formatSpeed} type="number" width={76} />
               <Tooltip {...chartTooltip} formatter={(value, name) => [name === 'Vitesse' ? formatSpeed(value) : formatCadence(value), name]} />
-              <Scatter data={cadenceActivities.filter(a => a.averageSpeedKmh)} fill="#16a34a" name="Cadence vs vitesse" />
+              <Scatter data={cadenceScatter} fill="#16a34a" name="Cadence vs vitesse" />
             </ScatterChart>
           </ResponsiveContainer>
         </ChartBox>
-        <ScatterPanel data={cadenceActivities.filter(a => a.averageWatts)} xKey="averageCadence" yKey="averageWatts" xLabel="Cadence" yLabel="Puissance" xFormatter={formatCadence} yFormatter={formatPower} color="#f97316" empty="Pas assez de points cadence vs puissance." />
+        <ScatterPanel data={cadencePower} xKey="averageCadence" yKey="averageWatts" xLabel="Cadence" yLabel="Puissance" xFormatter={formatCadence} yFormatter={formatPower} color="#f97316" empty="Pas assez de points cadence vs puissance." />
       </div>
+      {!cadenceScatter.length && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pas assez de sorties avec vitesse exploitable pour comparer cadence et vitesse.</p>}
+      {!cadencePower.length && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pas assez de sorties avec puissance exploitable pour comparer cadence et puissance.</p>}
     </Section>
   );
 }
@@ -529,7 +533,7 @@ function TrainingLoadSection({ weeklyStats, ratios, status }) {
       ? 'Charge principalement estimée depuis la fréquence cardiaque.'
       : 'Charge estimée : précision limitée si puissance, FTP ou cardio sont absents.';
   return (
-    <Section title="Charge d’entraînement" icon={<ShieldAlert className="w-5 h-5" style={{ color: '#f97316' }} />} aside={latest?.ratio ? `${latest.status} · ratio ${latest.ratio}` : note}>
+    <Section title="Charge d’entraînement" icon={<ShieldAlert className="w-5 h-5" style={{ color: '#f97316' }} />} aside={isNumber(latest?.ratio) ? `${latest.status} · ratio ${latest.ratio}` : note}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartBox empty={!weeklyStats.length && 'Pas assez de données de charge.'}>
           <ResponsiveContainer width="100%" height="100%" debounce={150}>
@@ -542,9 +546,9 @@ function TrainingLoadSection({ weeklyStats, ratios, status }) {
             </BarChart>
           </ResponsiveContainer>
         </ChartBox>
-        <ChartBox empty={ratios.filter(r => r.ratio).length < 2 && 'Le ratio nécessite plusieurs semaines.'}>
+        <ChartBox empty={ratios.filter(r => isNumber(r.ratio)).length < 2 && 'Le ratio nécessite plusieurs semaines.'}>
           <ResponsiveContainer width="100%" height="100%" debounce={150}>
-            <LineChart data={ratios.filter(r => r.ratio)}>
+            <LineChart data={ratios.filter(r => isNumber(r.ratio))}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis />
@@ -568,11 +572,12 @@ function LongRidesSection({ longRides }) {
           <LineChart data={longRides}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(19,16,20,0.08)" />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-            <YAxis unit=" km" />
-            <Tooltip {...chartTooltip} formatter={(value, name) => name === 'shareOfWeeklyVolume' ? [`${Math.round(value * 100)} %`, 'Part volume'] : [formatDistance(value), 'Sortie longue']} />
+            <YAxis yAxisId="distance" unit=" km" label={{ value: 'Distance (km)', angle: -90, position: 'insideLeft' }} />
+            <YAxis yAxisId="share" orientation="right" domain={[0, 'auto']} tickFormatter={value => `${Math.round(value * 100)} %`} label={{ value: 'Part du volume (%)', angle: 90, position: 'insideRight' }} />
+            <Tooltip {...chartTooltip} formatter={(value, name, item) => item.dataKey === 'shareOfWeeklyVolume' ? [`${Math.round(value * 100)} %`, name] : [formatDistance(value), name]} />
             <Legend />
-            <Line type="monotone" dataKey="longRideDistanceKm" stroke="#16a34a" strokeWidth={2} name="Distance longue" />
-            <Line type="monotone" dataKey="shareOfWeeklyVolume" stroke="#f97316" strokeWidth={2} name="Part volume" />
+            <Line yAxisId="distance" type="monotone" connectNulls={false} dataKey="longRideDistanceKm" stroke="#16a34a" strokeWidth={2} name="Distance longue (km)" />
+            <Line yAxisId="share" type="monotone" connectNulls={false} dataKey="shareOfWeeklyVolume" stroke="#f97316" strokeWidth={2} name="Part du volume hebdomadaire" />
           </LineChart>
         </ResponsiveContainer>
       </ChartBox>
@@ -710,6 +715,7 @@ function ActivitiesTable({ activities, weightAvailable }) {
     return sort.dir === 'asc' ? av - bv : bv - av;
   }), [filtered, sort]);
   const pages = Math.max(1, Math.ceil(sorted.length / perPage));
+  useEffect(() => setPage(current => Math.min(current, pages)), [pages]);
   const visible = sorted.slice((page - 1) * perPage, page * perPage);
   const setFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -719,16 +725,16 @@ function ActivitiesTable({ activities, weightAvailable }) {
   return (
     <Section title="Tableau détaillé des sorties" icon={<Activity className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside={`${filtered.length} sortie(s) affichée(s)`}>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-        <input className="input-cyber" type="number" min="0" placeholder="Distance min (km)" value={filters.min} onChange={e => setFilter('min', e.target.value)} />
-        <input className="input-cyber" type="number" min="0" placeholder="Distance max (km)" value={filters.max} onChange={e => setFilter('max', e.target.value)} />
+        <label className="sr-only" htmlFor="cycling-distance-min">Distance minimale (km)</label><input id="cycling-distance-min" aria-label="Distance minimale (km)" className="input-cyber" type="number" min="0" placeholder="Distance min (km)" value={filters.min} onChange={e => setFilter('min', e.target.value)} />
+        <label className="sr-only" htmlFor="cycling-distance-max">Distance maximale (km)</label><input id="cycling-distance-max" aria-label="Distance maximale (km)" className="input-cyber" type="number" min="0" placeholder="Distance max (km)" value={filters.max} onChange={e => setFilter('max', e.target.value)} />
         <select className="input-cyber" value={filters.mode} onChange={e => setFilter('mode', e.target.value)}>
           <option value="all">Toutes les sorties</option>
           <option value="withHr">Avec cardio uniquement</option>
           <option value="withPower">Avec puissance uniquement</option>
           <option value="measuredPower">Puissance mesurée uniquement</option>
-          <option value="long">Sorties longues</option>
-          <option value="fast">Sorties rapides</option>
-          <option value="elevation">Sorties avec dénivelé</option>
+          <option value="long">Sorties longues (≥ 60 km)</option>
+          <option value="fast">Sorties rapides (≥ 28 km/h)</option>
+          <option value="elevation">Sorties avec dénivelé (≥ 500 m)</option>
           <option value="road">Route uniquement</option>
           <option value="gravel">Gravel uniquement</option>
           <option value="virtual">Virtuel uniquement</option>
@@ -746,8 +752,8 @@ function ActivitiesTable({ activities, weightAvailable }) {
                 ['maxHeartRate', 'FC max'], ['averageWatts', 'Watts'], ['weightedAverageWatts', 'Weighted'], ['averagePowerToWeight', 'W/kg'],
                 ['averageCadence', 'Cadence'], ['kilojoules', 'kJ'], ['calories', 'Calories'], ['trainingLoad', 'Charge'], ['deviceName', 'Appareil'],
               ].map(([key, label]) => (
-                <th key={key} className={`py-3 px-3 ${key === 'name' || key === 'deviceName' ? 'text-left' : 'text-right'}`}>
-                  <button type="button" onClick={() => !['name', 'deviceName', 'rideType'].includes(key) ? sortBy(key) : null} className="font-bold">{label}</button>
+                <th key={key} aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={`py-3 px-3 ${key === 'name' || key === 'deviceName' ? 'text-left' : 'text-right'}`}>
+                  {!['name', 'deviceName', 'rideType'].includes(key) ? <button type="button" onClick={() => sortBy(key)} className="font-bold">{label}{sort.key === key ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</button> : <span className="font-bold">{label}</span>}
                 </th>
               ))}
             </tr>
@@ -789,28 +795,51 @@ function ActivitiesTable({ activities, weightAvailable }) {
 
 export default function CyclingDashboard() {
   const [period, setPeriod] = useState({ period: '90D', from: '', to: '', includeGravel: true, includeVirtual: false, includeEbike: false });
-  const [data, setData] = useState(null);
+  const [storedData, setData] = useState(null);
+  const [resolvedKey, setResolvedKey] = useState(null);
+  const selectionKey = JSON.stringify(period);
+  const periodRef = useRef(period);
+  useEffect(() => { periodRef.current = period; }, [period]);
+  const data = resolvedKey === selectionKey ? storedData : null;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const requestId = useRef(0);
 
   const load = async () => {
+    const currentRequest = ++requestId.current;
+    const requestedPeriod = periodRef.current;
+    const requestedKey = JSON.stringify(requestedPeriod);
+    const isCurrent = () => currentRequest === requestId.current && requestedKey === JSON.stringify(periodRef.current);
+    if (requestedPeriod.period === 'CUSTOM' && (!requestedPeriod.from || !requestedPeriod.to || requestedPeriod.from > requestedPeriod.to)) return;
     try {
       setLoading(true);
       setError('');
-      const response = await fetchCyclingStats(period);
-      setData(response.data);
+      const response = await fetchCyclingStats(requestedPeriod);
+      if (isCurrent()) {
+        setData(response.data);
+        setResolvedKey(requestedKey);
+      }
     } catch (err) {
-      setError(err.response?.data?.error || 'Impossible de récupérer les activités pour le moment.');
+      if (isCurrent()) setError(err.response?.data?.error || 'Impossible de récupérer les activités pour le moment.');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (period.period === 'CUSTOM') {
+      const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
+      if (!validDate(period.from) || !validDate(period.to) || period.from > period.to) {
+        setLoading(false);
+        setError('Sélectionnez des dates de début et de fin valides, dans le bon ordre.');
+        requestId.current += 1;
+        return;
+      }
+    }
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { requestId.current += 1; };
   }, [period.period, period.from, period.to, period.includeGravel, period.includeVirtual, period.includeEbike]);
 
   const handleSync = async () => {
@@ -828,16 +857,6 @@ export default function CyclingDashboard() {
     }
   };
 
-  if (loading && !data) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#0055ff] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p style={{ color: 'var(--text-muted)' }}>Chargement de l’analyse cyclisme...</p>
-        </div>
-      </div>
-    );
-  }
 
   const notConnected = error.toLowerCase().includes('strava not connected');
   if (notConnected) {
@@ -867,6 +886,8 @@ export default function CyclingDashboard() {
         </div>
       )}
       <PeriodFilter value={period} setValue={setPeriod} />
+      {period.period === 'CUSTOM' && (!period.from || !period.to || period.from > period.to) && <p role="alert" className="text-sm" style={{ color: '#dc2626' }}>Choisissez une date de début et une date de fin valides, puis corrigez l’ordre si nécessaire.</p>}
+      {loading && <p role="status" className="text-sm" style={{ color: 'var(--text-muted)' }}>Actualisation des statistiques…</p>}
 
       {hasNoCyclingAtAll && (
         <div className="glass-panel p-8 text-center">
@@ -884,7 +905,7 @@ export default function CyclingDashboard() {
         </div>
       )}
 
-      {data && !hasNoCyclingAtAll && !hasNoActivityInPeriod && (
+      {data && !loading && !error && !hasNoCyclingAtAll && !hasNoActivityInPeriod && (
         <>
           <Section title="Résumé global" icon={<Sparkles className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} />} aside={data.status?.partialAnalysis ? 'Analyse partielle : cardio ou puissance absents sur certaines sorties.' : 'Données complètes sur la période.'}>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
@@ -905,7 +926,7 @@ export default function CyclingDashboard() {
           <ElevationSection data={data} weeklyStats={data.weeklyStats || []} activities={activities} />
           <HeartRateSection data={data} activities={activities} weeklyStats={data.weeklyStats || []} />
           <PowerSection data={data} activities={activities} weeklyStats={data.weeklyStats || []} />
-          <CadenceSection activities={activities} weeklyStats={data.weeklyStats || []} />
+          <CadenceSection activities={activities} />
           <TrainingLoadSection weeklyStats={data.weeklyStats || []} ratios={data.trainingLoadRatios || []} status={data.status} />
           <LongRidesSection longRides={data.longRides || []} />
           <RegularitySection regularity={data.regularity || {}} weeklyStats={data.weeklyStats || []} />
